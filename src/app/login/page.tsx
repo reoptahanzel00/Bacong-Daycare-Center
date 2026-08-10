@@ -43,19 +43,34 @@ export default function LoginPage() {
         return;
       }
 
-      let userRole = 'worker';
+      let userRole: 'worker' | 'official' | 'barangay_admin' | 'parent' = 'worker';
       const cleanEmail = email.trim().toLowerCase();
-      if (cleanEmail.includes('official')) userRole = 'official';
-      else if (cleanEmail.includes('admin')) userRole = 'barangay_admin';
-      else if (cleanEmail.includes('parent')) userRole = 'parent';
-      else if (data?.user) {
+
+      if (data?.user) {
         const metaRole = data.user.user_metadata?.role;
         const { data: profile } = await supabase
           .from('users')
           .select('role')
           .eq('id', data.user.id)
           .single();
-        userRole = profile?.role || metaRole || 'worker';
+
+        if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
+          userRole = profile.role;
+        } else if (metaRole && ['worker', 'official', 'barangay_admin', 'parent'].includes(metaRole)) {
+          userRole = metaRole;
+        } else if (cleanEmail.includes('official')) {
+          userRole = 'official';
+        } else if (cleanEmail.includes('admin')) {
+          userRole = 'barangay_admin';
+        } else if (cleanEmail.includes('parent')) {
+          userRole = 'parent';
+        } else if (cleanEmail.includes('worker')) {
+          userRole = 'worker';
+        }
+      } else {
+        if (cleanEmail.includes('official')) userRole = 'official';
+        else if (cleanEmail.includes('admin')) userRole = 'barangay_admin';
+        else if (cleanEmail.includes('parent')) userRole = 'parent';
       }
 
       localStorage.setItem('bacong_auth_role', userRole);

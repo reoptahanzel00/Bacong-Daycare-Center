@@ -26,14 +26,21 @@ export async function getServerSession(): Promise<AuthSession> {
       };
     }
 
-    // Retrieve verified role from users table
+    // Retrieve verified role from users table or metadata / email fallback
     const { data: profile } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    const role = (profile?.role as UserRole) || 'worker';
+    let role: UserRole = (profile?.role as UserRole) || (user.user_metadata?.role as UserRole);
+    if (!role) {
+      const email = (user.email || '').toLowerCase();
+      if (email.includes('official')) role = 'official';
+      else if (email.includes('admin')) role = 'barangay_admin';
+      else if (email.includes('parent')) role = 'parent';
+      else role = 'worker';
+    }
 
     return {
       userId: user.id,

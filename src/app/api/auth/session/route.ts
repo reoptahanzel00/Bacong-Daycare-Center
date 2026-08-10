@@ -16,13 +16,22 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
+    let role = profile?.role || user.user_metadata?.role;
+    if (!role) {
+      const email = (user.email || '').toLowerCase();
+      if (email.includes('official')) role = 'official';
+      else if (email.includes('admin')) role = 'barangay_admin';
+      else if (email.includes('parent')) role = 'parent';
+      else role = 'worker';
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: {
         id: user.id,
         email: user.email,
-        role: profile?.role || 'worker',
-        name: profile?.full_name || 'System User',
+        role,
+        name: profile?.full_name || user.user_metadata?.full_name || 'System User',
       },
     });
   } catch (err) {

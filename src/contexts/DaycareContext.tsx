@@ -133,34 +133,49 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     async function loadAuthUserRole() {
       try {
         const savedRole = localStorage.getItem('bacong_auth_role') as UserRole | null;
-        if (savedRole) {
-          setCurrentRoleState(savedRole);
-          if (savedRole === 'official') setActiveTab('overview');
-          else if (savedRole === 'barangay_admin') setActiveTab('users');
-          else if (savedRole === 'parent') setActiveTab('child');
-          else setActiveTab('dashboard');
-        }
 
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
+
+        let resolvedRole: UserRole | null = null;
+
         if (session?.user) {
+          const userEmail = (session.user.email || '').toLowerCase();
           const roleInMeta = session.user.user_metadata?.role as UserRole | undefined;
-          
+
           const { data: profile } = await supabase
             .from('users')
             .select('role')
             .eq('id', session.user.id)
             .single();
 
-          const activeRole = (profile?.role || roleInMeta || 'worker') as UserRole;
-          setCurrentRoleState(activeRole);
-          localStorage.setItem('bacong_auth_role', activeRole);
-
-          if (activeRole === 'official') setActiveTab('overview');
-          else if (activeRole === 'barangay_admin') setActiveTab('users');
-          else if (activeRole === 'parent') setActiveTab('child');
-          else setActiveTab('dashboard');
+          if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
+            resolvedRole = profile.role as UserRole;
+          } else if (roleInMeta && ['worker', 'official', 'barangay_admin', 'parent'].includes(roleInMeta)) {
+            resolvedRole = roleInMeta;
+          } else if (userEmail.includes('official')) {
+            resolvedRole = 'official';
+          } else if (userEmail.includes('admin')) {
+            resolvedRole = 'barangay_admin';
+          } else if (userEmail.includes('parent')) {
+            resolvedRole = 'parent';
+          } else if (userEmail.includes('worker')) {
+            resolvedRole = 'worker';
+          }
         }
+
+        if (!resolvedRole && savedRole && ['worker', 'official', 'barangay_admin', 'parent'].includes(savedRole)) {
+          resolvedRole = savedRole;
+        }
+
+        const activeRole = resolvedRole || 'worker';
+        setCurrentRoleState(activeRole);
+        localStorage.setItem('bacong_auth_role', activeRole);
+
+        if (activeRole === 'official') setActiveTab('overview');
+        else if (activeRole === 'barangay_admin') setActiveTab('users');
+        else if (activeRole === 'parent') setActiveTab('child');
+        else setActiveTab('dashboard');
       } catch (e) {
         console.warn('Auth role hydration warning:', e);
       }

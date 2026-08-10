@@ -14,6 +14,7 @@ import {
   LogOut 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 interface SidebarProps {
   currentRole: string;
@@ -57,9 +58,15 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
 
   const navItems = getNavItems();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Are you sure you want to sign out of your session?')) {
+      try {
+        localStorage.removeItem('bacong_auth_role');
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch {}
       router.push('/login');
+      router.refresh();
     }
   };
 
