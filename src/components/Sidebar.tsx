@@ -16,7 +16,10 @@ import {
   MessageSquare,
   Activity,
   Image,
-  FolderCheck
+  FolderCheck,
+  BellRing,
+  Shield,
+  Utensils
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -37,13 +40,16 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
         return [
           { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard },
           { id: 'reports', label: 'DSWD Form 1 PDF', icon: FileText },
+          { id: 'consecutive_absences', label: 'Absence Telemetry Alerts', icon: BellRing },
+          { id: 'feeding_program', label: 'Feeding Program Tracker', icon: Utensils },
           { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
         ];
       case 'barangay_admin':
         return [
           { id: 'users', label: 'User Provisioning', icon: UserCheck },
-          { id: 'audit_logs', label: 'System Audit Logs', icon: ShieldCheck },
-          { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
+          { id: 'audit_logs', label: 'System Security Audit', icon: ShieldCheck },
+          { id: 'security', label: 'Data Privacy RLS Audit', icon: Shield },
+          { id: 'announcements', label: 'System Notices', icon: Megaphone },
         ];
       case 'parent':
         return [
@@ -60,7 +66,9 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
         return [
           { id: 'dashboard', label: 'Daily Register', icon: CalendarCheck },
           { id: 'pupils', label: 'Enrolled Pupils', icon: Users },
-          { id: 'progress', label: '4-Domain ECCD', icon: TrendingUp },
+          { id: 'progress', label: '109-Item ECCD Tool', icon: TrendingUp },
+          { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
+          { id: 'health_entry', label: 'Nutritional Growth Log', icon: Activity },
           { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
         ];
     }

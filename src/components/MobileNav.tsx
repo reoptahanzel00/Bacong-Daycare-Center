@@ -45,11 +45,13 @@ export default function MobileNav({
   const roleConfigs = {
     worker: {
       title: 'Daycare Worker',
-      badge: 'Teacher Portal',
+      badge: 'Teacher Workspace',
       items: [
+        { id: 'dashboard', label: 'Daily Register', icon: CheckCircle2 },
         { id: 'pupils', label: 'Pupil Roster', icon: Users },
-        { id: 'attendance', label: 'Daily Attendance', icon: CheckCircle2 },
-        { id: 'progress', label: 'ECCD Progress', icon: TrendingUp },
+        { id: 'progress', label: '109-Item ECCD Tool', icon: TrendingUp },
+        { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
+        { id: 'health_entry', label: 'Nutritional Log', icon: Activity },
         { id: 'announcements', label: 'Announcements', icon: Megaphone },
       ]
     },
@@ -58,17 +60,19 @@ export default function MobileNav({
       badge: 'Oversight View',
       items: [
         { id: 'overview', label: 'Executive Overview', icon: Shield },
-        { id: 'attendance_logs', label: 'Attendance Logs', icon: CheckCircle2 },
+        { id: 'reports', label: 'DSWD Form 1 PDF', icon: FileText },
         { id: 'consecutive_absences', label: 'Absence Telemetry', icon: BellRing },
+        { id: 'announcements', label: 'Barangay Notices', icon: Megaphone },
       ]
     },
     barangay_admin: {
       title: 'Barangay Admin',
       badge: 'System Governance',
       items: [
-        { id: 'overview', label: 'Admin Dashboard', icon: UserCheck },
-        { id: 'user_management', label: 'User Provisioning', icon: Users },
-        { id: 'audit_logs', label: 'Audit Trail', icon: FileText },
+        { id: 'users', label: 'User Provisioning', icon: UserCheck },
+        { id: 'audit_logs', label: 'Security Audit Trail', icon: FileText },
+        { id: 'security', label: 'Data Privacy RLS Audit', icon: Shield },
+        { id: 'announcements', label: 'System Notices', icon: Megaphone },
       ]
     },
     parent: {

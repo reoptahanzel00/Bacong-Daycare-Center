@@ -16,10 +16,18 @@ import {
   CalendarCheck,
   BellRing,
   Sparkles,
-  Filter
+  Filter,
+  BookOpen,
+  MessageSquare,
+  Activity,
+  CheckCircle,
+  Send,
+  Heart
 } from 'lucide-react';
 import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
+import { ECCD_DOMAINS } from '@/data/eccdChecklist';
+import { useDaycare } from '@/contexts/DaycareContext';
 
 interface WorkerViewProps {
   activeTab: string;
@@ -52,10 +60,49 @@ export default function WorkerView({
   onArchivePupil,
   onEditPupil
 }: WorkerViewProps) {
+  const { showToast, logAuditAction } = useDaycare();
+
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDomain, setSelectedDomain] = useState('all');
+  const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
   const [selectedPupilDetail, setSelectedPupilDetail] = useState<any>(null);
   const [archiveTargetPupil, setArchiveTargetPupil] = useState<any>(null);
+
+  // ECCD checklist evaluations state
+  const [evaluations, setEvaluations] = useState<Record<string, Record<string, 'P' | 'O' | 'R'>>>({});
+
+  // Parent Notes Inbox State
+  const [inboxNotes, setInboxNotes] = useState<any[]>([
+    {
+      id: 'NOTE-101',
+      pupilId: 'PUP-2026-001',
+      pupilName: 'Maria Santos',
+      date: '2026-02-09',
+      reason: 'Doctor Visit / Checkup',
+      notes: 'Maria had her routine 4-year-old pediatric checkup and immunization update at Barangay Bacong Health Center.',
+      phone: '0917-888-9900',
+      status: 'Excused & Acknowledged',
+      submittedAt: 'Feb 9, 2026 07:45 AM',
+    },
+    {
+      id: 'NOTE-102',
+      pupilId: 'PUP-2026-003',
+      pupilName: 'Juan Santos',
+      date: '2026-02-10',
+      reason: 'Illness / Fever',
+      notes: 'Juan developed a mild fever this morning. Requesting excused absence for today.',
+      phone: '0917-888-9900',
+      status: 'Pending Teacher Review',
+      submittedAt: 'Feb 10, 2026 07:15 AM',
+    }
+  ]);
+
+  // Nutritional Log State
+  const [healthLogs, setHealthLogs] = useState<Record<string, { weight: string; height: string; status: string }>>({
+    'PUP-2026-001': { weight: '14.5', height: '98.5', status: 'Normal' },
+    'PUP-2026-002': { weight: '15.1', height: '100.2', status: 'Normal' },
+    'PUP-2026-003': { weight: '13.8', height: '96.0', status: 'Normal' },
+  });
 
   const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
 
@@ -87,16 +134,6 @@ export default function WorkerView({
     }));
   };
 
-  const handleNotesChange = (pupilId: string, notes: string) => {
-    setDailyAttendanceState(prev => ({
-      ...prev,
-      [pupilId]: {
-        ...prev[pupilId],
-        notes
-      }
-    }));
-  };
-
   const handleSaveRegister = () => {
     const records = Object.keys(dailyAttendanceState).map(pupilId => ({
       pupil_id: pupilId,
@@ -119,14 +156,28 @@ export default function WorkerView({
     setDailyAttendanceState(updatedState);
   };
 
+  const handleAcknowledgeParentNote = (noteId: string, pupilId: string, pupilName: string) => {
+    setInboxNotes(prev => prev.map(n => n.id === noteId ? { ...n, status: 'Excused & Acknowledged' } : n));
+    showToast(`Absence note for ${pupilName} marked as Excused!`, 'success');
+    logAuditAction('Acknowledged Parent Absence Note', pupilId, `Teacher Teresa marked absence note for ${pupilName} as Excused.`);
+  };
+
+  const handleSetECCDItemRating = (pupilId: string, itemId: string, rating: 'P' | 'O' | 'R') => {
+    setEvaluations(prev => ({
+      ...prev,
+      [pupilId]: {
+        ...(prev[pupilId] || {}),
+        [itemId]: rating
+      }
+    }));
+    showToast(`Recorded ECCD rating ${rating} for item ${itemId}.`, 'info');
+  };
+
   const presentCount = Object.values(dailyAttendanceState).filter(r => r.status === 'present').length;
   const lateCount = Object.values(dailyAttendanceState).filter(r => r.status === 'late').length;
   const absentCount = Object.values(dailyAttendanceState).filter(r => r.status === 'absent').length;
 
-  const filteredProgress = progress.filter(item => {
-    if (selectedDomain === 'all') return true;
-    return item.domain === selectedDomain;
-  });
+  const activeDomain = ECCD_DOMAINS.find(d => d.id === selectedDomainId) || ECCD_DOMAINS[0];
 
   return (
     <div className="space-y-6 pb-12" suppressHydrationWarning>
@@ -145,7 +196,7 @@ export default function WorkerView({
               Barangay Bacong ECCD Daily Operations
             </h2>
             <p className="text-xs md:text-sm text-white/90 mt-1.5 leading-relaxed max-w-2xl m-0">
-              Mark daily attendance registers, evaluate 4-domain milestone development, and manage pupil enrollment records.
+              Mark daily attendance registers, evaluate 109 DepEd ECCD milestones, review parent absence notes, and record growth metrics.
             </p>
           </div>
 
@@ -170,10 +221,9 @@ export default function WorkerView({
         </div>
       </div>
 
-      {/* 1. Daily Register View (Active when tab is dashboard or register) */}
+      {/* 1. Daily Register View */}
       {(activeTab === 'dashboard' || activeTab === 'register') && (
         <>
-          {/* Attendance Action Strip */}
           <div className="card bg-[#FEF8EC] border border-[#F5DAA0] p-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -216,55 +266,7 @@ export default function WorkerView({
             </div>
           </div>
 
-          {/* Quick Action Stat Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div
-              className="card bg-white p-4 flex items-center gap-4 cursor-pointer hover:-translate-y-1 transition-all"
-              onClick={onOpenPupilModal}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center shrink-0">
-                <Users size={24} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Pupil Roster</h4>
-                <span className="text-xs text-[#6B6B6B]">{enrolledPupils.length} Enrolled pupils</span>
-              </div>
-              <ChevronRight size={18} className="text-[#9B9B9B]" />
-            </div>
-
-            <div
-              className="card bg-white p-4 flex items-center gap-4 cursor-pointer hover:-translate-y-1 transition-all"
-              onClick={handleSaveRegister}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#EBF8FF] text-[#2B6CB0] flex items-center justify-center shrink-0">
-                <CalendarCheck size={24} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Mark Attendance</h4>
-                <span className="text-xs text-[#6B6B6B]">{presentCount} Present today</span>
-              </div>
-              <ChevronRight size={18} className="text-[#9B9B9B]" />
-            </div>
-
-            <div
-              className="card bg-white p-4 flex items-center gap-4 cursor-pointer hover:-translate-y-1 transition-all"
-              onClick={onOpenProgressModal}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[#FFEBEE] text-[#D32F2F] flex items-center justify-center shrink-0">
-                <TrendingUp size={24} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Record Milestone</h4>
-                <span className="text-xs text-[#6B6B6B]">4 ECD Domains</span>
-              </div>
-              <ChevronRight size={18} className="text-[#9B9B9B]" />
-            </div>
-          </div>
-
-          {/* Main Register Table & Sidebar Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Daily Register Table */}
             <div className="card bg-white p-5 lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -330,7 +332,6 @@ export default function WorkerView({
               </div>
             </div>
 
-            {/* Sidebar Notices Feed */}
             <div className="card bg-white p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-[#2B2B2B] m-0">Daycare Notices</h3>
@@ -355,12 +356,11 @@ export default function WorkerView({
                 ))}
               </div>
             </div>
-
           </div>
         </>
       )}
 
-      {/* 2. Enrolled Pupils Tab (Active when tab is pupils or roster) */}
+      {/* 2. Enrolled Pupils Tab */}
       {(activeTab === 'pupils' || activeTab === 'roster') && (
         <div className="card bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
@@ -429,72 +429,244 @@ export default function WorkerView({
         </div>
       )}
 
-      {/* 3. 4-Domain ECCD Milestone Tab (Active when tab is progress) */}
+      {/* 3. 109-Item DepEd ECCD Checklist Evaluation Tool */}
       {activeTab === 'progress' && (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">4-Domain ECCD Milestone Evaluation Hub</h3>
-              <span className="text-xs text-[#6B6B6B]">Record and inspect early childhood development milestone observations</span>
+              <div className="flex items-center gap-2 mb-1">
+                <BookOpen size={18} className="text-[#2F8F8A]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                  Teacher 109-Item Evaluation Suite
+                </span>
+              </div>
+              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+                109-Item Official ECCD Evaluation Checklist
+              </h3>
+              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+                Evaluate enrolled pupils on official DepEd/DSWD ECCD competency items.
+              </p>
             </div>
+
             <button onClick={onOpenProgressModal} className="btn btn-primary btn-sm font-bold shrink-0" suppressHydrationWarning>
               <TrendingUp size={16} />
               <span>Record Milestone Observation</span>
             </button>
           </div>
 
-          {/* Domain Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-            <span className="font-bold text-[#6B6B6B] flex items-center gap-1 shrink-0">
-              <Filter size={14} /> Filter Domain:
-            </span>
-            {[
-              { id: 'all', label: 'All 4 Domains' },
-              { id: 'Motor Skills', label: '🏃 Motor Skills' },
-              { id: 'Language & Communication', label: '🗣️ Language' },
-              { id: 'Socio-Emotional', label: '🤝 Socio-Emotional' },
-              { id: 'Self-Help & Cognitive', label: '🧠 Self-Help' },
-            ].map(domain => (
-              <button
-                key={domain.id}
-                onClick={() => setSelectedDomain(domain.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer border-none ${
-                  selectedDomain === domain.id
-                    ? 'bg-[#2F8F8A] text-white shadow-sm'
-                    : 'bg-[#F5F3EF] text-[#6B6B6B] hover:bg-[#EAE6DF]'
-                }`}
-                suppressHydrationWarning
-              >
-                {domain.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Observations List */}
-          <div className="space-y-3">
-            {filteredProgress.map((item) => {
-              const pupil = pupils.find(p => p.id === item.pupil_id);
+          {/* Domain Selection Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {ECCD_DOMAINS.map((dom) => {
+              const isSelected = dom.id === selectedDomainId;
               return (
-                <div key={item.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-white flex items-start justify-between text-xs space-x-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#2B2B2B] text-sm">{pupil ? `${pupil.firstName} ${pupil.lastName}` : item.pupil_id}</span>
-                      <span className="badge badge-primary">{item.domain}</span>
-                      <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#FEF8EC] text-[#8A5D00] text-[10px]">
-                        {item.rating}
-                      </span>
-                    </div>
-                    <p className="text-[#4A4A4A] leading-relaxed m-0 text-xs">{item.notes}</p>
-                  </div>
-                  <span className="text-[11px] text-[#9B9B9B] shrink-0 font-semibold">{item.date}</span>
-                </div>
+                <button
+                  key={dom.id}
+                  onClick={() => setSelectedDomainId(dom.id)}
+                  className={`px-3 py-1.5 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-[#2F8F8A] text-white shadow-sm'
+                      : 'bg-[#FAF8F5] text-[#6B6B6B] hover:bg-[#EAE6DF]'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dom.color }}></span>
+                  <span>{dom.shortLabel}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#EAE6DF] text-[#6B6B6B]'}`}>
+                    {dom.items.length}
+                  </span>
+                </button>
               );
             })}
+          </div>
+
+          {/* Active Evaluation Roster */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Evaluating: {activeDomain.label} ({activeDomain.items.length} Items)</h4>
+            {enrolledPupils.slice(0, 3).map((pupil) => (
+              <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <img src={pupil.avatar} alt={pupil.firstName} className="w-9 h-9 rounded-full object-cover" />
+                    <div>
+                      <div className="font-bold text-[#2B2B2B] text-sm">{pupil.firstName} {pupil.lastName}</div>
+                      <span className="text-[10px] text-[#9B9B9B]">{pupil.id} • Room A</span>
+                    </div>
+                  </div>
+                  <span className="badge badge-primary text-[10px]">Baseline Evaluation</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  {activeDomain.items.slice(0, 4).map((item) => {
+                    const currentRating = evaluations[pupil.id]?.[item.id] || 'P';
+                    return (
+                      <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-[#2B2B2B] font-semibold truncate flex-1">{item.number}. {item.description}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleSetECCDItemRating(pupil.id, item.id, 'P')}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer border-none ${
+                              currentRating === 'P' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            P
+                          </button>
+                          <button
+                            onClick={() => handleSetECCDItemRating(pupil.id, item.id, 'O')}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer border-none ${
+                              currentRating === 'O' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            O
+                          </button>
+                          <button
+                            onClick={() => handleSetECCDItemRating(pupil.id, item.id, 'R')}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer border-none ${
+                              currentRating === 'R' ? 'bg-rose-600 text-white' : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            R
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 4. Daycare Notices Tab (Active when tab is announcements) */}
+      {/* 4. Parent Absence Notes Inbox */}
+      {activeTab === 'parent_notes_inbox' && (
+        <div className="card bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <MessageSquare size={18} className="text-[#2F8F8A]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                  Guardian Communication Portal
+                </span>
+              </div>
+              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+                Parent Absence Notes Inbox
+              </h3>
+              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+                Review and acknowledge absence excusal notes submitted by parents.
+              </p>
+            </div>
+            <span className="badge badge-primary font-bold">{inboxNotes.length} Messages Received</span>
+          </div>
+
+          <div className="space-y-3">
+            {inboxNotes.map((note) => (
+              <div key={note.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[#2B2B2B] text-sm">{note.pupilName} ({note.pupilId})</span>
+                    <span className="badge badge-warning text-[10px]">{note.date}</span>
+                    <span className="badge badge-primary text-[10px]">{note.reason}</span>
+                  </div>
+                  <p className="text-[#4A4A4A] leading-relaxed m-0 text-xs">{note.notes}</p>
+                  <span className="text-[10px] text-[#9B9B9B]">Submitted: {note.submittedAt} • Phone: {note.phone}</span>
+                </div>
+
+                <div className="shrink-0">
+                  {note.status === 'Excused & Acknowledged' ? (
+                    <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1">
+                      <CheckCircle size={14} /> Excused & Acknowledged
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleAcknowledgeParentNote(note.id, note.pupilId, note.pupilName)}
+                      className="btn btn-primary btn-sm font-bold shadow-md"
+                      suppressHydrationWarning
+                    >
+                      <CheckCircle size={14} />
+                      <span>Acknowledge & Mark Excused</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. Pupil Nutritional & Growth Log */}
+      {activeTab === 'health_entry' && (
+        <div className="card bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Activity size={18} className="text-[#2F8F8A]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                  Early Childhood Health Telemetry
+                </span>
+              </div>
+              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+                Pupil Nutritional & Growth Telemetry Entry
+              </h3>
+              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+                Record height (cm) and weight (kg) measurements for DSWD Form 1 nutritional status tracking.
+              </p>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Pupil Name</th>
+                  <th>Weight (kg)</th>
+                  <th>Height (cm)</th>
+                  <th>Nutritional Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {enrolledPupils.map((pupil) => {
+                  const log = healthLogs[pupil.id] || { weight: '14.2', height: '98.0', status: 'Normal' };
+                  return (
+                    <tr key={pupil.id}>
+                      <td className="font-bold text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</td>
+                      <td>
+                        <input
+                          type="text"
+                          defaultValue={log.weight}
+                          className="w-20 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          defaultValue={log.height}
+                          className="w-20 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
+                        />
+                      </td>
+                      <td>
+                        <span className="badge badge-success">{log.status}</span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => {
+                            showToast(`Updated health record for ${pupil.firstName}!`, 'success');
+                            logAuditAction('Updated Pupil Health Log', pupil.id, 'Recorded weight and height measurement.');
+                          }}
+                          className="btn btn-secondary btn-sm text-xs"
+                        >
+                          Save Log
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Daycare Notices Tab */}
       {activeTab === 'announcements' && (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex items-center justify-between">
@@ -511,15 +683,11 @@ export default function WorkerView({
           <div className="space-y-3.5">
             {announcements.map((notice) => (
               <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#2F8F8A] text-sm">{notice.title}</span>
-                  <span className="text-[11px] text-[#9B9B9B] font-semibold">{notice.date}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#2F8F8A]">{notice.title}</span>
+                  <span className="text-[11px] text-[#9B9B9B]">{notice.date}</span>
                 </div>
                 <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
-                <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px]">
-                  <span className="badge badge-warning">Broadcasted to Parent Portal</span>
-                  <span className="text-[#9B9B9B]">Author: Lead Daycare Worker</span>
-                </div>
               </div>
             ))}
           </div>

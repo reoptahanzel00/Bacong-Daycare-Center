@@ -93,6 +93,8 @@ function AppContent() {
                 pupils={pupils}
                 attendance={attendance}
                 progress={progress}
+                activeTab={activeTab}
+                announcements={announcements}
                 onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
               />
             )}
@@ -101,6 +103,8 @@ function AppContent() {
               <AdminView
                 users={users}
                 auditLogs={auditLogs}
+                activeTab={activeTab}
+                announcements={announcements}
                 onOpenUserModal={() => setIsUserModalOpen(true)}
                 onToggleUserStatus={handleToggleUserStatus}
               />
