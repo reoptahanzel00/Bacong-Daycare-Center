@@ -108,6 +108,17 @@ export default function WorkerView({
     onSaveAttendance(records, selectedDate);
   };
 
+  const handleMarkAllPresent = () => {
+    const updatedState = { ...dailyAttendanceState };
+    enrolledPupils.forEach(pupil => {
+      updatedState[pupil.id] = {
+        status: 'present',
+        notes: updatedState[pupil.id]?.notes || ''
+      };
+    });
+    setDailyAttendanceState(updatedState);
+  };
+
   const presentCount = Object.values(dailyAttendanceState).filter(r => r.status === 'present').length;
   const lateCount = Object.values(dailyAttendanceState).filter(r => r.status === 'late').length;
   const absentCount = Object.values(dailyAttendanceState).filter(r => r.status === 'absent').length;
@@ -177,7 +188,15 @@ export default function WorkerView({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  onClick={handleMarkAllPresent}
+                  className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Quick mark all enrolled pupils as Present"
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Mark All Present</span>
+                </button>
                 <input
                   type="date"
                   value={selectedDate}
