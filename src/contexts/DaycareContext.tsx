@@ -11,6 +11,7 @@ import {
   getStoredData,
   saveStoredData,
 } from '@/data/mockData';
+import { createClient } from '@/lib/supabase/client';
 
 // Local-compatible types (matching mockData shape)
 type MockPupil = typeof INITIAL_PUPILS[0];
@@ -101,7 +102,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isDSWDReportModalOpen, setIsDSWDReportModalOpen] = useState(false);
 
-  // Hydrate from localStorage on mount
+  // Hydrate from localStorage & load Supabase session role on mount
   useEffect(() => {
     setPupils(getStoredData('pupils', INITIAL_PUPILS));
     setAttendance(getStoredData('attendance', INITIAL_ATTENDANCE));
@@ -110,6 +111,44 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     setUsers(getStoredData('users', INITIAL_USERS));
     setAuditLogs(getStoredData('audit_logs', INITIAL_AUDIT_LOGS));
     setIsHydrated(true);
+
+    async function loadAuthUserRole() {
+      try {
+        const savedRole = localStorage.getItem('bacong_auth_role') as UserRole | null;
+        if (savedRole) {
+          setCurrentRoleState(savedRole);
+          if (savedRole === 'official') setActiveTab('overview');
+          else if (savedRole === 'barangay_admin') setActiveTab('users');
+          else if (savedRole === 'parent') setActiveTab('child');
+          else setActiveTab('dashboard');
+        }
+
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const roleInMeta = session.user.user_metadata?.role as UserRole | undefined;
+          
+          const { data: profile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+          const activeRole = (profile?.role || roleInMeta || 'worker') as UserRole;
+          setCurrentRoleState(activeRole);
+          localStorage.setItem('bacong_auth_role', activeRole);
+
+          if (activeRole === 'official') setActiveTab('overview');
+          else if (activeRole === 'barangay_admin') setActiveTab('users');
+          else if (activeRole === 'parent') setActiveTab('child');
+          else setActiveTab('dashboard');
+        }
+      } catch (e) {
+        console.warn('Auth role hydration warning:', e);
+      }
+    }
+
+    loadAuthUserRole();
   }, []);
 
   // Persist to localStorage whenever data changes

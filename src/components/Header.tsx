@@ -132,6 +132,7 @@ export default function Header({
           onClick={async () => {
             if (confirm('Are you sure you want to log out of your session?')) {
               try {
+                localStorage.removeItem('bacong_auth_role');
                 const supabase = createClient();
                 await supabase.auth.signOut();
               } catch {}

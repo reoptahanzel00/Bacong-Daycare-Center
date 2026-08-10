@@ -43,6 +43,18 @@ export default function LoginPage() {
         return;
       }
 
+      if (data?.user) {
+        const metaRole = data.user.user_metadata?.role;
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        const userRole = profile?.role || metaRole || 'worker';
+        localStorage.setItem('bacong_auth_role', userRole);
+      }
+
       // Successful login -> Redirect to main dashboard
       router.push('/');
       router.refresh();
