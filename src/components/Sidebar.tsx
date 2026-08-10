@@ -11,7 +11,12 @@ import {
   FileText, 
   UserCheck, 
   Heart, 
-  LogOut 
+  LogOut,
+  BookOpen,
+  MessageSquare,
+  Activity,
+  Image,
+  FolderCheck
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -43,6 +48,11 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
       case 'parent':
         return [
           { id: 'child', label: 'My Child Portal', icon: Heart },
+          { id: 'eccd_checklist', label: '109-Item ECCD Checklist', icon: BookOpen },
+          { id: 'parent_notes', label: 'Teacher Messages & Notes', icon: MessageSquare },
+          { id: 'health_tracker', label: 'Nutritional & Growth Tracker', icon: Activity },
+          { id: 'gallery', label: 'Classroom Moments', icon: Image },
+          { id: 'documents', label: 'Documents & Requirements', icon: FolderCheck },
           { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
         ];
       case 'worker':

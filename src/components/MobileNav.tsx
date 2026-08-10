@@ -14,7 +14,12 @@ import {
   School,
   Calendar,
   BellRing,
-  Sparkles
+  Sparkles,
+  BookOpen,
+  MessageSquare,
+  Activity,
+  Image,
+  FolderCheck
 } from 'lucide-react';
 import type { UserRole } from '@/contexts/DaycareContext';
 
@@ -71,8 +76,11 @@ export default function MobileNav({
       badge: 'Family Portal',
       items: [
         { id: 'child', label: 'Child Profile', icon: Heart },
-        { id: 'attendance', label: 'Attendance Calendar', icon: Calendar },
-        { id: 'progress', label: 'Milestone Progress', icon: TrendingUp },
+        { id: 'eccd_checklist', label: '109-Item ECCD Checklist', icon: BookOpen },
+        { id: 'parent_notes', label: 'Teacher Messages', icon: MessageSquare },
+        { id: 'health_tracker', label: 'Nutritional & Growth', icon: Activity },
+        { id: 'gallery', label: 'Classroom Moments', icon: Image },
+        { id: 'documents', label: 'Requirements', icon: FolderCheck },
         { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
       ]
     }
