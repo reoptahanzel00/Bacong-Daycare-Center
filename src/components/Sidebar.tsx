@@ -93,8 +93,9 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
       
       {/* Navigation Links */}
       <div className="space-y-1">
-        <div className="px-3 py-2 text-[10px] font-bold text-[#9B9B9B] uppercase tracking-wider">
-          {currentRole.replace('_', ' ')} Navigation
+        <div className="px-3 py-2 text-[10px] font-extrabold text-[#9B9B9B] uppercase tracking-wider flex items-center justify-between">
+          <span>{currentRole.replace('_', ' ')} Rail</span>
+          <span className="w-2 h-2 rounded-full bg-[#2F8F8A] animate-pulse"></span>
         </div>
 
         {navItems.map((item) => {
@@ -105,10 +106,10 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-3 transition-all cursor-pointer border-none text-left ${
+              className={`w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-3 transition-all duration-200 cursor-pointer border-none text-left ${
                 isActive
-                  ? 'bg-[#EBF5F4] text-[#2F8F8A] shadow-sm'
-                  : 'text-[#6B6B6B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B]'
+                  ? 'bg-[#EBF5F4] text-[#2F8F8A] shadow-sm translate-x-1'
+                  : 'text-[#6B6B6B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] hover:translate-x-1'
               }`}
               suppressHydrationWarning
             >

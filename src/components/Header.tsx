@@ -66,8 +66,22 @@ export default function Header({
 
 
 
+  const getRoleBadgeStyle = (role: string) => {
+    switch (role) {
+      case 'official':
+        return 'bg-blue-50 text-blue-800 border-blue-200';
+      case 'barangay_admin':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'parent':
+        return 'bg-[#FFEBEE] text-[#D96B4D] border-[#FFCDD2]';
+      case 'worker':
+      default:
+        return 'bg-[#EBF5F4] text-[#2F8F8A] border-[#2F8F8A]/30';
+    }
+  };
+
   return (
-    <header className="header-bar bg-white border-b border-[#E6E4DF] px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-sm relative">
+    <header className="header-bar bg-white/90 backdrop-blur-md border-b border-[#E6E4DF] px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-sm relative">
       <div className="flex items-center gap-3.5">
         {onOpenMobileNav && (
           <button
@@ -92,7 +106,7 @@ export default function Header({
       </div>
 
       {currentRole !== 'parent' && (
-        <div className="relative w-64">
+        <div className="relative w-48 sm:w-64">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -108,8 +122,8 @@ export default function Header({
       <div className="flex items-center gap-3">
         
         {/* Role Badge */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF8F5] border border-[#E6E4DF] text-xs font-bold text-[#2F8F8A]">
-          <span className="w-2 h-2 rounded-full bg-[#2F8F8A]" />
+        <div className={`hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold ${getRoleBadgeStyle(currentRole)}`}>
+          <span className="w-2 h-2 rounded-full bg-current" />
           <span className="capitalize">{currentRole.replace('_', ' ')} Portal</span>
         </div>
 
@@ -140,7 +154,7 @@ export default function Header({
               router.refresh();
             }
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-all cursor-pointer shadow-xs"
           title="Sign Out of Account"
         >
           <LogOut size={15} />

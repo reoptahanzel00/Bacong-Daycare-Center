@@ -57,11 +57,23 @@ body, button, input, select, textarea {
   padding: 1.5rem;
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card:hover {
-  box-shadow: 0 10px 25px -5px rgba(47, 143, 138, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(47, 143, 138, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+}
+
+/* Custom Input Focus Glows */
+input, select, textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(47, 143, 138, 0.18) !important;
+  outline: none;
 }
 
 /* Custom Buttons */
