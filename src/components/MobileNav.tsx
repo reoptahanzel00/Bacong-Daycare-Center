@@ -144,37 +144,7 @@ export default function MobileNav({
           })}
         </div>
 
-        {/* Demo Role Switcher Section */}
-        {onRoleChange && (
-          <div className="border-t border-[#E6E4DF] pt-4 space-y-2">
-            <div className="text-[10px] font-extrabold text-[#9B9B9B] uppercase tracking-wider px-3">
-              Switch Portal Role (Demo)
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {rolesList.map((r) => {
-                const Icon = r.icon;
-                const isSelected = currentRole === r.id;
-                return (
-                  <button
-                    key={r.id}
-                    onClick={() => {
-                      onRoleChange(r.id);
-                      onClose();
-                    }}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#2F8F8A]/10 border-[#2F8F8A] text-[#2F8F8A]'
-                        : 'bg-[#FAF8F5] border-[#E6E4DF] text-[#6B6B6B] hover:bg-white'
-                    }`}
-                  >
-                    <Icon size={14} />
-                    <span className="truncate">{r.label.split(' ')[0]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+
 
         {/* Footer info */}
         <div className="border-t border-[#E6E4DF] pt-4 text-center">

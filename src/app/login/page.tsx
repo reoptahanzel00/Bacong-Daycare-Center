@@ -1,64 +1,55 @@
 'use client';
 
 import React, { useState } from 'react';
-import { School, GraduationCap, Shield, UserCheck, Heart, ArrowRight, CheckCircle2, Lock } from 'lucide-react';
+import { School, GraduationCap, Shield, UserCheck, Heart, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('teresa.cruz@bacong.gov.ph');
-  const [password, setPassword] = useState('••••••••••••');
-  const [selectedRole, setSelectedRole] = useState<'worker' | 'official' | 'barangay_admin' | 'parent'>('worker');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const rolePresets = [
-    {
-      id: 'worker',
-      title: 'Daycare Worker',
-      email: 'teresa.cruz@bacong.gov.ph',
-      icon: GraduationCap,
-      color: '#2F8F8A',
-      desc: 'Attendance register, milestone evaluation, pupil roster',
-    },
-    {
-      id: 'official',
-      title: 'Barangay Official',
-      email: 'captain.santos@bacong.gov.ph',
-      icon: Shield,
-      color: '#F5B942',
-      desc: 'Executive metrics dashboard, DSWD Form 1 PDF reports',
-    },
-    {
-      id: 'barangay_admin',
-      title: 'Barangay Admin',
-      email: 'admin.mercado@bacong.gov.ph',
-      icon: UserCheck,
-      color: '#6366F1',
-      desc: 'User account provisioning & System Audit Log trail',
-    },
-    {
-      id: 'parent',
-      title: 'Parent / Guardian',
-      email: 'maria.santos@gmail.com',
-      icon: Heart,
-      color: '#F2896B',
-      desc: 'Read-only child attendance, report card & daycare notices',
-    },
+  const testAccounts = [
+    { role: 'Daycare Worker', email: 'worker@bacong.gov.ph', icon: GraduationCap, color: '#2F8F8A' },
+    { role: 'Barangay Official', email: 'official@bacong.gov.ph', icon: Shield, color: '#F5B942' },
+    { role: 'Barangay Admin', email: 'admin@bacong.gov.ph', icon: UserCheck, color: '#6366F1' },
+    { role: 'Parent / Guardian', email: 'parent@bacong.gov.ph', icon: Heart, color: '#F2896B' },
   ];
 
-  const handleSelectPreset = (preset: typeof rolePresets[0]) => {
-    setSelectedRole(preset.id as any);
-    setEmail(preset.email);
+  const handleSelectAccount = (accEmail: string) => {
+    setEmail(accEmail);
+    setPassword('Password123!');
+    setErrorMessage(null);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      if (error) {
+        setErrorMessage(error.message || 'Invalid email or password. Please check your credentials.');
+        setLoading(false);
+        return;
+      }
+
+      // Successful login -> Redirect to main dashboard
       router.push('/');
-    }, 600);
+      router.refresh();
+    } catch {
+      setErrorMessage('Unable to connect to authentication server. Please check your connection.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,96 +84,93 @@ export default function LoginPage() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 size={16} className="text-[#F5B942]" />
-              <span>Role-Based Access Control (RBAC)</span>
+              <span>Supabase Authentication & Row-Level Security</span>
             </div>
           </div>
         </div>
 
-        {/* Right Side: Auth Form & Role Presets */}
-        <div className="p-8 flex flex-col justify-between">
+        {/* Right Side: Real Login Form */}
+        <div className="p-8 md:p-10 flex flex-col justify-between space-y-6">
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-[#2B2B2B] m-0">Sign In to Account</h2>
-                <span className="text-xs text-[#6B6B6B]">Select a role preset or enter credentials</span>
-              </div>
-              <div className="p-2 rounded-xl bg-[#F5F3EF] text-[#2F8F8A]">
-                <Lock size={20} />
-              </div>
-            </div>
+            <h2 className="text-xl font-bold text-[#2B2B2B] m-0">Sign In to Your Account</h2>
+            <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              Enter your registered Barangay email address and password to access your portal.
+            </p>
 
-            {/* Capstone Role Presets */}
-            <div className="mb-6 space-y-2">
-              <label className="text-xs font-bold text-[#6B6B6B] uppercase tracking-wider block">
-                Capstone Demo Role Presets
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {rolePresets.map((preset) => {
-                  const Icon = preset.icon;
-                  const isSelected = selectedRole === preset.id;
+            {/* Quick Test Account Fill Buttons */}
+            <div className="mt-4 p-3 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
+              <div className="text-[10px] font-extrabold text-[#9B9B9B] uppercase tracking-wider mb-2">
+                Quick Fill Test Account (Password: Password123!)
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {testAccounts.map((acc) => {
+                  const Icon = acc.icon;
                   return (
                     <button
-                      key={preset.id}
+                      key={acc.email}
                       type="button"
-                      onClick={() => handleSelectPreset(preset)}
-                      className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                        isSelected
-                          ? 'border-[#2F8F8A] bg-[#EBF5F4] shadow-sm'
-                          : 'border-[#E6E4DF] hover:bg-[#FAF8F5]'
-                      }`}
-                      suppressHydrationWarning
+                      onClick={() => handleSelectAccount(acc.email)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-[#E6E4DF] hover:border-[#2F8F8A] text-[11px] font-bold text-[#2B2B2B] transition-all cursor-pointer text-left truncate"
                     >
-                      <div className="flex items-center justify-between w-full mb-1">
-                        <Icon size={18} color={preset.color} />
-                        {isSelected && <CheckCircle2 size={14} color="var(--primary)" />}
-                      </div>
-                      <div className="text-xs font-bold text-[#2B2B2B]">{preset.title}</div>
+                      <Icon size={13} style={{ color: acc.color }} />
+                      <span className="truncate">{acc.role.split(' ')[0]}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            {/* Error Banner */}
+            {errorMessage && (
+              <div className="mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-xs text-rose-700 font-semibold animate-shake">
+                <AlertCircle size={18} className="shrink-0 text-rose-600" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="space-y-4 mt-4">
               <div>
-                <label className="text-xs font-bold text-[#2B2B2B] block mb-1">Email Address</label>
+                <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Email Address</label>
                 <input
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E6E4DF] text-sm focus:outline-none focus:border-[#2F8F8A]"
-                  required
-                  suppressHydrationWarning
+                  placeholder="name@bacong.gov.ph"
+                  className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#2B2B2B] block mb-1">Password</label>
+                <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Password</label>
                 <input
                   type="password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E6E4DF] text-sm focus:outline-none focus:border-[#2F8F8A]"
-                  required
-                  suppressHydrationWarning
+                  placeholder="••••••••••••"
+                  className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-full bg-[#2F8F8A] text-white font-bold text-sm hover:bg-[#247571] transition-all flex items-center justify-center gap-2 shadow-md"
-                suppressHydrationWarning
+                className="w-full py-3.5 px-6 rounded-2xl bg-[#2F8F8A] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
               >
-                <span>{loading ? 'Authenticating Session...' : 'Sign In & Launch Dashboard'}</span>
-                <ArrowRight size={18} />
+                <span>{loading ? 'Authenticating with Supabase...' : 'Sign In to Portal'}</span>
+                {!loading && <ArrowRight size={16} />}
               </button>
             </form>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-[#E6E4DF] text-center text-xs text-[#9B9B9B]">
-            Republic of the Philippines • Barangay Bacong System
+          <div className="text-center pt-4 border-t border-[#E6E4DF]">
+            <p className="text-[11px] text-[#9B9B9B] m-0">
+              Need account assistance? Contact <strong className="text-[#2B2B2B]">Barangay Bacong IT Administration</strong>.
+            </p>
           </div>
+
         </div>
 
       </div>

@@ -14,31 +14,70 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'worker' | 'official' | 'barangay_admin' | 'parent'>('worker');
+  const [password, setPassword] = useState('Password123!');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
       setError('Please fill in both full name and email address.');
       return;
     }
 
-    const payload = {
-      id: `USR-${Date.now().toString().slice(-4)}`,
-      name,
-      email,
-      role,
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    onSave(payload);
-    setName('');
-    setEmail('');
+    setIsSubmitting(true);
     setError('');
-    onClose();
+
+    try {
+      const response = await fetch('/api/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: name.trim(),
+          email: email.trim(),
+          role,
+          password: password.trim() || 'Password123!',
+        }),
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        setError(resData.error || 'Failed to create user in Supabase Auth.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const payload = {
+        id: resData.user?.id || `USR-${Date.now().toString().slice(-4)}`,
+        name,
+        email,
+        role,
+        status: 'active',
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+
+      onSave(payload);
+      setName('');
+      setEmail('');
+      setError('');
+      setIsSubmitting(false);
+      onClose();
+    } catch {
+      setError('Network error while provisioning account. Saved locally.');
+      setIsSubmitting(false);
+      onSave({
+        id: `USR-${Date.now().toString().slice(-4)}`,
+        name,
+        email,
+        role,
+        status: 'active',
+        createdAt: new Date().toISOString().split('T')[0]
+      });
+      onClose();
+    }
   };
 
   return (

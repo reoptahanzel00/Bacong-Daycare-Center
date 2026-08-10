@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserCheck, Shield, GraduationCap, Heart, Search, Bell, School, Lock, Unlock, Menu } from 'lucide-react';
+import { UserCheck, Shield, GraduationCap, Heart, Search, Bell, School, LogOut, Menu } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import type { Notification } from '@/services/notificationService';
 import type { UserRole } from '@/contexts/DaycareContext';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
   currentRole: string;
@@ -22,9 +24,9 @@ export default function Header({
   onSearchChange,
   onOpenMobileNav
 }: HeaderProps) {
+  const router = useRouter();
   const [currentDateStr, setCurrentDateStr] = useState('Today');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isDemoUnlocked, setIsDemoUnlocked] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
@@ -62,20 +64,7 @@ export default function Header({
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const roles = [
-    { id: 'worker', label: 'Daycare Worker', icon: GraduationCap, color: '#2F8F8A' },
-    { id: 'official', label: 'Barangay Official', icon: Shield, color: '#F5B942' },
-    { id: 'barangay_admin', label: 'Barangay Admin', icon: UserCheck, color: '#6366F1' },
-    { id: 'parent', label: 'Parent / Guardian', icon: Heart, color: '#F2896B' },
-  ];
 
-  const handleRolePillClick = (roleId: string) => {
-    if (!isDemoUnlocked && roleId !== currentRole) {
-      alert(`Role switching is currently LOCKED to your authenticated session (${currentRole.toUpperCase()}). Unlock Capstone Demo Mode to switch roles during evaluation.`);
-      return;
-    }
-    onRoleChange(roleId as UserRole);
-  };
 
   return (
     <header className="header-bar bg-white border-b border-[#E6E4DF] px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-sm relative">
@@ -116,64 +105,46 @@ export default function Header({
         </div>
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         
-        {/* Capstone Demo Mode Lock/Unlock Toggle */}
-        <button
-          onClick={() => setIsDemoUnlocked(!isDemoUnlocked)}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
-            isDemoUnlocked
-              ? 'bg-[#FEF8EC] text-[#8A5D00] border-[#F5DAA0]'
-              : 'bg-[#EBF5F4] text-[#2F8F8A] border-[#2F8F8A]/30'
-          }`}
-          title={isDemoUnlocked ? 'Demo Mode Active: Click to Lock Role Switching' : 'Strict RBAC Active: Click to Unlock Demo Switcher'}
-          suppressHydrationWarning
-        >
-          {isDemoUnlocked ? <Unlock size={14} /> : <Lock size={14} />}
-          <span>{isDemoUnlocked ? 'Demo Unlocked' : 'RBAC Locked'}</span>
-        </button>
-
-        {/* Role Switcher Rail */}
-        <div className="role-bar bg-[#EAE6DF] p-1.5 rounded-full inline-flex gap-1 items-center">
-          {roles.map((r) => {
-            const Icon = r.icon;
-            const isActive = currentRole === r.id;
-            const isDisabled = !isDemoUnlocked && !isActive;
-
-            return (
-              <button
-                key={r.id}
-                onClick={() => handleRolePillClick(r.id)}
-                className={`role-pill px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-[#2F8F8A] shadow-sm'
-                    : isDisabled
-                    ? 'opacity-40 cursor-not-allowed text-[#9B9B9B]'
-                    : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
-                }`}
-                disabled={isDisabled}
-                suppressHydrationWarning
-              >
-                <Icon size={14} color={isActive ? r.color : 'inherit'} />
-                <span>{r.label}</span>
-              </button>
-            );
-          })}
+        {/* Role Badge */}
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF8F5] border border-[#E6E4DF] text-xs font-bold text-[#2F8F8A]">
+          <span className="w-2 h-2 rounded-full bg-[#2F8F8A]" />
+          <span className="capitalize">{currentRole.replace('_', ' ')} Portal</span>
         </div>
 
         {/* Notification Bell */}
         <div
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          className="relative cursor-pointer p-2.5 rounded-full bg-[#F5F3EF] hover:bg-[#EAE6DF] transition-all"
-          title="Parent & System Notifications"
+          className="relative cursor-pointer p-2 rounded-xl bg-[#FAF8F5] hover:bg-[#EAE6DF] transition-all border border-[#E6E4DF]"
+          title="Notifications"
         >
           <Bell size={18} className="text-[#6B6B6B]" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 bg-[#F2896B] text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white">
+            <span className="absolute -top-1 -right-1 bg-[#F2896B] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
               {unreadCount}
             </span>
           )}
         </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={async () => {
+            if (confirm('Are you sure you want to log out of your session?')) {
+              try {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+              } catch {}
+              router.push('/login');
+              router.refresh();
+            }
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-all cursor-pointer"
+          title="Sign Out of Account"
+        >
+          <LogOut size={15} />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
 
       </div>
 
