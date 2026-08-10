@@ -16,11 +16,18 @@
   --text-light: #9B9B9B;
   --border-color: #E6E4DF;
   --border-light: #F0EEEA;
-  --font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-quicksand), system-ui, -apple-system, sans-serif;
+  --font-body: var(--font-nunito), system-ui, -apple-system, sans-serif;
+  --font-family: var(--font-body);
 }
 
-body {
-  font-family: var(--font-family);
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+
+body, button, input, select, textarea {
+  font-family: var(--font-body);
   background-color: var(--bg-main);
   color: var(--text-main);
   min-height: 100vh;
