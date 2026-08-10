@@ -81,8 +81,26 @@ interface DaycareContextValue {
 const DaycareContext = createContext<DaycareContextValue | null>(null);
 
 export function DaycareProvider({ children }: { children: React.ReactNode }) {
-  const [currentRole, setCurrentRoleState] = useState<UserRole>('worker');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bacong_auth_role');
+      if (saved && ['worker', 'official', 'barangay_admin', 'parent'].includes(saved)) {
+        return saved as UserRole;
+      }
+    }
+    return 'worker';
+  });
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bacong_auth_role');
+      if (saved === 'official') return 'overview';
+      if (saved === 'barangay_admin') return 'users';
+      if (saved === 'parent') return 'child';
+    }
+    return 'dashboard';
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<ToastState | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
