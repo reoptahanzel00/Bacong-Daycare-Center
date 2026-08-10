@@ -1,0 +1,111 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const PupilSchema = z.object({
+  id: z.string().optional(),
+  firstName: z.string().min(1, 'First name is required').max(100).trim(),
+  lastName: z.string().min(1, 'Last name is required').max(100).trim(),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be YYYY-MM-DD'),
+  sex: z.enum(['Male', 'Female']),
+  address: z.string().max(300).trim(),
+  enrollmentStatus: z.enum(['enrolled', 'archived']).default('enrolled'),
+  guardianName: z.string().min(1, 'Guardian name is required').max(150).trim(),
+  relationship: z.enum(['Mother', 'Father', 'Grandmother', 'Grandfather', 'Legal Guardian']),
+  guardianPhone: z.string().max(20).trim(),
+});
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get('status') || 'enrolled';
+
+  try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('pupils')
+      .select('*, guardian:guardians(*)')
+      .eq('enrollment_status', status)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) {
+      return NextResponse.json({ pupils: [], warning: error.message });
+    }
+
+    return NextResponse.json({ pupils: data || [] });
+  } catch {
+    // Database not configured — callers fall back to localStorage
+    return NextResponse.json({ pupils: [], warning: 'Database not connected — using local data.' });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const parsed = PupilSchema.parse(body);
+
+    // Use secure UUID-based IDs — never Math.random()
+    const pupilId = parsed.id || `PUP-${new Date().getFullYear()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
+
+    // Attempt to persist to Supabase
+    try {
+      const { createClient } = await import('@/lib/supabase/server');
+      const supabase = await createClient();
+
+      const dbRecord = {
+        id: pupilId,
+        first_name: parsed.firstName,
+        last_name: parsed.lastName,
+        birth_date: parsed.birthDate,
+        sex: parsed.sex,
+        address: parsed.address,
+        enrollment_status: parsed.enrollmentStatus,
+        enrollment_date: new Date().toISOString().split('T')[0],
+        consecutive_absences: 0,
+      };
+
+      const { error: pupilError } = await supabase.from('pupils').upsert([dbRecord]);
+      if (pupilError) {
+        console.warn('[Pupils API] DB write warning:', pupilError.message);
+      } else {
+        // Write guardian record if pupil saved successfully
+        await supabase.from('guardians').upsert([{
+          pupil_id: pupilId,
+          full_name: parsed.guardianName,
+          relationship: parsed.relationship,
+          phone: parsed.guardianPhone,
+          is_primary_contact: true,
+        }]);
+      }
+    } catch {
+      // Database not configured — local state only
+      console.warn('[Pupils API] Database not available, using local state.');
+    }
+
+    return NextResponse.json({
+      success: true,
+      pupil: {
+        id: pupilId,
+        firstName: parsed.firstName,
+        lastName: parsed.lastName,
+        birthDate: parsed.birthDate,
+        sex: parsed.sex,
+        address: parsed.address,
+        enrollmentStatus: parsed.enrollmentStatus,
+        enrollmentDate: new Date().toISOString().split('T')[0],
+        consecutiveAbsences: 0,
+        guardian: {
+          fullName: parsed.guardianName,
+          relationship: parsed.relationship,
+          phone: parsed.guardianPhone,
+          isPrimary: true,
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
