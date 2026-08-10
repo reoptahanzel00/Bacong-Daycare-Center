@@ -2,15 +2,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Missing Supabase environment variables.\n' +
-      'Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
-    );
-  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ukzruwisvuemdjjqgoko.supabase.co';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrenJ1d2lzdnVlbWRqanFnb2tvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzNjQ1NzUsImV4cCI6MjEwMTk0MDU3NX0.VniHsPm82LUq01gWic0QS29ptKSfef3hr94sVtjUhvs';
 
   const cookieStore = await cookies();
 

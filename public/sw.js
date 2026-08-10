@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bacong-daycare-v1';
+const CACHE_NAME = 'bacong-daycare-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -30,8 +30,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Bypass API requests from cache so live network is prioritized
-  if (event.request.url.includes('/api/')) {
+  // Always bypass API endpoints and Next.js static bundle chunks (_next/) to prevent ChunkLoadError
+  if (event.request.url.includes('/api/') || event.request.url.includes('/_next/')) {
     return;
   }
 
