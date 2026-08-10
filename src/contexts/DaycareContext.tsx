@@ -59,8 +59,10 @@ interface DaycareContextValue {
   // Modal state lifted to context so any component can open modals
   toast: ToastState | null;
   setToast: (t: ToastState | null) => void;
+  isMobileNavOpen: boolean;
+  setIsMobileNavOpen: (open: boolean) => void;
   isPupilModalOpen: boolean;
-  setIsPupilModalOpen: (v: boolean) => void;
+  setIsPupilModalOpen: (open: boolean) => void;
   pupilToEdit: MockPupil | null;
   setPupilToEdit: (p: MockPupil | null) => void;
   isProgressModalOpen: boolean;
@@ -82,6 +84,8 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [isPupilModalOpen, setIsPupilModalOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   const [pupils, setPupils] = useState<MockPupil[]>(INITIAL_PUPILS);
@@ -91,7 +95,6 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<MockUser[]>(INITIAL_USERS);
   const [auditLogs, setAuditLogs] = useState<MockAuditLog[]>(INITIAL_AUDIT_LOGS);
 
-  const [isPupilModalOpen, setIsPupilModalOpen] = useState(false);
   const [pupilToEdit, setPupilToEdit] = useState<MockPupil | null>(null);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
@@ -244,9 +247,14 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     pupils, attendance, progress, announcements, users, auditLogs,
     handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
-    logAuditAction, showToast,
-    toast, setToast,
-    isPupilModalOpen, setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
+    logAuditAction,
+    showToast,
+    toast,
+    setToast,
+    isMobileNavOpen,
+    setIsMobileNavOpen,
+    isPupilModalOpen,
+    setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
     isProgressModalOpen, setIsProgressModalOpen,
     isAnnouncementModalOpen, setIsAnnouncementModalOpen,
     isUserModalOpen, setIsUserModalOpen,

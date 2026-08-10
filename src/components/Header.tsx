@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserCheck, Shield, GraduationCap, Heart, Search, Bell, School, Lock, Unlock } from 'lucide-react';
+import { UserCheck, Shield, GraduationCap, Heart, Search, Bell, School, Lock, Unlock, Menu } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import type { Notification } from '@/services/notificationService';
 import type { UserRole } from '@/contexts/DaycareContext';
@@ -12,6 +12,7 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   notificationsCount?: number;
+  onOpenMobileNav?: () => void;
 }
 
 export default function Header({
@@ -19,6 +20,7 @@ export default function Header({
   onRoleChange,
   searchQuery,
   onSearchChange,
+  onOpenMobileNav
 }: HeaderProps) {
   const [currentDateStr, setCurrentDateStr] = useState('Today');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -76,16 +78,25 @@ export default function Header({
   };
 
   return (
-    <header className="header-bar bg-white border-b border-[#E6E4DF] px-8 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-sm relative">
+    <header className="header-bar bg-white border-b border-[#E6E4DF] px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-sm relative">
       <div className="flex items-center gap-3.5">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] flex items-center justify-center color-white shadow-md text-white">
+        {onOpenMobileNav && (
+          <button
+            onClick={onOpenMobileNav}
+            className="lg:hidden p-2 rounded-xl text-[#2B2B2B] hover:bg-[#FAF8F5] transition-all border-none bg-transparent cursor-pointer"
+            aria-label="Open Mobile Navigation"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] flex items-center justify-center color-white shadow-md text-white shrink-0">
           <School size={22} />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-[#2B2B2B] leading-tight m-0">
+          <h2 className="text-sm sm:text-lg font-bold text-[#2B2B2B] leading-tight m-0 truncate max-w-[180px] sm:max-w-none">
             Barangay Bacong Daycare Center
           </h2>
-          <span className="text-xs text-[#6B6B6B] font-medium" suppressHydrationWarning>
+          <span className="text-[10px] sm:text-xs text-[#6B6B6B] font-medium hidden sm:block" suppressHydrationWarning>
             Student Progress & Enrollment Tracker • {currentDateStr}
           </span>
         </div>

@@ -64,7 +64,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
   };
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-[#E6E4DF] h-[calc(100vh-65px)] sticky top-[65px] flex flex-col justify-between p-4 shadow-sm z-30" suppressHydrationWarning>
+    <aside className="hidden lg:flex w-64 shrink-0 bg-white border-r border-[#E6E4DF] h-[calc(100vh-65px)] sticky top-[65px] flex-col justify-between p-4 shadow-sm z-30" suppressHydrationWarning>
       
       {/* Navigation Links */}
       <div className="space-y-1">

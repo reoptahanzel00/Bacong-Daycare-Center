@@ -5,6 +5,7 @@ import { DaycareProvider, useDaycare } from '@/contexts/DaycareContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import MobileNav from '@/components/MobileNav';
 import Toast from '@/components/Toast';
 import PupilModal from '@/components/PupilModal';
 import ProgressModal from '@/components/ProgressModal';
@@ -28,6 +29,7 @@ function AppContent() {
     handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
     toast, setToast,
+    isMobileNavOpen, setIsMobileNavOpen,
     isPupilModalOpen, setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
     isProgressModalOpen, setIsProgressModalOpen,
     isAnnouncementModalOpen, setIsAnnouncementModalOpen,
@@ -44,6 +46,17 @@ function AppContent() {
         onRoleChange={setCurrentRole}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onOpenMobileNav={() => setIsMobileNavOpen(true)}
+      />
+
+      {/* Mobile navigation drawer overlay */}
+      <MobileNav
+        isOpen={isMobileNavOpen}
+        onClose={() => setIsMobileNavOpen(false)}
+        currentRole={currentRole}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onRoleChange={setCurrentRole}
       />
 
       {/* Main body flex rail: sidebar + scrollable content */}

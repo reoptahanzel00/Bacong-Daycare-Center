@@ -2,8 +2,6 @@
 
 import React, { useState, useRef } from 'react';
 import { X, FileText, Download, CheckCircle2, ShieldCheck, Printer } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface DSWDReportModalProps {
   isOpen: boolean;
@@ -45,6 +43,9 @@ export default function DSWDReportModal({
     setIsExporting(true);
 
     try {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
