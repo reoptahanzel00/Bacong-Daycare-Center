@@ -182,3 +182,38 @@ CREATE POLICY "Audit Log INSERT Policy" ON audit_log
 CREATE POLICY "Audit Log SELECT Policy" ON audit_log
   FOR SELECT TO authenticated
   USING ((SELECT role FROM users WHERE id = auth.uid()) = 'barangay_admin');
+
+-- ==========================================================================
+-- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION
+-- Automatically computes streak of consecutive 'absent' days for pupils
+-- ==========================================================================
+
+CREATE OR REPLACE FUNCTION calculate_consecutive_absences()
+RETURNS TRIGGER AS $$
+DECLARE
+  streak INT := 0;
+  rec RECORD;
+BEGIN
+  -- Count consecutive absences backwards from most recent entry for the pupil
+  FOR rec IN 
+    SELECT status FROM attendance 
+    WHERE pupil_id = NEW.pupil_id 
+    ORDER BY date DESC 
+  LOOP
+    IF rec.status = 'absent' THEN
+      streak := streak + 1;
+    ELSE
+      EXIT;
+    END IF;
+  END LOOP;
+
+  UPDATE pupils SET consecutive_absences = streak WHERE id = NEW.pupil_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_calculate_consecutive_absences ON attendance;
+CREATE TRIGGER trg_calculate_consecutive_absences
+AFTER INSERT OR UPDATE ON attendance
+FOR EACH ROW
+EXECUTE FUNCTION calculate_consecutive_absences();
