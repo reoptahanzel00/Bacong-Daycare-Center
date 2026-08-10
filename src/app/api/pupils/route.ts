@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession, authorizeRole } from '@/lib/auth';
 
 const PupilSchema = z.object({
   id: z.string().optional(),
@@ -41,6 +42,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession();
+    if (session.isAuthenticated && !authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Only Daycare Workers or Admins can enroll or modify pupil records.' },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const parsed = PupilSchema.parse(body);
 

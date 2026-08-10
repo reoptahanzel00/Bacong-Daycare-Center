@@ -12,8 +12,17 @@ const BulkAttendanceSchema = z.object({
   ).min(1, 'At least one record is required'),
 });
 
+import { getServerSession, authorizeRole } from '@/lib/auth';
+
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession();
+    if (session.isAuthenticated && !authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Only Daycare Workers can record attendance registers.' },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const parsed = BulkAttendanceSchema.parse(body);
 
@@ -64,6 +73,7 @@ export async function GET(request: Request) {
   const pupilId = searchParams.get('pupil_id');
 
   try {
+    const session = await getServerSession();
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
     let query = supabase.from('attendance').select('*').order('date', { ascending: false });
