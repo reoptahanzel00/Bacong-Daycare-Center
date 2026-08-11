@@ -168,14 +168,20 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           resolvedRole = savedRole;
         }
 
-        const activeRole = resolvedRole || 'worker';
-        setCurrentRoleState(activeRole);
-        localStorage.setItem('bacong_auth_role', activeRole);
+        if (resolvedRole) {
+          setCurrentRoleState(resolvedRole);
+          localStorage.setItem('bacong_auth_role', resolvedRole);
 
-        if (activeRole === 'official') setActiveTab('overview');
-        else if (activeRole === 'barangay_admin') setActiveTab('users');
-        else if (activeRole === 'parent') setActiveTab('child');
-        else setActiveTab('dashboard');
+          if (resolvedRole === 'official') setActiveTab('overview');
+          else if (resolvedRole === 'barangay_admin') setActiveTab('users');
+          else if (resolvedRole === 'parent') setActiveTab('child');
+          else setActiveTab('dashboard');
+        } else {
+          // Unauthenticated visitor -> Redirect to login page
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
+        }
       } catch (e) {
         console.warn('Auth role hydration warning:', e);
       }
