@@ -26,7 +26,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   letter-spacing: -0.01em;
 }
 
-body, button, input, select, textarea {
+body {
   font-family: var(--font-body);
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -34,6 +34,10 @@ body, button, input, select, textarea {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea {
+  font-family: var(--font-body);
 }
 
 /* Glassmorphism Utilities */
