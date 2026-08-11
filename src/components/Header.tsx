@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { UserCheck, Shield, GraduationCap, Heart, Search, Bell, School, LogOut, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, School, LogOut, Menu } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import type { Notification } from '@/services/notificationService';
 import type { UserRole } from '@/contexts/DaycareContext';
@@ -19,43 +19,34 @@ interface HeaderProps {
 
 export default function Header({
   currentRole,
-  onRoleChange,
   searchQuery,
   onSearchChange,
   onOpenMobileNav
 }: HeaderProps) {
   const router = useRouter();
-  const [currentDateStr, setCurrentDateStr] = useState('Today');
+  const currentDateStr = new Date().toLocaleDateString('en-PH', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-
-  const fetchNotifications = useCallback(async () => {
-    setIsLoadingNotifications(true);
-    try {
-      const { fetchNotifications: fetchNotifs } = await import('@/services/notificationService');
-      const data = await fetchNotifs();
-      setNotifications(data);
-    } catch {
-      // Fallback silent — show empty drawer
-    } finally {
-      setIsLoadingNotifications(false);
-    }
-  }, []);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
-
-  useEffect(() => {
-    setCurrentDateStr(
-      new Date().toLocaleDateString('en-PH', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    );
+    let cancelled = false;
+    (async () => {
+      try {
+        const { fetchNotifications: fetchNotifs } = await import('@/services/notificationService');
+        const data = await fetchNotifs();
+        if (!cancelled) setNotifications(data);
+      } catch {
+        // Fallback silent — show empty drawer
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;

@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, ChevronRight, ChevronLeft, ShieldCheck, Award, Info, Save } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Award, Save } from 'lucide-react';
 import { ECCD_DOMAINS, ECCDRating, EvaluationType } from '@/data/eccdChecklist';
+import type { MockPupil } from '@/contexts/DaycareContext';
 
 interface ECCDChecklistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pupil: any;
+  pupil: MockPupil | null;
   onSaveEvaluation: (pupilId: string, evalType: EvaluationType, ratings: Record<string, ECCDRating>) => void;
 }
 

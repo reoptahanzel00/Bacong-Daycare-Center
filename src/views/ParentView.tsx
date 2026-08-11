@@ -5,41 +5,25 @@ import {
   Heart, 
   TrendingUp, 
   AlertTriangle, 
-  CheckCircle2, 
   PhoneCall, 
   Download, 
-  ShieldCheck,
-  Megaphone,
   BookOpen,
   MessageSquare,
   Activity,
   Image as ImageIcon,
   FolderCheck,
   Send,
-  Calendar,
   Clock,
-  User,
-  Search,
-  Filter,
-  Sparkles,
   CheckCircle,
-  AlertCircle,
-  FileText,
-  Lock,
-  ChevronRight,
-  Smile,
-  Shield,
-  Award,
-  Users
 } from 'lucide-react';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
-import { useDaycare } from '@/contexts/DaycareContext';
+import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface ParentViewProps {
-  pupils: any[];
-  attendance: any[];
-  progress: any[];
-  announcements: any[];
+  pupils: MockPupil[];
+  attendance: MockAttendance[];
+  progress: MockProgress[];
+  announcements: MockAnnouncement[];
   activeTab?: string;
   onOpenDSWDReportModal?: () => void;
 }
@@ -66,7 +50,18 @@ export default function ParentView({
   const [absenceDate, setAbsenceDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [guardianNotes, setGuardianNotes] = useState<string>('');
   const [contactPhone, setContactPhone] = useState<string>('0917-888-9900');
-  const [submittedNotes, setSubmittedNotes] = useState<any[]>([
+  interface ParentSubmittedNote {
+    id: string;
+    date: string;
+    reason: string;
+    notes: string;
+    phone: string;
+    status: string;
+    teacherReply?: string;
+    submittedAt: string;
+  }
+
+  const [submittedNotes, setSubmittedNotes] = useState<ParentSubmittedNote[]>([
     {
       id: 'NOTE-101',
       date: '2026-02-09',
@@ -78,9 +73,6 @@ export default function ParentView({
       submittedAt: 'Feb 9, 2026 07:45 AM',
     }
   ]);
-
-  // Gallery Modal State
-  const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
 
   // Active Linked Child Record
   const child = pupils.find(p => p.id === selectedChildId) || pupils[0];
@@ -114,7 +106,6 @@ export default function ParentView({
       notes: guardianNotes,
       phone: contactPhone,
       status: 'Pending Teacher Review',
-      teacherReply: null,
       submittedAt: new Date().toLocaleString('sv').replace('T', ' '),
     };
 
@@ -124,7 +115,7 @@ export default function ParentView({
     logAuditAction('Submitted Absence Note', child?.id || 'PUP-001', `Reason: ${absenceReason} for date ${absenceDate}`);
   };
 
-  const getRatingProgressPercent = (rating: string) => {
+  const getRatingProgressPercent = (rating?: string) => {
     switch (rating) {
       case 'Demonstrates Mastery':
       case 'Mastered':
@@ -361,7 +352,7 @@ export default function ParentView({
                 <div className="flex items-center gap-2 text-[#2F8F8A]">
                   <TrendingUp size={20} />
                   <h3 className="text-base font-bold text-[#2B2B2B] m-0">
-                    {child?.firstName}'s 4-Domain Progress Summary
+                    {child?.firstName}&rsquo;s 4-Domain Progress Summary
                   </h3>
                 </div>
                 <span className="badge badge-primary">{childProgress.length} Domains Evaluated</span>
@@ -518,7 +509,6 @@ export default function ParentView({
             {activeDomain.items.map((item, idx) => {
               // Simulated rating for demonstration
               const isMastered = idx % 5 !== 3;
-              const isDeveloping = idx % 5 === 3;
               const ratingTag = isMastered ? 'Mastered (P)' : 'Developing (O)';
 
               return (
@@ -750,7 +740,6 @@ export default function ParentView({
             {galleryPhotos.map((photo) => (
               <div
                 key={photo.id}
-                onClick={() => setSelectedPhoto(photo)}
                 className="group rounded-3xl border border-[#E6E4DF] bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3"
               >
                 <div className="h-44 overflow-hidden relative">

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { 
-  UserCheck, 
   ShieldCheck, 
   Key, 
   Plus, 
@@ -12,19 +11,13 @@ import {
   ChevronRight, 
   CheckCircle,
   Shield,
-  Lock,
-  Database,
-  CheckCircle2,
-  AlertTriangle,
-  Megaphone,
-  Sparkles
 } from 'lucide-react';
-import { useDaycare } from '@/contexts/DaycareContext';
+import { useDaycare, type MockUser, type MockAuditLog, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface AdminViewProps {
-  users: any[];
-  auditLogs: any[];
-  announcements?: any[];
+  users: MockUser[];
+  auditLogs: MockAuditLog[];
+  announcements?: MockAnnouncement[];
   activeTab?: string;
   onOpenUserModal: () => void;
   onToggleUserStatus?: (userId: string) => void;

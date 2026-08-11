@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, FileText, Download, CheckCircle2, ShieldCheck, Printer } from 'lucide-react';
+import { X, FileText, Download, ShieldCheck } from 'lucide-react';
+import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
 
 interface DSWDReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pupils: any[];
-  attendance: any[];
-  progress: any[];
+  pupils: MockPupil[];
+  attendance: MockAttendance[];
+  progress: MockProgress[];
 }
 
 export default function DSWDReportModal({
@@ -19,7 +20,7 @@ export default function DSWDReportModal({
   progress
 }: DSWDReportModalProps) {
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2025-2026');
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2026-2027');
   const reportRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -33,10 +34,8 @@ export default function DSWDReportModal({
   const avgAttendance = totalAttendance ? Math.round((totalPresent / totalAttendance) * 100) : 92;
 
   const masteredCount = progress.filter(p => p.rating === 'Demonstrates Mastery' || p.rating === 'Mastered').length;
-  const devCount = progress.filter(p => p.rating === 'Developing').length;
   const totalProg = progress.length || 1;
   const masteredPercent = Math.round((masteredCount / totalProg) * 100);
-  const devPercent = Math.round((devCount / totalProg) * 100);
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
@@ -111,6 +110,7 @@ export default function DSWDReportModal({
               className="px-3 py-1.5 rounded-full border border-[#E6E4DF] text-xs font-semibold bg-[#FAF8F5] focus:outline-none"
               suppressHydrationWarning
             >
+              <option value="SY 2026-2027">SY 2026-2027</option>
               <option value="SY 2025-2026">SY 2025-2026</option>
               <option value="SY 2024-2025">SY 2024-2025</option>
             </select>

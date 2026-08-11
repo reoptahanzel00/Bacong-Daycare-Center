@@ -2,47 +2,40 @@
 
 import React, { useState } from 'react';
 import { 
-  Users, 
   CheckCircle2, 
   Plus, 
-  AlertTriangle, 
   Edit3, 
   Archive, 
   TrendingUp, 
   FileText, 
   Megaphone,
-  ChevronRight,
   Eye,
-  CalendarCheck,
   BellRing,
   Sparkles,
-  Filter,
   BookOpen,
   MessageSquare,
   Activity,
   CheckCircle,
-  Send,
-  Heart
 } from 'lucide-react';
 import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
-import { useDaycare } from '@/contexts/DaycareContext';
+import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
 
 interface WorkerViewProps {
   activeTab: string;
-  pupils: any[];
-  attendance: any[];
-  progress: any[];
-  announcements: any[];
+  pupils: MockPupil[];
+  attendance: MockAttendance[];
+  progress: MockProgress[];
+  announcements: MockAnnouncement[];
   searchQuery: string;
   onOpenPupilModal: () => void;
   onOpenProgressModal: () => void;
   onOpenAnnouncementModal: () => void;
   onOpenDSWDReportModal: () => void;
-  onSaveAttendance: (records: any[], dateStr: string) => void;
+  onSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
   onArchivePupil: (id: string) => void;
-  onEditPupil: (pupil: any) => void;
+  onEditPupil: (pupil: MockPupil) => void;
 }
 
 export default function WorkerView({ 
@@ -63,16 +56,27 @@ export default function WorkerView({
   const { showToast, logAuditAction } = useDaycare();
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedDomain, setSelectedDomain] = useState('all');
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
-  const [selectedPupilDetail, setSelectedPupilDetail] = useState<any>(null);
-  const [archiveTargetPupil, setArchiveTargetPupil] = useState<any>(null);
+  const [selectedPupilDetail, setSelectedPupilDetail] = useState<MockPupil | null>(null);
+  const [archiveTargetPupil, setArchiveTargetPupil] = useState<MockPupil | null>(null);
 
   // ECCD checklist evaluations state
   const [evaluations, setEvaluations] = useState<Record<string, Record<string, 'P' | 'O' | 'R'>>>({});
 
   // Parent Notes Inbox State
-  const [inboxNotes, setInboxNotes] = useState<any[]>([
+  interface ParentNote {
+    id: string;
+    pupilId: string;
+    pupilName: string;
+    date: string;
+    reason: string;
+    notes: string;
+    phone: string;
+    status: string;
+    submittedAt: string;
+  }
+
+  const [inboxNotes, setInboxNotes] = useState<ParentNote[]>([
     {
       id: 'NOTE-101',
       pupilId: 'PUP-2026-001',
@@ -98,7 +102,7 @@ export default function WorkerView({
   ]);
 
   // Nutritional Log State
-  const [healthLogs, setHealthLogs] = useState<Record<string, { weight: string; height: string; status: string }>>({
+  const [healthLogs] = useState<Record<string, { weight: string; height: string; status: string }>>({
     'PUP-2026-001': { weight: '14.5', height: '98.5', status: 'Normal' },
     'PUP-2026-002': { weight: '15.1', height: '100.2', status: 'Normal' },
     'PUP-2026-003': { weight: '13.8', height: '96.0', status: 'Normal' },
@@ -116,8 +120,8 @@ export default function WorkerView({
     return record || { status: 'present', notes: '' };
   };
 
-  const [dailyAttendanceState, setDailyAttendanceState] = useState<Record<string, any>>(() => {
-    const initial: Record<string, any> = {};
+  const [dailyAttendanceState, setDailyAttendanceState] = useState<Record<string, { status: string; notes?: string }>>(() => {
+    const initial: Record<string, { status: string; notes?: string }> = {};
     enrolledPupils.forEach(p => {
       initial[p.id] = getAttendanceStatus(p.id);
     });
@@ -135,10 +139,10 @@ export default function WorkerView({
   };
 
   const handleSaveRegister = () => {
-    const records = Object.keys(dailyAttendanceState).map(pupilId => ({
+    const records: MockAttendance[] = Object.keys(dailyAttendanceState).map(pupilId => ({
       pupil_id: pupilId,
       date: selectedDate,
-      status: dailyAttendanceState[pupilId].status || 'present',
+      status: (dailyAttendanceState[pupilId].status || 'present') as MockAttendance['status'],
       notes: dailyAttendanceState[pupilId].notes || ''
     }));
 

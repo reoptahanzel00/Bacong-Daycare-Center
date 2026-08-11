@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { X, User, Heart, Calendar, Phone, MapPin, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { X } from 'lucide-react';
+import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
 
 interface PupilDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pupil: any;
-  attendanceRecords: any[];
-  progressRecords: any[];
+  pupil: MockPupil | null;
+  attendanceRecords: MockAttendance[];
+  progressRecords: MockProgress[];
   onOpenProgressModal?: () => void;
 }
 

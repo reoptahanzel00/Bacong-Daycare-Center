@@ -13,19 +13,16 @@ import {
   BellRing,
   Shield,
   Utensils,
-  Megaphone,
   CheckCircle,
   PhoneCall,
-  Send,
-  Sparkles
 } from 'lucide-react';
-import { useDaycare } from '@/contexts/DaycareContext';
+import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface OfficialViewProps {
-  pupils: any[];
-  attendance: any[];
-  progress: any[];
-  announcements?: any[];
+  pupils: MockPupil[];
+  attendance: MockAttendance[];
+  progress: MockProgress[];
+  announcements?: MockAnnouncement[];
   activeTab?: string;
   onOpenDSWDReportModal: () => void;
 }

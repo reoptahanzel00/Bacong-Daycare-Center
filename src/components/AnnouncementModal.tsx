@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { X, Megaphone, Send, AlertCircle } from 'lucide-react';
+import type { MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface AnnouncementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: MockAnnouncement) => void;
 }
 
 export default function AnnouncementModal({ isOpen, onClose, onSave }: AnnouncementModalProps) {

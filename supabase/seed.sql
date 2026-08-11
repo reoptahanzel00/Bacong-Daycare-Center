@@ -3,10 +3,16 @@
 -- Initial data for School Years, Domains, Demo Pupils, and Announcements
 -- ==========================================================================
 
--- 1. Seed Current School Year
-INSERT INTO school_years (label, start_date, end_date, is_current)
-VALUES ('SY 2025-2026', '2025-06-02', '2026-03-31', true)
+-- 1. Seed School Years (current year first; previous years kept for DSWD history)
+UPDATE school_years SET is_current = false WHERE is_current = true;
+
+INSERT INTO school_years (label, start_date, end_date, is_current) VALUES
+  ('SY 2026-2027', '2026-06-01', '2027-03-31', true),
+  ('SY 2025-2026', '2025-06-02', '2026-03-31', false)
 ON CONFLICT (label) DO NOTHING;
+
+-- Re-run safe: ensure exactly one current school year even on re-seeds
+UPDATE school_years SET is_current = true WHERE label = 'SY 2026-2027';
 
 -- 2. Seed Progress Domains
 INSERT INTO progress_domains (id, name, description) VALUES
@@ -36,8 +42,8 @@ INSERT INTO guardians (pupil_id, full_name, relationship, phone, is_primary_cont
   ('PUP-2026-006', 'Patricia Villanueva', 'Mother', '0922-333-7711', true)
 ON CONFLICT DO NOTHING;
 
--- 5. Seed Announcements
-INSERT INTO announcements (title, body) VALUES
-  ('📢 Nutrition Month Feeding Program', 'Barangay Nutrition Council feeding session on Friday, Aug 15. Please bring reusable food containers.'),
-  ('🩺 Dengue Awareness & Clean-up Drive', 'Barangay Health Workers will conduct a fogging and clean-up activity on Saturday morning.')
-ON CONFLICT DO NOTHING;
+-- 5. Seed Announcements (fixed IDs so re-runs are idempotent)
+INSERT INTO announcements (id, title, body) VALUES
+  ('a0000000-0000-0000-0000-000000000001', '📢 Nutrition Month Feeding Program', 'Barangay Nutrition Council feeding session on Friday, Aug 15. Please bring reusable food containers.'),
+  ('a0000000-0000-0000-0000-000000000002', '🩺 Dengue Awareness & Clean-up Drive', 'Barangay Health Workers will conduct a fogging and clean-up activity on Saturday morning.')
+ON CONFLICT (id) DO NOTHING;
