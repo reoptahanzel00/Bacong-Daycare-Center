@@ -1,3 +1,7 @@
+/** Fallback avatar for pupils enrolled from the real database (no avatar_url set). */
+export const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=200&q=80';
+
 export const INITIAL_PUPILS = [
   {
     id: 'PUP-2026-001',

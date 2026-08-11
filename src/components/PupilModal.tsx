@@ -200,8 +200,9 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
                 >
                   <option value="Mother">Mother</option>
                   <option value="Father">Father</option>
-                  <option value="Grandparent">Grandparent</option>
-                  <option value="Guardian">Legal Guardian</option>
+                  <option value="Grandmother">Grandmother</option>
+                  <option value="Grandfather">Grandfather</option>
+                  <option value="Legal Guardian">Legal Guardian</option>
                 </select>
               </div>
             </div>

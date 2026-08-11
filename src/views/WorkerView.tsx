@@ -120,13 +120,13 @@ export default function WorkerView({
     return record || { status: 'present', notes: '' };
   };
 
-  const [dailyAttendanceState, setDailyAttendanceState] = useState<Record<string, { status: string; notes?: string }>>(() => {
-    const initial: Record<string, { status: string; notes?: string }> = {};
-    enrolledPupils.forEach(p => {
-      initial[p.id] = getAttendanceStatus(p.id);
-    });
-    return initial;
-  });
+  // Edit overlay: only entries the user has toggled for the selected date.
+  // Saved statuses come from the `attendance` prop (real DB after sync); the
+  // overlay lets user edits win until the register is saved.
+  const [dailyAttendanceState, setDailyAttendanceState] = useState<Record<string, { status: string; notes?: string }>>({});
+
+  const displayedStatus = (pupilId: string) =>
+    dailyAttendanceState[pupilId]?.status || getAttendanceStatus(pupilId).status;
 
   const handleStatusToggle = (pupilId: string, newStatus: string) => {
     setDailyAttendanceState(prev => ({
@@ -139,22 +139,25 @@ export default function WorkerView({
   };
 
   const handleSaveRegister = () => {
-    const records: MockAttendance[] = Object.keys(dailyAttendanceState).map(pupilId => ({
-      pupil_id: pupilId,
-      date: selectedDate,
-      status: (dailyAttendanceState[pupilId].status || 'present') as MockAttendance['status'],
-      notes: dailyAttendanceState[pupilId].notes || ''
-    }));
+    const records: MockAttendance[] = enrolledPupils.map(pupil => {
+      const rec = dailyAttendanceState[pupil.id] || getAttendanceStatus(pupil.id);
+      return {
+        pupil_id: pupil.id,
+        date: selectedDate,
+        status: (rec.status || 'present') as MockAttendance['status'],
+        notes: rec.notes || ''
+      };
+    });
 
     onSaveAttendance(records, selectedDate);
   };
 
   const handleMarkAllPresent = () => {
-    const updatedState = { ...dailyAttendanceState };
+    const updatedState: Record<string, { status: string; notes?: string }> = {};
     enrolledPupils.forEach(pupil => {
       updatedState[pupil.id] = {
         status: 'present',
-        notes: updatedState[pupil.id]?.notes || ''
+        notes: dailyAttendanceState[pupil.id]?.notes || ''
       };
     });
     setDailyAttendanceState(updatedState);
@@ -177,9 +180,9 @@ export default function WorkerView({
     showToast(`Recorded ECCD rating ${rating} for item ${itemId}.`, 'info');
   };
 
-  const presentCount = Object.values(dailyAttendanceState).filter(r => r.status === 'present').length;
-  const lateCount = Object.values(dailyAttendanceState).filter(r => r.status === 'late').length;
-  const absentCount = Object.values(dailyAttendanceState).filter(r => r.status === 'absent').length;
+  const presentCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'present').length;
+  const lateCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'late').length;
+  const absentCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'absent').length;
 
   const activeDomain = ECCD_DOMAINS.find(d => d.id === selectedDomainId) || ECCD_DOMAINS[0];
 
@@ -254,7 +257,11 @@ export default function WorkerView({
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    // Reset the edit overlay so the register reflects saved records.
+                    setDailyAttendanceState({});
+                  }}
                   className="px-3 py-1.5 rounded-full border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none"
                   suppressHydrationWarning
                 />
@@ -290,7 +297,7 @@ export default function WorkerView({
                   </thead>
                   <tbody>
                     {filteredEnrolledPupils.map((pupil) => {
-                      const rec = dailyAttendanceState[pupil.id] || { status: 'present' };
+                      const rec = dailyAttendanceState[pupil.id] || getAttendanceStatus(pupil.id);
                       return (
                         <tr key={pupil.id}>
                           <td>
