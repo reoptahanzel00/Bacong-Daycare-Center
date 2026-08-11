@@ -141,7 +141,6 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           const userEmail = (session.user.email || '').toLowerCase();
-          const roleInMeta = session.user.user_metadata?.role as UserRole | undefined;
 
           const { data: profile } = await supabase
             .from('users')
@@ -151,8 +150,6 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
 
           if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
             resolvedRole = profile.role as UserRole;
-          } else if (roleInMeta && ['worker', 'official', 'barangay_admin', 'parent'].includes(roleInMeta)) {
-            resolvedRole = roleInMeta;
           } else if (userEmail.includes('official')) {
             resolvedRole = 'official';
           } else if (userEmail.includes('admin')) {

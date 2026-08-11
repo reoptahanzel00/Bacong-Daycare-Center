@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { getServerSession, authorizeRole } from '@/lib/auth';
 
 const ProgressSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -21,6 +22,11 @@ export async function GET(request: Request) {
   const pupilId = searchParams.get('pupil_id');
 
   try {
+    const session = await getServerSession();
+    if (!session.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
     const supabase = await createClient();
     let query = supabase.from('progress_observations').select('*').order('date', { ascending: false });
 
@@ -42,6 +48,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession();
+    if (!session.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Only Daycare Workers or Admins can record ECCD observations.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const parsed = ProgressSchema.parse(body);
 
@@ -52,7 +69,8 @@ export async function POST(request: Request) {
       title: parsed.title,
       note: parsed.note,
       date: parsed.date,
-      recorded_by: parsed.recordedBy || 'Daycare Worker',
+      // recorded_by is derived server-side from the verified session, never from client input.
+      recorded_by: session.email || session.userId || 'Daycare Worker',
     };
 
     try {

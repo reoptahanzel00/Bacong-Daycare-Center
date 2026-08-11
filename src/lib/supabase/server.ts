@@ -2,8 +2,17 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ukzruwisvuemdjjqgoko.supabase.co';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrenJ1d2lzdnVlbWRqanFnb2tvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzNjQ1NzUsImV4cCI6MjEwMTk0MDU3NX0.VniHsPm82LUq01gWic0QS29ptKSfef3hr94sVtjUhvs';
+  // Supabase credentials MUST come from the environment. No committed fallback:
+  // a missing config resolves to an inert placeholder and fails closed.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key-not-configured';
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.warn(
+      '[Supabase Server] NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set. ' +
+      'Database calls will fail closed.'
+    );
+  }
 
   const cookieStore = await cookies();
 

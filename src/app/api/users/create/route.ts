@@ -8,13 +8,21 @@ const CreateUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.enum(['worker', 'official', 'barangay_admin', 'parent']),
   phone: z.string().max(20).optional(),
-  password: z.string().min(6, 'Password must be at least 6 characters').default('Password123!'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+    .regex(/[a-z]/, 'Password must contain a lowercase letter')
+    .regex(/[0-9]/, 'Password must contain a number'),
 });
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession();
-    if (session.isAuthenticated && !authorizeRole(session.role, ['barangay_admin'])) {
+    if (!session.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+    if (!authorizeRole(session.role, ['barangay_admin'])) {
       return NextResponse.json(
         { error: 'Unauthorized: Only Barangay Admins can provision new system accounts.' },
         { status: 403 }

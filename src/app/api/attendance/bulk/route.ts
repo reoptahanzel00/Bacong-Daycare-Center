@@ -17,7 +17,10 @@ import { getServerSession, authorizeRole } from '@/lib/auth';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession();
-    if (session.isAuthenticated && !authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!session.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
       return NextResponse.json(
         { error: 'Unauthorized: Only Daycare Workers can record attendance registers.' },
         { status: 403 }
@@ -74,6 +77,9 @@ export async function GET(request: Request) {
 
   try {
     const session = await getServerSession();
+    if (!session.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
     let query = supabase.from('attendance').select('*').order('date', { ascending: false });

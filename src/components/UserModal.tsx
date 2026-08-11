@@ -14,16 +14,36 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'worker' | 'official' | 'barangay_admin' | 'parent'>('worker');
-  const [password, setPassword] = useState('Password123!');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
+  const passwordValid = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/.test(password);
+
+  const generatePassword = () => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnopqrstuvwxyz';
+    const digits = '23456789';
+    const symbols = '!@#$%^&*';
+    const all = upper + lower + digits + symbols;
+    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+    // Guarantee one of each required class, then pad with random characters.
+    const base = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+    for (let i = 0; i < 8; i++) base.push(pick(all));
+    setPassword(base.sort(() => Math.random() - 0.5).join(''));
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
       setError('Please fill in both full name and email address.');
+      return;
+    }
+    if (!passwordValid) {
+      setError('Password must be at least 8 characters and include uppercase, lowercase, and a number.');
       return;
     }
 
@@ -38,7 +58,7 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
           fullName: name.trim(),
           email: email.trim(),
           role,
-          password: password.trim() || 'Password123!',
+          password: password.trim(),
         }),
       });
 
@@ -152,6 +172,31 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
               <option value="barangay_admin">Barangay Admin (System Provisioner)</option>
               <option value="parent">Parent / Guardian</option>
             </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#4A4A4A]">Temporary Password *</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+                placeholder="Min 8 chars, with upper, lower & number"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                suppressHydrationWarning
+              />
+              <button
+                type="button"
+                onClick={generatePassword}
+                className="shrink-0 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-[#2F8F8A] border border-[#2F8F8A]/30 hover:bg-[#EBF5F4] transition-all cursor-pointer bg-transparent"
+                suppressHydrationWarning
+              >
+                Generate
+              </button>
+            </div>
+            <p className="text-[10px] text-[#9B9B9B] font-semibold">
+              The user will be prompted to change this on first login. Share it with them securely.
+            </p>
           </div>
 
           <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-end gap-3">

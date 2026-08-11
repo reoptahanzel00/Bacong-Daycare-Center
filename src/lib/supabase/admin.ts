@@ -3,10 +3,23 @@ import { createClient } from '@supabase/supabase-js';
 /**
  * Creates a Supabase admin client using the SERVICE ROLE KEY.
  * This client bypasses Row Level Security — use ONLY in server-side API routes.
+ *
+ * The key MUST come from the environment (SUPABASE_SERVICE_ROLE_KEY).
+ * There is intentionally NO fallback value: a missing key fails loudly instead
+ * of silently falling back to a committed credential that bypasses RLS.
  */
 export function createAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ukzruwisvuemdjjqgoko.supabase.co';
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrenJ1d2lzdnVlbWRqanFnb2tvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjM2NDU3NSwiZXhwIjoyMTAxOTQwNTc1fQ.23pGlV3_3dA5EC3p1PJwYykOkcq_2sG4VYUH-6bPgA4';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      '[AdminClient] SUPABASE_SERVICE_ROLE_KEY is not configured. ' +
+      'Admin operations (user provisioning, password resets) are disabled until ' +
+      'SUPABASE_SERVICE_ROLE_KEY is set in the server environment. ' +
+      'This key must never be committed to source control or exposed to the client.'
+    );
+  }
 
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {

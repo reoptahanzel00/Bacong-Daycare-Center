@@ -1,46 +1,52 @@
 import { createClient } from '@/lib/supabase/server';
 import type { UserRole } from '@/contexts/DaycareContext';
 
+const VALID_ROLES: UserRole[] = ['worker', 'official', 'barangay_admin', 'parent'];
+
 export interface AuthSession {
   userId: string | null;
   email: string | null;
-  role: UserRole;
+  role: UserRole | null; // null when unauthenticated or role is not provisioned
   isAuthenticated: boolean;
 }
 
 /**
  * Server-side helper to retrieve and verify the current user's session and role.
- * Queries Supabase auth session and users profile table.
+ * Queries Supabase auth session and the users profile table.
+ *
+ * Security notes:
+ * - The `users` table is the single source of truth for roles. It is only
+ *   written by an admin through the service role client, so a role read from it
+ *   cannot be self-assigned. `user_metadata` is user-editable and MUST NOT be
+ *   trusted for authorization.
+ * - Fails CLOSED: any missing/errored session, missing profile, or unknown role
+ *   results in an unauthenticated session.
  */
 export async function getServerSession(): Promise<AuthSession> {
+  const unauthenticated = (): AuthSession => ({
+    userId: null,
+    email: null,
+    role: null,
+    isAuthenticated: false,
+  });
+
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return {
-        userId: null,
-        email: null,
-        role: 'worker', // Fallback role for local unauthenticated demo mode
-        isAuthenticated: false,
-      };
-    }
+    if (authError || !user) return unauthenticated();
 
-    // Retrieve verified role from users table or metadata / email fallback
     const { data: profile } = await supabase
       .from('users')
-      .select('role')
+      .select('role, status')
       .eq('id', user.id)
       .single();
 
-    let role: UserRole = (profile?.role as UserRole) || (user.user_metadata?.role as UserRole);
-    if (!role) {
-      const email = (user.email || '').toLowerCase();
-      if (email.includes('official')) role = 'official';
-      else if (email.includes('admin')) role = 'barangay_admin';
-      else if (email.includes('parent')) role = 'parent';
-      else role = 'worker';
-    }
+    const role = profile?.role;
+    if (!role || !VALID_ROLES.includes(role)) return unauthenticated();
+
+    // Disabled accounts are rejected server-side, regardless of any client state.
+    if (profile.status === 'disabled') return unauthenticated();
 
     return {
       userId: user.id,
@@ -49,13 +55,9 @@ export async function getServerSession(): Promise<AuthSession> {
       isAuthenticated: true,
     };
   } catch {
-    // If Supabase environment is unavailable, allow local demo mode fallback
-    return {
-      userId: null,
-      email: null,
-      role: 'worker',
-      isAuthenticated: false,
-    };
+    // Supabase unavailable or query failed: fail closed. Never authorize a
+    // request without a verified session and role.
+    return unauthenticated();
   }
 }
 
@@ -63,6 +65,6 @@ export async function getServerSession(): Promise<AuthSession> {
  * Enforces role-based access control (RBAC) in server API handlers.
  * Returns true if allowed, false if rejected.
  */
-export function authorizeRole(userRole: UserRole, allowedRoles: UserRole[]): boolean {
-  return allowedRoles.includes(userRole);
+export function authorizeRole(userRole: UserRole | null, allowedRoles: UserRole[]): boolean {
+  return userRole !== null && allowedRoles.includes(userRole);
 }

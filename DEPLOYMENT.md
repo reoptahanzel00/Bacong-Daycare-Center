@@ -145,20 +145,162 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ```
 
-### 3. Set up basic RLS policies
+### 3. Set up comprehensive RLS policies
+
+> ⚠️ **Critical:** A `SUPABASE_SERVICE_ROLE_KEY` was previously committed to git
+> history and must be considered **compromised**. Rotate it now in
+> Supabase Dashboard → Project Settings → API Keys → `service_role` → **Rotate**.
+> The code no longer ships any fallback credentials — the key is read strictly
+> from `SUPABASE_SERVICE_ROLE_KEY` in the server environment.
+
+Apply these policies after enabling RLS. Roles come exclusively from the
+`users` table (`worker`, `official`, `barangay_admin`, `parent`); `user_metadata`
+is user-editable and is never used for authorization.
 
 ```sql
--- Workers and admins can read all pupils
-CREATE POLICY "Workers can view all pupils" ON pupils
+-- =====================================================================
+-- users: users see their own profile; admins see all profiles.
+-- Provisioning/updates go through the admin API (service role), so no
+-- anon INSERT/UPDATE/DELETE policies are defined.
+-- =====================================================================
+CREATE POLICY "Users view own profile" ON users
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Admins view all users" ON users
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'barangay_admin')
+  );
+
+-- =====================================================================
+-- pupils
+-- =====================================================================
+CREATE POLICY "Staff view all pupils" ON pupils
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'official', 'barangay_admin'))
   );
 
--- Parents can only view their linked pupils
 CREATE POLICY "Parents view linked pupils" ON pupils
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM guardians WHERE pupil_id = pupils.id AND user_id = auth.uid())
   );
+
+CREATE POLICY "Workers and admins enroll pupils" ON pupils
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+CREATE POLICY "Workers and admins update pupils" ON pupils
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+-- No DELETE policy: records are soft-archived via enrollment_status.
+
+-- =====================================================================
+-- guardians
+-- =====================================================================
+CREATE POLICY "Staff view guardians" ON guardians
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'official', 'barangay_admin'))
+  );
+
+CREATE POLICY "Parents view own guardianship" ON guardians
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Workers and admins manage guardians" ON guardians
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+CREATE POLICY "Workers and admins update guardians" ON guardians
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+-- =====================================================================
+-- attendance
+-- =====================================================================
+CREATE POLICY "Staff view attendance" ON attendance
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'official', 'barangay_admin'))
+  );
+
+CREATE POLICY "Parents view linked attendance" ON attendance
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM guardians g
+      JOIN pupils p ON p.id = g.pupil_id
+      WHERE p.id = attendance.pupil_id AND g.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Workers and admins record attendance" ON attendance
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+CREATE POLICY "Workers and admins update attendance" ON attendance
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+-- =====================================================================
+-- progress_observations
+-- =====================================================================
+CREATE POLICY "Staff view observations" ON progress_observations
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'official', 'barangay_admin'))
+  );
+
+CREATE POLICY "Parents view linked observations" ON progress_observations
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM guardians g
+      JOIN pupils p ON p.id = g.pupil_id
+      WHERE p.id = progress_observations.pupil_id AND g.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Workers and admins record observations" ON progress_observations
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+-- =====================================================================
+-- notifications
+-- =====================================================================
+CREATE POLICY "Users view their notifications" ON notifications
+  FOR SELECT USING (recipient_id = auth.uid()::text OR recipient_id = 'all');
+
+CREATE POLICY "Workers and admins send notifications" ON notifications
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('worker', 'barangay_admin'))
+  );
+
+-- =====================================================================
+-- audit_logs
+-- =====================================================================
+CREATE POLICY "Admins view audit logs" ON audit_logs
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'barangay_admin')
+  );
+-- Audit log writes are performed server-side with the service-role key
+-- (which bypasses RLS). No client INSERT policy exists, so users cannot
+-- forge audit entries.
+```
+
+### 4. Verify the policies
+
+```sql
+SELECT schemaname, tablename, policyname FROM pg_policies
+WHERE tablename IN ('users','pupils','guardians','attendance','progress_observations','notifications','audit_logs')
+ORDER BY tablename, policyname;
 ```
 
 ---

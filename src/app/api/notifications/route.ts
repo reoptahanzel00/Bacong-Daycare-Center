@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession, authorizeRole } from '@/lib/auth';
 
 const NotificationSchema = z.object({
   recipient_id: z.string(),
@@ -39,6 +40,11 @@ const mockNotifications = [
 ];
 
 export async function GET(request: Request) {
+  const session = await getServerSession();
+  if (!session.isAuthenticated) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const recipientId = searchParams.get('recipient_id');
 
@@ -52,6 +58,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession();
+    if (!session.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Only Daycare Workers or Admins can send notifications.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const parsed = NotificationSchema.parse(body);
 

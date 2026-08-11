@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { School, GraduationCap, Shield, UserCheck, Heart, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { School, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -11,19 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const testAccounts = [
-    { role: 'Daycare Worker', email: 'worker@bacong.gov.ph', icon: GraduationCap, color: '#2F8F8A' },
-    { role: 'Barangay Official', email: 'official@bacong.gov.ph', icon: Shield, color: '#F5B942' },
-    { role: 'Barangay Admin', email: 'admin@bacong.gov.ph', icon: UserCheck, color: '#6366F1' },
-    { role: 'Parent / Guardian', email: 'parent@bacong.gov.ph', icon: Heart, color: '#F2896B' },
-  ];
-
-  const handleSelectAccount = (accEmail: string) => {
-    setEmail(accEmail);
-    setPassword('Password123!');
-    setErrorMessage(null);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +34,8 @@ export default function LoginPage() {
       const cleanEmail = email.trim().toLowerCase();
 
       if (data?.user) {
-        const metaRole = data.user.user_metadata?.role;
+        // The users table is the authoritative source of role. user_metadata is
+        // user-editable and must not be trusted for authorization.
         const { data: profile } = await supabase
           .from('users')
           .select('role')
@@ -56,8 +44,6 @@ export default function LoginPage() {
 
         if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
           userRole = profile.role;
-        } else if (metaRole && ['worker', 'official', 'barangay_admin', 'parent'].includes(metaRole)) {
-          userRole = metaRole;
         } else if (cleanEmail.includes('official')) {
           userRole = 'official';
         } else if (cleanEmail.includes('admin')) {
@@ -67,10 +53,6 @@ export default function LoginPage() {
         } else if (cleanEmail.includes('worker')) {
           userRole = 'worker';
         }
-      } else {
-        if (cleanEmail.includes('official')) userRole = 'official';
-        else if (cleanEmail.includes('admin')) userRole = 'barangay_admin';
-        else if (cleanEmail.includes('parent')) userRole = 'parent';
       }
 
       localStorage.setItem('bacong_auth_role', userRole);
@@ -128,29 +110,6 @@ export default function LoginPage() {
             <p className="text-xs text-[#6B6B6B] mt-1 m-0">
               Enter your registered Barangay email address and password to access your portal.
             </p>
-
-            {/* Quick Test Account Fill Buttons */}
-            <div className="mt-4 p-3 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
-              <div className="text-[10px] font-extrabold text-[#9B9B9B] uppercase tracking-wider mb-2">
-                Quick Fill Test Account (Password: Password123!)
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {testAccounts.map((acc) => {
-                  const Icon = acc.icon;
-                  return (
-                    <button
-                      key={acc.email}
-                      type="button"
-                      onClick={() => handleSelectAccount(acc.email)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-[#E6E4DF] hover:border-[#2F8F8A] text-[11px] font-bold text-[#2B2B2B] transition-all cursor-pointer text-left truncate"
-                    >
-                      <Icon size={13} style={{ color: acc.color }} />
-                      <span className="truncate">{acc.role.split(' ')[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             {/* Error Banner */}
             {errorMessage && (

@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
+import { getServerSession, authorizeRole } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  const session = await getServerSession();
+  if (!session.isAuthenticated) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+  if (!authorizeRole(session.role, ['worker', 'official', 'barangay_admin'])) {
+    return NextResponse.json(
+      { error: 'Unauthorized: Only staff and officials can generate DSWD reports.' },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const schoolYear = searchParams.get('sy') || 'SY 2025-2026';
 
