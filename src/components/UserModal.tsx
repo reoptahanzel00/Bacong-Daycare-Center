@@ -2,20 +2,19 @@
 
 import React, { useState } from 'react';
 import { X, UserCheck, Save, AlertCircle } from 'lucide-react';
+import type { MockUser, UserRole } from '@/contexts/DaycareContext';
 
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
-  pupils: any[];
+  onSave: (data: MockUser) => void;
 }
 
-export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModalProps) {
+export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'worker' | 'official' | 'barangay_admin' | 'parent'>('worker');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
@@ -47,7 +46,6 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
       return;
     }
 
-    setIsSubmitting(true);
     setError('');
 
     try {
@@ -66,7 +64,6 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
 
       if (!response.ok) {
         setError(resData.error || 'Failed to create user in Supabase Auth.');
-        setIsSubmitting(false);
         return;
       }
 
@@ -83,11 +80,9 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
       setName('');
       setEmail('');
       setError('');
-      setIsSubmitting(false);
       onClose();
     } catch {
       setError('Network error while provisioning account. Saved locally.');
-      setIsSubmitting(false);
       onSave({
         id: `USR-${Date.now().toString().slice(-4)}`,
         name,
@@ -164,7 +159,7 @@ export default function UserModal({ isOpen, onClose, onSave, pupils }: UserModal
             <select
               className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
               value={role}
-              onChange={(e) => setRole(e.target.value as any)}
+              onChange={(e) => setRole(e.target.value as UserRole)}
               suppressHydrationWarning
             >
               <option value="worker">Lead Daycare Worker (Teacher)</option>

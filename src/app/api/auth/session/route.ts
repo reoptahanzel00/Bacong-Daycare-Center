@@ -29,7 +29,7 @@ export async function GET() {
         name: profile?.full_name || 'System User',
       },
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ authenticated: false, user: null });
   }
 }

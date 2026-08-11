@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   INITIAL_PUPILS,
   INITIAL_ATTENDANCE,
@@ -13,13 +14,76 @@ import {
 } from '@/data/mockData';
 import { createClient } from '@/lib/supabase/client';
 
-// Local-compatible types (matching mockData shape)
-type MockPupil = typeof INITIAL_PUPILS[0];
-type MockAttendance = typeof INITIAL_ATTENDANCE[0];
-type MockAnnouncement = typeof INITIAL_ANNOUNCEMENTS[0];
-type MockUser = typeof INITIAL_USERS[0];
-type MockProgress = typeof INITIAL_PROGRESS[0];
-type MockAuditLog = typeof INITIAL_AUDIT_LOGS[0];
+// Local-compatible types (matching mockData shape).
+// Optional fields cover the loose demo payloads used across the UI.
+export interface MockPupil {
+  id: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  sex: string;
+  address?: string;
+  enrollmentStatus: string;
+  enrollmentDate?: string;
+  avatar?: string;
+  guardian?: {
+    fullName: string;
+    relationship: string;
+    phone?: string;
+    isPrimary?: boolean;
+  };
+  consecutiveAbsences?: number;
+}
+
+export interface MockAttendance {
+  pupil_id: string;
+  date: string;
+  status: 'present' | 'absent' | 'late';
+  notes?: string;
+}
+
+export interface MockAnnouncement {
+  id: string;
+  title: string;
+  body?: string;
+  date: string;
+  postedBy?: string;
+  content?: string;
+  author?: string;
+}
+
+export interface MockUser {
+  id: string;
+  name: string;
+  fullName?: string;
+  email: string;
+  role: string;
+  phone?: string;
+  status: string;
+  createdAt?: string;
+}
+
+export interface MockProgress {
+  id: string;
+  pupil_id: string;
+  domain: string;
+  title?: string;
+  rating?: string;
+  notes?: string;
+  note?: string;
+  date: string;
+  recordedBy?: string;
+}
+
+export interface MockAuditLog {
+  id: string;
+  timestamp: string;
+  userName: string;
+  role: string;
+  action: string;
+  target: string;
+  details?: string;
+}
 
 export type UserRole = 'worker' | 'official' | 'barangay_admin' | 'parent';
 
@@ -81,6 +145,7 @@ interface DaycareContextValue {
 const DaycareContext = createContext<DaycareContextValue | null>(null);
 
 export function DaycareProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bacong_auth_role');
@@ -122,13 +187,22 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate from localStorage & load Supabase session role on mount
   useEffect(() => {
-    setPupils(getStoredData('pupils', INITIAL_PUPILS));
-    setAttendance(getStoredData('attendance', INITIAL_ATTENDANCE));
-    setProgress(getStoredData('progress', INITIAL_PROGRESS));
-    setAnnouncements(getStoredData('announcements', INITIAL_ANNOUNCEMENTS));
-    setUsers(getStoredData('users', INITIAL_USERS));
-    setAuditLogs(getStoredData('audit_logs', INITIAL_AUDIT_LOGS));
-    setIsHydrated(true);
+    let cancelled = false;
+
+    async function hydrate() {
+      // Defer past the synchronous effect body: keeps SSR-safe mount-time
+      // hydration from localStorage without triggering cascading renders.
+      await Promise.resolve();
+      if (cancelled) return;
+      setPupils(getStoredData('pupils', INITIAL_PUPILS));
+      setAttendance(getStoredData('attendance', INITIAL_ATTENDANCE));
+      setProgress(getStoredData('progress', INITIAL_PROGRESS));
+      setAnnouncements(getStoredData('announcements', INITIAL_ANNOUNCEMENTS));
+      setUsers(getStoredData('users', INITIAL_USERS));
+      setAuditLogs(getStoredData('audit_logs', INITIAL_AUDIT_LOGS));
+      setIsHydrated(true);
+    }
+    hydrate();
 
     async function loadAuthUserRole() {
       try {
@@ -176,7 +250,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Unauthenticated visitor -> Redirect to login page
           if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-            window.location.href = '/login';
+            router.push('/login');
           }
         }
       } catch (e) {
@@ -185,7 +259,11 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadAuthUserRole();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   // Persist to localStorage whenever data changes
   useEffect(() => { if (isHydrated) saveStoredData('pupils', pupils); }, [pupils, isHydrated]);

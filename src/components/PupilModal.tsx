@@ -1,58 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, UserPlus, Save, AlertCircle } from 'lucide-react';
+import type { MockPupil } from '@/contexts/DaycareContext';
 
 interface PupilModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
-  pupilToEdit?: any;
+  onSave: (data: MockPupil) => void;
+  pupilToEdit?: MockPupil | null;
+}
+
+function buildInitialForm(pupil?: MockPupil | null) {
+  return {
+    firstName: pupil?.firstName || '',
+    lastName: pupil?.lastName || '',
+    birthDate: pupil?.birthDate || '2021-05-10',
+    sex: pupil?.sex || 'Male',
+    address: pupil?.address || 'Purok 1, Barangay Bacong',
+    enrollmentStatus: pupil?.enrollmentStatus || 'enrolled',
+    guardianName: pupil?.guardian?.fullName || '',
+    relationship: pupil?.guardian?.relationship || 'Mother',
+    guardianPhone: pupil?.guardian?.phone || '0917-123-4567'
+  };
 }
 
 export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: PupilModalProps) {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    birthDate: '2021-05-10',
-    sex: 'Male',
-    address: 'Purok 1, Barangay Bacong',
-    enrollmentStatus: 'enrolled',
-    guardianName: '',
-    relationship: 'Mother',
-    guardianPhone: '0917-123-4567'
-  });
-
+  // The parent remounts this modal via `key` whenever pupilToEdit / isOpen
+  // changes, so the form state is always fresh without a sync effect.
+  const [formData, setFormData] = useState(() => buildInitialForm(pupilToEdit));
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (pupilToEdit) {
-      setFormData({
-        firstName: pupilToEdit.firstName || '',
-        lastName: pupilToEdit.lastName || '',
-        birthDate: pupilToEdit.birthDate || '2021-05-10',
-        sex: pupilToEdit.sex || 'Male',
-        address: pupilToEdit.address || 'Purok 1, Barangay Bacong',
-        enrollmentStatus: pupilToEdit.enrollmentStatus || 'enrolled',
-        guardianName: pupilToEdit.guardian?.fullName || '',
-        relationship: pupilToEdit.guardian?.relationship || 'Mother',
-        guardianPhone: pupilToEdit.guardian?.phone || '0917-123-4567'
-      });
-    } else {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        birthDate: '2021-05-10',
-        sex: 'Male',
-        address: 'Purok 1, Barangay Bacong',
-        enrollmentStatus: 'enrolled',
-        guardianName: '',
-        relationship: 'Mother',
-        guardianPhone: '0917-123-4567'
-      });
-    }
-    setError('');
-  }, [pupilToEdit, isOpen]);
 
   if (!isOpen) return null;
 

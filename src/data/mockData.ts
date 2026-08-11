@@ -127,7 +127,14 @@ export const INITIAL_PUPILS = [
   }
 ];
 
-export const INITIAL_ATTENDANCE = [
+type MockAttendanceSeed = {
+  pupil_id: string;
+  date: string;
+  status: 'present' | 'absent' | 'late';
+  notes?: string;
+};
+
+export const INITIAL_ATTENDANCE: MockAttendanceSeed[] = [
   { pupil_id: 'PUP-2026-001', date: '2026-08-07', status: 'present', notes: '' },
   { pupil_id: 'PUP-2026-002', date: '2026-08-07', status: 'absent', notes: 'Fever reported by parent' },
   { pupil_id: 'PUP-2026-003', date: '2026-08-07', status: 'present', notes: '' },

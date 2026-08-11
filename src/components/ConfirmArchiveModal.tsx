@@ -49,7 +49,7 @@ export default function ConfirmArchiveModal({
             Are you sure you want to soft-archive the record for <strong className="text-[#2B2B2B]">{pupilName}</strong>?
           </p>
           <div className="p-3 rounded-2xl bg-[#FEF8EC] border border-[#F5DAA0] text-[11px] text-[#8A5D00] font-semibold">
-            ⚠️ Archiving changes enrollment status to "archived". Record remains audit-traceable in system logs.
+            ⚠️ Archiving changes enrollment status to &quot;archived&quot;. Record remains audit-traceable in system logs.
           </div>
         </div>
 

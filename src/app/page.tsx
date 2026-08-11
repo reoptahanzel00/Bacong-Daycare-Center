@@ -129,6 +129,7 @@ function AppContent() {
 
       {/* All modals — mounted once at root level, opened via context state */}
       <PupilModal
+        key={`${pupilToEdit?.id ?? 'new'}::${isPupilModalOpen}`}
         isOpen={isPupilModalOpen}
         onClose={() => { setIsPupilModalOpen(false); setPupilToEdit(null); }}
         onSave={handleSavePupil}
@@ -152,7 +153,6 @@ function AppContent() {
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
         onSave={handleSaveUser}
-        pupils={pupils.filter(p => p.enrollmentStatus === 'enrolled')}
       />
 
       <DSWDReportModal

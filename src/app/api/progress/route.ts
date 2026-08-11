@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ observations: data || [] });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ observations: [], warning: 'Database not connected — using local data.' });
   }
 }
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ success: true, observation: data });
-    } catch (dbConnectionErr) {
+    } catch {
       // Database not configured — return optimistic local record with warning
       console.warn('[Progress API] Database not available. Returning local record.');
       return NextResponse.json({

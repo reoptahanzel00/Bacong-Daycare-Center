@@ -12,9 +12,7 @@ import {
   Heart, 
   UserCheck, 
   School,
-  Calendar,
   BellRing,
-  Sparkles,
   BookOpen,
   MessageSquare,
   Activity,
@@ -37,8 +35,7 @@ export default function MobileNav({
   onClose,
   currentRole,
   activeTab,
-  onTabChange,
-  onRoleChange
+  onTabChange
 }: MobileNavProps) {
   if (!isOpen) return null;
 
@@ -91,13 +88,6 @@ export default function MobileNav({
   };
 
   const currentConfig = roleConfigs[currentRole] || roleConfigs.worker;
-
-  const rolesList: { id: UserRole; label: string; icon: any }[] = [
-    { id: 'worker', label: 'Daycare Worker', icon: Users },
-    { id: 'official', label: 'Barangay Official', icon: Shield },
-    { id: 'barangay_admin', label: 'Barangay Admin', icon: UserCheck },
-    { id: 'parent', label: 'Parent Portal', icon: Heart },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden flex" suppressHydrationWarning>

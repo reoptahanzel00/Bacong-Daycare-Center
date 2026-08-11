@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { X, TrendingUp, Save, AlertCircle } from 'lucide-react';
+import type { MockPupil, MockProgress } from '@/contexts/DaycareContext';
 
 interface ProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
-  pupils: any[];
+  onSave: (data: MockProgress) => void;
+  pupils: MockPupil[];
 }
 
 export default function ProgressModal({ isOpen, onClose, onSave, pupils }: ProgressModalProps) {
