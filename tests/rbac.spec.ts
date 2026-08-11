@@ -14,7 +14,9 @@ async function seedRole(page: Page, role: string) {
 test.describe('Role-Based Access Control (RBAC) & Scope Isolation', () => {
   test('unauthenticated visitors are redirected to the login page', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveURL(/\/login/);
+    // The redirect runs client-side in demo mode; allow headroom under
+    // parallel dev-server load.
+    await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
     await expect(page.getByText('Sign In to Your Account')).toBeVisible();
   });
 

@@ -21,6 +21,8 @@ import {
   type PupilEnrollPayload,
 } from '@/services/pupilService';
 import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceService';
+import { fetchProgress, recordObservation, type ProgressPayload } from '@/services/progressService';
+import { fetchUsers, updateUserStatus } from '@/services/usersService';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -242,9 +244,11 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
    */
   const syncFromServer = useCallback(async () => {
     try {
-      const [pupilRes, attendanceRes] = await Promise.all([
+      const [pupilRes, attendanceRes, progressRes, usersRes] = await Promise.all([
         fetchPupils('enrolled'),
         fetchAttendance(),
+        fetchProgress(),
+        fetchUsers(),
       ]);
 
       if (pupilRes.ok) {
@@ -256,6 +260,30 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           date: r.date,
           status: r.status,
           notes: r.notes,
+        })));
+      }
+      if (progressRes.ok) {
+        setProgress(progressRes.observations.map(r => ({
+          id: r.id,
+          pupil_id: r.pupil_id,
+          domain: r.domain,
+          title: r.title,
+          rating: r.rating,
+          note: r.note,
+          date: r.date,
+          recordedBy: r.recorded_by || undefined,
+        })));
+      }
+      if (usersRes.ok) {
+        setUsers(usersRes.users.map(u => ({
+          id: u.id,
+          name: u.full_name,
+          fullName: u.full_name,
+          email: u.email,
+          role: u.role,
+          phone: u.phone || undefined,
+          status: u.status,
+          createdAt: u.created_at,
         })));
       }
     } catch (e) {
@@ -470,25 +498,41 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
       return { ...pupil, consecutiveAbsences: consecutive };
     }));
 
-    // Persist to the real daily register.
+    logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
+    // Optimistic toast — the local save already happened.
+    showToast(`Attendance register for ${dateStr} saved!`);
+
+    // Persist to the real daily register; surface failure without blocking UX.
     const res = await saveBulkAttendance(
       dateStr,
       records.map(({ pupil_id, status, notes }) => ({ pupil_id, status, notes })),
     );
-
-    logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
-    if (res.success) {
-      showToast(`Attendance register for ${dateStr} saved!`);
-    } else {
-      showToast(`Saved locally for ${dateStr} — database sync unavailable.`, 'warning');
+    if (!res.success) {
+      showToast(`Database sync unavailable — register saved locally for ${dateStr}.`, 'warning');
     }
   }, [attendance, logAuditAction, showToast]);
 
-  const handleSaveProgress = useCallback((progressData: MockProgress) => {
+  const handleSaveProgress = useCallback(async (progressData: MockProgress) => {
+    const payload: ProgressPayload = {
+      pupil_id: progressData.pupil_id,
+      domain: progressData.domain as ProgressPayload['domain'],
+      title: progressData.title || (progressData.rating ? `${progressData.rating} observation` : 'Milestone observation'),
+      note: progressData.note || progressData.notes || '',
+      date: progressData.date,
+      rating: progressData.rating,
+    };
+
     setProgress(prev => [progressData, ...prev]);
     const targetPupil = pupils.find(p => p.id === progressData.pupil_id);
     logAuditAction('Recorded Progress Observation', `${targetPupil?.firstName || progressData.pupil_id}`, `Added milestone observation under ${progressData.domain}.`);
+    // Optimistic toast — the local save already happened.
     showToast(`Development milestone recorded for ${targetPupil?.firstName || 'pupil'}.`);
+
+    // Persist to the real observations table; surface failure without blocking UX.
+    const res = await recordObservation(payload);
+    if (!res.success) {
+      showToast('Milestone saved locally — database sync unavailable.', 'warning');
+    }
   }, [pupils, logAuditAction, showToast]);
 
   const handleSaveAnnouncement = useCallback((annData: MockAnnouncement) => {
@@ -503,17 +547,19 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     showToast(`User account created for ${userData.name}.`);
   }, [logAuditAction, showToast]);
 
-  const handleToggleUserStatus = useCallback((userId: string) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        const nextStatus = u.status === 'active' ? 'disabled' : 'active';
-        logAuditAction('Toggled Account Status', u.email, `Changed account status to ${nextStatus}.`);
-        showToast(`Account ${u.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
-        return { ...u, status: nextStatus };
-      }
-      return u;
-    }));
-  }, [logAuditAction, showToast]);
+  const handleToggleUserStatus = useCallback(async (userId: string) => {
+    const targetUser = users.find(u => u.id === userId);
+    if (!targetUser) return;
+
+    const nextStatus = targetUser.status === 'active' ? 'disabled' : 'active';
+
+    // Persist to the real users table (admin API).
+    await updateUserStatus(userId, nextStatus);
+
+    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, status: nextStatus } : u)));
+    logAuditAction('Toggled Account Status', targetUser.email, `Changed account status to ${nextStatus}.`);
+    showToast(`Account ${targetUser.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
+  }, [users, logAuditAction, showToast]);
 
   const value: DaycareContextValue = {
     currentRole, setCurrentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,

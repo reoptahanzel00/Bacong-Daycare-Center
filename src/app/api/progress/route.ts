@@ -3,6 +3,32 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 
+// The UI works in 4 human-readable domains while the DB stores compact ids.
+// Keep both sides in sync so FK constraints and the client contract line up.
+const DOMAIN_LABEL_TO_ID: Record<string, string> = {
+  'Motor Skills': 'motor',
+  'Language & Communication': 'language',
+  'Socio-Emotional': 'socio-emotional',
+  'Self-Help & Cognitive': 'self-help',
+};
+const DOMAIN_ID_TO_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(DOMAIN_LABEL_TO_ID).map(([label, id]) => [id, label])
+);
+
+// Client ratings map onto the DB status_rating enum.
+const RATING_TO_STATUS: Record<string, string> = {
+  'Demonstrates Mastery': 'Present',
+  'Developing': 'In_Progress',
+  'Developing / Progressing': 'In_Progress',
+  'Needs Practice': 'Not_Yet_Observed',
+  'Needs Practice / Assistance': 'Not_Yet_Observed',
+};
+const STATUS_TO_RATING: Record<string, string> = {
+  Present: 'Demonstrates Mastery',
+  In_Progress: 'Developing',
+  Not_Yet_Observed: 'Needs Practice',
+};
+
 const ProgressSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
   domain: z.enum([
@@ -11,9 +37,10 @@ const ProgressSchema = z.object({
     'Socio-Emotional',
     'Self-Help & Cognitive',
   ]),
-  title: z.string().min(1, 'Title is required').max(200),
+  title: z.string().min(1, 'Title is required').max(200).optional(),
   note: z.string().min(1, 'Observation note is required').max(1000),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  rating: z.string().max(100).optional(),
   recordedBy: z.string().max(100).optional(),
 });
 
@@ -40,12 +67,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ observations: [], warning: error.message });
     }
 
-    // Map DB columns back to the client contract (domain/date) so the UI shape
-    // stays stable regardless of storage layout.
-    const observations = (data || []).map(({ domain_id, observation_date, ...rest }) => ({
+    // Map DB columns back to the client contract (domain/date/rating) so the
+    // UI shape stays stable regardless of storage layout.
+    const observations = (data || []).map(({ domain_id, observation_date, status_rating, ...rest }) => ({
       ...rest,
-      domain: domain_id,
+      domain: DOMAIN_ID_TO_LABEL[domain_id] || domain_id,
       date: observation_date,
+      rating: status_rating ? STATUS_TO_RATING[status_rating] || status_rating : undefined,
     }));
 
     return NextResponse.json({ observations });
@@ -73,10 +101,11 @@ export async function POST(request: Request) {
     const record = {
       id: `PROG-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
       pupil_id: parsed.pupil_id,
-      domain_id: parsed.domain,
-      title: parsed.title,
+      domain_id: DOMAIN_LABEL_TO_ID[parsed.domain] || parsed.domain,
+      title: parsed.title || `${parsed.rating || 'Milestone'} observation`,
       note: parsed.note,
       observation_date: parsed.date,
+      status_rating: parsed.rating ? RATING_TO_STATUS[parsed.rating] || null : null,
       // recorded_by is the verified user UUID from the session, never client input.
       recorded_by: session.userId,
     };
