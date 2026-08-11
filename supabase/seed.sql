@@ -3,10 +3,16 @@
 -- Initial data for School Years, Domains, Demo Pupils, and Announcements
 -- ==========================================================================
 
--- 1. Seed Current School Year
-INSERT INTO school_years (label, start_date, end_date, is_current)
-VALUES ('SY 2025-2026', '2025-06-02', '2026-03-31', true)
+-- 1. Seed School Years (current year first; previous years kept for DSWD history)
+UPDATE school_years SET is_current = false WHERE is_current = true;
+
+INSERT INTO school_years (label, start_date, end_date, is_current) VALUES
+  ('SY 2026-2027', '2026-06-01', '2027-03-31', true),
+  ('SY 2025-2026', '2025-06-02', '2026-03-31', false)
 ON CONFLICT (label) DO NOTHING;
+
+-- Re-run safe: ensure exactly one current school year even on re-seeds
+UPDATE school_years SET is_current = true WHERE label = 'SY 2026-2027';
 
 -- 2. Seed Progress Domains
 INSERT INTO progress_domains (id, name, description) VALUES

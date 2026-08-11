@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     }
 
     const supabase = await createClient();
-    let query = supabase.from('progress_observations').select('*').order('date', { ascending: false });
+    let query = supabase.from('progress_observations').select('*').order('observation_date', { ascending: false });
 
     if (pupilId) {
       query = query.eq('pupil_id', pupilId);
@@ -40,7 +40,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ observations: [], warning: error.message });
     }
 
-    return NextResponse.json({ observations: data || [] });
+    // Map DB columns back to the client contract (domain/date) so the UI shape
+    // stays stable regardless of storage layout.
+    const observations = (data || []).map(({ domain_id, observation_date, ...rest }) => ({
+      ...rest,
+      domain: domain_id,
+      date: observation_date,
+    }));
+
+    return NextResponse.json({ observations });
   } catch {
     return NextResponse.json({ observations: [], warning: 'Database not connected — using local data.' });
   }
@@ -65,12 +73,12 @@ export async function POST(request: Request) {
     const record = {
       id: `PROG-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
       pupil_id: parsed.pupil_id,
-      domain: parsed.domain,
+      domain_id: parsed.domain,
       title: parsed.title,
       note: parsed.note,
-      date: parsed.date,
-      // recorded_by is derived server-side from the verified session, never from client input.
-      recorded_by: session.email || session.userId || 'Daycare Worker',
+      observation_date: parsed.date,
+      // recorded_by is the verified user UUID from the session, never client input.
+      recorded_by: session.userId,
     };
 
     try {

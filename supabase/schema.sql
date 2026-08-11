@@ -132,47 +132,103 @@ CREATE INDEX IF NOT EXISTS idx_progress_pupil_domain ON progress_observations(pu
 -- Enforces Data Privacy & Eliminates IDOR Leaks at Database Layer
 -- ==========================================================================
 
+-- Helper: returns the current user's role, executed as the table owner so RLS
+-- policies can check roles WITHOUT recursive policy evaluation on `users`.
+-- The `users` table is the single source of truth for roles; user_metadata is
+-- user-editable and must never be trusted for authorization.
+CREATE OR REPLACE FUNCTION public.current_user_role()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM public.users WHERE id = auth.uid()
+$$;
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pupils ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress_observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guardians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 
--- Pupil RLS: Parents see linked children only; Staff sees all enrolled pupils
+-- Users RLS: each user reads their own profile; admins read all profiles.
+-- Provisioning/updates go through the admin API (service role, bypasses RLS),
+-- so no client INSERT/UPDATE/DELETE policies are defined.
+CREATE POLICY "Users SELECT Own Policy" ON users
+  FOR SELECT TO authenticated
+  USING (id = auth.uid());
+
+CREATE POLICY "Users Admin SELECT Policy" ON users
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() = 'barangay_admin');
+
+-- Pupil RLS: Parents see linked children only; Staff sees all enrolled pupils.
+-- No DELETE policy: records are soft-archived via enrollment_status.
 CREATE POLICY "Pupils SELECT Policy" ON pupils
   FOR SELECT TO authenticated
   USING (
     id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR (SELECT role FROM users WHERE id = auth.uid()) IN ('worker', 'official', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
   );
 
-CREATE POLICY "Pupils INSERT/UPDATE Policy" ON pupils
-  FOR ALL TO authenticated
-  USING ((SELECT role FROM users WHERE id = auth.uid()) IN ('worker', 'barangay_admin'));
+CREATE POLICY "Pupils INSERT Policy" ON pupils
+  FOR INSERT TO authenticated
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
 
--- Attendance RLS: Parents view attendance of linked children only
+CREATE POLICY "Pupils UPDATE Policy" ON pupils
+  FOR UPDATE TO authenticated
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'))
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+
+-- Guardians RLS: parents see their own guardianship rows; staff sees all.
+-- (This also lets the pupils/attendance JOINs resolve linked children.)
+CREATE POLICY "Guardians SELECT Policy" ON guardians
+  FOR SELECT TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
+  );
+
+CREATE POLICY "Guardians INSERT Policy" ON guardians
+  FOR INSERT TO authenticated
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+
+CREATE POLICY "Guardians UPDATE Policy" ON guardians
+  FOR UPDATE TO authenticated
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'))
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+
+-- Attendance RLS: Parents view attendance of linked children only.
+-- UPDATE exists so workers/admins can correct registers; matching the API.
 CREATE POLICY "Attendance SELECT Policy" ON attendance
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR (SELECT role FROM users WHERE id = auth.uid()) IN ('worker', 'official', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
   );
 
-CREATE POLICY "Attendance INSERT/UPDATE Policy" ON attendance
-  FOR ALL TO authenticated
-  USING ((SELECT role FROM users WHERE id = auth.uid()) = 'worker');
+CREATE POLICY "Attendance INSERT Policy" ON attendance
+  FOR INSERT TO authenticated
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+
+CREATE POLICY "Attendance UPDATE Policy" ON attendance
+  FOR UPDATE TO authenticated
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'))
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
 
 -- Progress Observations RLS: Exclude non-staff officials from individual private notes per RA 10173
 CREATE POLICY "Progress SELECT Policy" ON progress_observations
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR (SELECT role FROM users WHERE id = auth.uid()) IN ('worker', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'barangay_admin')
   );
 
 CREATE POLICY "Progress INSERT Policy" ON progress_observations
   FOR INSERT TO authenticated
-  WITH CHECK ((SELECT role FROM users WHERE id = auth.uid()) = 'worker');
+  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
 
 -- Audit Log RLS: Immutable (Insert Only, No Updates/Deletes)
 CREATE POLICY "Audit Log INSERT Policy" ON audit_log
@@ -181,7 +237,7 @@ CREATE POLICY "Audit Log INSERT Policy" ON audit_log
 
 CREATE POLICY "Audit Log SELECT Policy" ON audit_log
   FOR SELECT TO authenticated
-  USING ((SELECT role FROM users WHERE id = auth.uid()) = 'barangay_admin');
+  USING (public.current_user_role() = 'barangay_admin');
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION

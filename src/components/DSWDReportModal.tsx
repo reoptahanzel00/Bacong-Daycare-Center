@@ -20,7 +20,7 @@ export default function DSWDReportModal({
   progress
 }: DSWDReportModalProps) {
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2025-2026');
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2026-2027');
   const reportRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -110,6 +110,7 @@ export default function DSWDReportModal({
               className="px-3 py-1.5 rounded-full border border-[#E6E4DF] text-xs font-semibold bg-[#FAF8F5] focus:outline-none"
               suppressHydrationWarning
             >
+              <option value="SY 2026-2027">SY 2026-2027</option>
               <option value="SY 2025-2026">SY 2025-2026</option>
               <option value="SY 2024-2025">SY 2024-2025</option>
             </select>
