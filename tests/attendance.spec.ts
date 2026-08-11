@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Daily Attendance Register Workflow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Seed the demo auth role so the app renders the worker portal instead of
+    // redirecting unauthenticated visitors to /login.
+    await page.addInitScript(() => {
+      localStorage.setItem('bacong_auth_role', 'worker');
+    });
+  });
+
   test('should allow daycare worker to toggle attendance register status', async ({ page }) => {
     await page.goto('/');
 

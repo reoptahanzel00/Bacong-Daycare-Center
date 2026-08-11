@@ -21,5 +21,13 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    // Run the app in offline demo mode so E2E is deterministic without a
+    // live Supabase session. With real credentials the auth middleware
+    // redirects unauthenticated visitors to /login.
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: '',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: '',
+      SUPABASE_SERVICE_ROLE_KEY: '',
+    },
   },
 });

@@ -1,11 +1,21 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Pupil Enrollment Workflow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Seed the demo auth role so the app renders the worker portal instead of
+    // redirecting unauthenticated visitors to /login.
+    await page.addInitScript(() => {
+      localStorage.setItem('bacong_auth_role', 'worker');
+    });
+  });
+
   test('should display enrolled pupils and open enrollment modal', async ({ page }) => {
     await page.goto('/');
 
     // Check daycare branding title
-    await expect(page.locator('h2')).toContainText('Barangay Bacong Daycare Center');
+    await expect(
+      page.getByRole('heading', { name: 'Barangay Bacong Daycare Center' }).first()
+    ).toBeVisible();
 
     // Click Enroll Pupil button
     const enrollBtn = page.getByRole('button', { name: /enroll pupil/i }).first();
@@ -21,7 +31,7 @@ test.describe('Pupil Enrollment Workflow', () => {
     await page.getByPlaceholder('e.g. Maria Santos').fill('Rosa Dela Rosa');
 
     // Submit form
-    await page.getByRole('button', { name: /enroll pupil/i }).last().click();
+    await page.getByRole('button', { name: /save enrollment/i }).click();
 
     // Confirm modal closes
     await expect(page.getByText('Enroll New Daycare Pupil')).not.toBeVisible();
