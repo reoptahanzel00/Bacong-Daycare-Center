@@ -1,0 +1,169 @@
+// One-off live smoke test for the ECCD rounds + scores feature.
+// Reads .env.local for Supabase credentials; logs in as worker and parent,
+// exercises /api/eccd and /api/eccd/scores on the deployed app, and verifies
+// the DB migration via PostgREST. Run: node scripts/live-smoke-eccd.mjs
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+
+function loadEnv(file) {
+  const out = {};
+  const text = fs.readFileSync(file, 'utf8');
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/i);
+    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  return out;
+}
+
+const env = loadEnv(path.join(root, '.env.local'));
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+// .env.local's NEXT_PUBLIC_APP_URL points at localhost for local dev; the
+// smoke test must target the deployed app. Override with APP_URL if needed.
+const appUrl = (process.env.APP_URL || 'https://bacong-daycare-center.vercel.app').replace(/\/$/, '');
+const ref = new URL(supabaseUrl).hostname.split('.')[0];
+
+if (!supabaseUrl || !anonKey || !serviceKey) {
+  console.error('Missing Supabase env config in .env.local');
+  process.exit(1);
+}
+
+let failures = 0;
+const check = (name, ok, extra = '') => {
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? `  (${extra})` : ''}`);
+  if (!ok) failures += 1;
+};
+
+async function supabaseAuth(email, password) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: anonKey },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(`login ${email} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+function cookieFor(session) {
+  const value = 'base64-' + Buffer.from(JSON.stringify(session)).toString('base64url');
+  return { name: `sb-${ref}-auth-token`, value };
+}
+
+async function api(ck, pathname, method = 'GET', body) {
+  const res = await fetch(`${appUrl}${pathname}`, {
+    method,
+    headers: {
+      Cookie: `${ck.name}=${ck.value}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let json = null;
+  try { json = await res.json(); } catch { /* non-JSON */ }
+  return { status: res.status, json };
+}
+
+// ---- Phase 0: migration check via PostgREST (service role) ----
+console.log('--- Phase 0: DB migration ---');
+{
+  const hdrs = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+  const scores = await fetch(`${supabaseUrl}/rest/v1/eccd_scores?select=*&limit=1`, { headers: hdrs });
+  check('eccd_scores table exists', scores.status === 200, `HTTP ${scores.status}`);
+  const obs = await fetch(
+    `${supabaseUrl}/rest/v1/progress_observations?select=pupil_id,evaluation_round&limit=1`,
+    { headers: hdrs }
+  );
+  check('progress_observations has evaluation_round column', obs.status === 200, `HTTP ${obs.status}`);
+}
+
+// ---- Phase 1: unauthenticated + worker flow ----
+console.log('--- Phase 1: worker flow on deployed app ---');
+{
+  const unauth = await fetch(`${appUrl}/api/eccd/scores`);
+  check('unauthenticated GET /api/eccd/scores -> 401', unauth.status === 401, `HTTP ${unauth.status}`);
+
+  const session = await supabaseAuth('worker@bacong.gov.ph', 'Password123!');
+  const ck = cookieFor(session);
+  check('worker login', !!session.access_token);
+
+  const before = await api(ck, '/api/eccd?round=2');
+  check('GET /api/eccd?round=2 as worker -> 200', before.status === 200, `HTTP ${before.status}`);
+
+  const ratings = [
+    { milestone_code: 'GM-01', domain_id: 'gross_motor', present: true },
+    { milestone_code: 'GM-02', domain_id: 'gross_motor', present: true },
+    { milestone_code: 'GM-03', domain_id: 'gross_motor', present: true },
+    { milestone_code: 'GM-04', domain_id: 'gross_motor', present: true },
+    { milestone_code: 'GM-05', domain_id: 'gross_motor', present: false },
+    { milestone_code: 'FM-01', domain_id: 'fine_motor', present: true },
+  ];
+  const saved = await api(ck, '/api/eccd', 'POST', {
+    pupil_id: 'PUP-2026-001', round: 2, ratings,
+  });
+  check('POST /api/eccd (round 2, 6 ratings) -> success', saved.status === 200 && saved.json?.saved === 5, `HTTP ${saved.status} saved=${saved.json?.saved}`);
+
+  const after = await api(ck, '/api/eccd?round=2');
+  const mine = (after.json?.ratings || []).filter((r) => r.pupil_id === 'PUP-2026-001');
+  check('GET round 2 shows 5 present rows for PUP-2026-001', mine.length === 5, `rows=${mine.length}`);
+
+  const scoresSaved = await api(ck, '/api/eccd/scores', 'POST', {
+    pupil_id: 'PUP-2026-001', round: 2,
+    scores: [
+      { domain_id: 'gross_motor', raw_score: 4, scaled_score: 4 },
+      { domain_id: 'fine_motor', raw_score: 1, scaled_score: null },
+    ],
+  });
+  check('POST /api/eccd/scores -> success', scoresSaved.status === 200 && scoresSaved.json?.saved === 2, `HTTP ${scoresSaved.status}`);
+
+  const scoresGet = await api(ck, '/api/eccd/scores?round=2');
+  const myScores = (scoresGet.json?.scores || []).filter((s) => s.pupil_id === 'PUP-2026-001');
+  const gm = myScores.find((s) => s.domain_id === 'gross_motor');
+  check('GET /api/eccd/scores round 2 -> 2 rows, raw=4 scaled=4', myScores.length === 2 && gm?.raw_score === 4 && gm?.scaled_score === 4, JSON.stringify(myScores));
+
+  // Re-save with fewer items to verify delete+insert replacement semantics.
+  const resaved = await api(ck, '/api/eccd', 'POST', {
+    pupil_id: 'PUP-2026-001', round: 2,
+    ratings: ratings.map((r) => ({ ...r, present: r.milestone_code === 'FM-01' ? false : r.present })),
+  });
+  const afterResave = await api(ck, '/api/eccd?round=2');
+  const mine2 = (afterResave.json?.ratings || []).filter((r) => r.pupil_id === 'PUP-2026-001');
+  check('re-save replaces rows (FM-01 removed)', resaved.status === 200 && mine2.length === 4, `rows=${mine2.length}`);
+}
+
+// ---- Phase 2: parent scoping ----
+console.log('--- Phase 2: parent scoping ---');
+{
+  const session = await supabaseAuth('parent@bacong.gov.ph', 'Password123!');
+  const ck = cookieFor(session);
+  check('parent login', !!session.access_token);
+
+  const gres = await fetch(
+    `${supabaseUrl}/rest/v1/guardians?select=pupil_id&user_id=eq.${session.user.id}`,
+    { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+  );
+  const guardians = await gres.json();
+  const allowed = new Set((guardians || []).map((g) => g.pupil_id));
+  check('parent has linked pupil(s)', allowed.size > 0, [...allowed].join(', '));
+
+  const got = await api(ck, '/api/eccd?round=2');
+  const pupilsSeen = new Set((got.json?.ratings || []).map((r) => r.pupil_id));
+  const leak = [...pupilsSeen].filter((p) => !allowed.has(p));
+  check('parent sees ONLY linked pupils (no IDOR leak)', got.status === 200 && leak.length === 0, `seen=${[...pupilsSeen].join(',') || 'none'}`);
+
+  const denied = await api(ck, '/api/eccd', 'POST', {
+    pupil_id: 'PUP-2026-001', round: 2, ratings: [],
+  });
+  check('parent POST /api/eccd -> 403', denied.status === 403, `HTTP ${denied.status}`);
+
+  const deniedScores = await api(ck, '/api/eccd/scores', 'POST', {
+    pupil_id: 'PUP-2026-001', round: 2, scores: [],
+  });
+  check('parent POST /api/eccd/scores -> 403', deniedScores.status === 403, `HTTP ${deniedScores.status}`);
+}
+
+console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);
+process.exit(failures === 0 ? 0 : 1);
