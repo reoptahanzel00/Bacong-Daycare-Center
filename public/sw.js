@@ -1,51 +1,55 @@
-const CACHE_NAME = 'bacong-daycare-v2';
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/login'
-];
+// Barangay Bacong Daycare Tracker — Service Worker
+//
+// Network-first strategy: pages are ALWAYS fetched fresh from the network so
+// deploys are visible immediately. The cache is only an offline fallback.
+// API calls and Next.js static bundles are never intercepted.
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
+const CACHE_NAME = 'bacong-daycare-v3';
+
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => {
+        if (key !== CACHE_NAME) {
+          return caches.delete(key);
+        }
+      }))
+    )
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Always bypass API endpoints and Next.js static bundle chunks (_next/) to prevent ChunkLoadError
-  if (event.request.url.includes('/api/') || event.request.url.includes('/_next/')) {
+  const { request } = event;
+
+  // Never intercept API calls or Next.js static bundles (avoids stale chunks).
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // Fallback for offline navigation
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
+    fetch(request)
+      .then((response) => {
+        // Cache successful responses (clone) for offline fallback.
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
-      });
-    })
+        return response;
+      })
+      .catch(() =>
+        caches.match(request).then((cached) => {
+          if (cached) return cached;
+          // Last-resort offline navigation fallback.
+          if (request.mode === 'navigate') {
+            return caches.match('/');
+          }
+        })
+      )
   );
 });
