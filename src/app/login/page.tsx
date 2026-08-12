@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { School, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { School, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -11,6 +11,31 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setErrorMessage('Enter your email address first.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) {
+        setErrorMessage(error.message);
+        setLoading(false);
+        return;
+      }
+      setErrorMessage(null);
+      setResetSent(true);
+    } catch {
+      setErrorMessage('Unable to send the reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,14 +164,43 @@ export default function LoginPage() {
 
               <div>
                 <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full px-4 py-3 pr-12 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9B9B] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    suppressHydrationWarning
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  {resetSent ? (
+                    <span className="text-[11px] font-bold text-[#2F8F8A] flex items-center gap-1">
+                      <CheckCircle2 size={12} />
+                      Reset link sent to your email.
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={loading}
+                      className="text-[11px] font-bold text-[#2F8F8A] hover:underline cursor-pointer border-none bg-transparent disabled:opacity-50"
+                      suppressHydrationWarning
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
               </div>
 
               <button

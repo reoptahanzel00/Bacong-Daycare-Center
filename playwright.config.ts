@@ -5,8 +5,17 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Serial execution: the Next dev server compiles routes on demand and also
+  // proxies fonts/images in dev, so parallel workers starve the early tests.
+  // CI is already serial; this keeps local runs stable too.
+  workers: 1,
   reporter: 'html',
+  // Local dev-mode runs optimize remote images through the dev server, which
+  // adds latency under parallel workers. 10s keeps assertions robust without
+  // weakening what they verify.
+  expect: {
+    timeout: 10000,
+  },
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
