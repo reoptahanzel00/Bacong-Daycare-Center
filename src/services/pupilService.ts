@@ -28,12 +28,15 @@ export interface PupilRow {
   enrollment_date?: string;
   consecutive_absences?: number;
   avatar_url?: string | null;
-  guardian?: {
+  /** One-to-many join: the API returns an ARRAY of guardians per pupil. */
+  guardian?: Array<{
+    id?: string;
     full_name: string;
     relationship: string;
     phone?: string;
     is_primary_contact?: boolean;
-  };
+    user_id?: string | null;
+  }>;
 }
 
 /** Client-shaped pupil returned by POST /api/pupils (camelCase). */

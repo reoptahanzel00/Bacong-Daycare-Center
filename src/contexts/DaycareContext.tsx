@@ -146,6 +146,11 @@ interface DaycareContextValue {
   setIsAnnouncementModalOpen: (v: boolean) => void;
   isUserModalOpen: boolean;
   setIsUserModalOpen: (v: boolean) => void;
+  isLinkParentModalOpen: boolean;
+  setIsLinkParentModalOpen: (v: boolean) => void;
+  /** Increments on every open so LinkParentModal remounts with fresh state. */
+  linkParentOpenCount: number;
+  setLinkParentOpenCount: (v: number | ((prev: number) => number)) => void;
   isDSWDReportModalOpen: boolean;
   setIsDSWDReportModalOpen: (v: boolean) => void;
 
@@ -193,6 +198,8 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isLinkParentModalOpen, setIsLinkParentModalOpen] = useState(false);
+  const [linkParentOpenCount, setLinkParentOpenCount] = useState(0);
   const [isDSWDReportModalOpen, setIsDSWDReportModalOpen] = useState(false);
 
   // ---- Real-data helpers -------------------------------------------------
@@ -209,13 +216,16 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     enrollmentDate: row.enrollment_date,
     consecutiveAbsences: row.consecutive_absences ?? 0,
     avatar: row.avatar_url || DEFAULT_AVATAR,
-    guardian: row.guardian
-      ? {
-          fullName: row.guardian.full_name,
-          relationship: row.guardian.relationship,
-          phone: row.guardian.phone,
-          isPrimary: row.guardian.is_primary_contact,
-        }
+    guardian: Array.isArray(row.guardian) && row.guardian.length > 0
+      ? (() => {
+          const g = row.guardian.find(x => x.is_primary_contact) || row.guardian[0];
+          return {
+            fullName: g.full_name,
+            relationship: g.relationship,
+            phone: g.phone,
+            isPrimary: g.is_primary_contact,
+          };
+        })()
       : undefined,
   }), []);
 
@@ -577,6 +587,8 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     isProgressModalOpen, setIsProgressModalOpen,
     isAnnouncementModalOpen, setIsAnnouncementModalOpen,
     isUserModalOpen, setIsUserModalOpen,
+    isLinkParentModalOpen, setIsLinkParentModalOpen,
+    linkParentOpenCount, setLinkParentOpenCount,
     isDSWDReportModalOpen, setIsDSWDReportModalOpen,
     isHydrated,
   };

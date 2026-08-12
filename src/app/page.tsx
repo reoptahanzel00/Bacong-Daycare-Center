@@ -11,6 +11,7 @@ import PupilModal from '@/components/PupilModal';
 import ProgressModal from '@/components/ProgressModal';
 import AnnouncementModal from '@/components/AnnouncementModal';
 import UserModal from '@/components/UserModal';
+import LinkParentModal from '@/components/LinkParentModal';
 import DSWDReportModal from '@/components/DSWDReportModal';
 
 import WorkerView from '@/views/WorkerView';
@@ -34,6 +35,8 @@ function AppContent() {
     isProgressModalOpen, setIsProgressModalOpen,
     isAnnouncementModalOpen, setIsAnnouncementModalOpen,
     isUserModalOpen, setIsUserModalOpen,
+    isLinkParentModalOpen, setIsLinkParentModalOpen,
+    linkParentOpenCount, setLinkParentOpenCount,
     isDSWDReportModalOpen, setIsDSWDReportModalOpen,
   } = useDaycare();
 
@@ -106,6 +109,10 @@ function AppContent() {
                 activeTab={activeTab}
                 announcements={announcements}
                 onOpenUserModal={() => setIsUserModalOpen(true)}
+                onLinkParent={() => {
+                  setIsLinkParentModalOpen(true);
+                  setLinkParentOpenCount(c => c + 1);
+                }}
                 onToggleUserStatus={handleToggleUserStatus}
               />
             )}
@@ -153,6 +160,12 @@ function AppContent() {
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
         onSave={handleSaveUser}
+      />
+
+      <LinkParentModal
+        key={linkParentOpenCount}
+        isOpen={isLinkParentModalOpen}
+        onClose={() => setIsLinkParentModalOpen(false)}
       />
 
       <DSWDReportModal
