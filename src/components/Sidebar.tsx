@@ -67,6 +67,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
         return [
           { id: 'dashboard', label: 'Daily Register', icon: CalendarCheck },
           { id: 'pupils', label: 'Enrolled Pupils', icon: Users },
+          { id: 'verify', label: 'Verify Enrollments', icon: ShieldCheck },
           { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
           { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
           { id: 'health_entry', label: 'Nutritional Growth Log', icon: Activity },

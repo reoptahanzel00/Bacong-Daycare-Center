@@ -9,6 +9,7 @@ import {
   Megaphone, 
   FileText, 
   Shield, 
+  ShieldCheck,
   Heart, 
   UserCheck, 
   School,
@@ -47,6 +48,7 @@ export default function MobileNav({
       items: [
         { id: 'dashboard', label: 'Daily Register', icon: CheckCircle2 },
         { id: 'pupils', label: 'Pupil Roster', icon: Users },
+        { id: 'verify', label: 'Verify Enrollments', icon: ShieldCheck },
         { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
         { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
         { id: 'health_entry', label: 'Nutritional Log', icon: Activity },

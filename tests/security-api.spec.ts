@@ -28,6 +28,26 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(403);
   });
 
+  test('POST /api/auth/signup for a parent without child profiles should be rejected with 400', async ({ request }) => {
+    const response = await request.post('/api/auth/signup', {
+      data: {
+        role: 'parent',
+        fullName: 'No Child Parent',
+        email: 'nochild@example.com',
+        password: 'Str0ng!Pass',
+        phone: '0917-000-0000',
+      },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test('unauthenticated POST /api/pupils/verify should be rejected with 401', async ({ request }) => {
+    const response = await request.post('/api/pupils/verify', {
+      data: { pupil_id: 'PUP-2026-001', action: 'approve' },
+    });
+    expect(response.status()).toBe(401);
+  });
+
   test('unauthenticated POST /api/attendance/bulk should be rejected with 401', async ({ request }) => {
     const response = await request.post('/api/attendance/bulk', {
       data: { invalidField: true }

@@ -78,6 +78,8 @@ console.log('--- Phase 0: DB migration ---');
     { headers: hdrs }
   );
   check('progress_observations has evaluation_round column', obs.status === 200, `HTTP ${obs.status}`);
+  const socio = await fetch(`${supabaseUrl}/rest/v1/sociodemographic_profiles?select=pupil_id&limit=1`, { headers: hdrs });
+  check('sociodemographic_profiles table exists', socio.status === 200, `HTTP ${socio.status}`);
 }
 
 // ---- Phase 1: unauthenticated + worker flow ----
@@ -189,6 +191,128 @@ console.log('--- Phase 2: parent scoping ---');
     child_background: 'sneaky edit',
   });
   check('parent POST background for non-linked pupil -> 403', bgDenied.status === 403, `HTTP ${bgDenied.status}`);
+}
+
+// ---- Phase 4: parent-initiated enrollment with sociodemographic profile ----
+console.log('--- Phase 4: parent signup -> worker verify ---');
+{
+  const runId = `${Date.now()}`;
+  const parentEmail = `smoke-parent-${runId}@bacong.gov.ph`;
+  const workerSession = await supabaseAuth('worker@bacong.gov.ph', 'Password123!');
+  const workerCk = cookieFor(workerSession);
+  check('worker login (verify phase)', !!workerSession.access_token);
+
+  // Parent creates an account with two child profiles (one to approve, one to reject).
+  const signupRes = await fetch(`${appUrl}/api/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      role: 'parent',
+      fullName: `Smoke Parent ${runId}`,
+      email: parentEmail,
+      password: 'Str0ng!Pass123',
+      phone: `0917-${runId.slice(-8)}`,
+      children: [
+        {
+          firstName: 'Smoke',
+          lastName: `ChildA${runId.slice(-4)}`,
+          birthDate: '2021-06-15',
+          sex: 'Male',
+          barangay: 'Bacong',
+          municipality: 'Bongabong',
+          province: 'Oriental Mindoro',
+          region: 'IV-B',
+          handedness: 'right',
+          currentlyStudying: true,
+          schoolName: 'Bacong Daycare Center',
+          relationship: 'Mother',
+          fatherName: 'Juan Smoke',
+          fatherAge: 34,
+          fatherOccupation: 'Farmer',
+          fatherEducation: 'High School Graduate',
+          motherName: `Smoke Parent ${runId}`,
+          motherAge: 32,
+          motherOccupation: 'Housewife',
+          motherEducation: 'College Graduate',
+          siblingsCount: 2,
+          birthOrder: '2nd',
+        },
+        {
+          firstName: 'Smoke',
+          lastName: `ChildB${runId.slice(-4)}`,
+          birthDate: '2023-01-20',
+          sex: 'Female',
+          barangay: 'Bacong',
+          municipality: 'Bongabong',
+          province: 'Oriental Mindoro',
+          region: 'IV-B',
+          handedness: 'left',
+          currentlyStudying: false,
+          relationship: 'Mother',
+        },
+      ],
+    }),
+  });
+  const signupJson = await signupRes.json().catch(() => ({}));
+  check('parent signup with 2 child profiles -> success', signupRes.status === 200 && signupJson.success === true, `HTTP ${signupRes.status} ${JSON.stringify(signupJson).slice(0, 200)}`);
+
+  const parentSession = await supabaseAuth(parentEmail, 'Str0ng!Pass123');
+  const parentCk = cookieFor(parentSession);
+  check('new parent can sign in', !!parentSession.access_token);
+
+  // Parent sees BOTH children as pending (linked via guardians).
+  const parentPupils = await api(parentCk, '/api/pupils?status=pending,rejected');
+  const parentSeen = (parentPupils.json?.pupils || []).filter((p) =>
+    p.first_name === 'Smoke' && String(p.last_name).includes(runId.slice(-4))
+  );
+  check('parent sees own pending children', parentPupils.status === 200 && parentSeen.length === 2, `seen=${parentSeen.length}`);
+
+  // Worker sees the pending queue.
+  const workerQueue = await api(workerCk, '/api/pupils?status=pending');
+  const workerPending = (workerQueue.json?.pupils || []).filter((p) =>
+    p.first_name === 'Smoke' && String(p.last_name).includes(runId.slice(-4))
+  );
+  check('worker sees pending queue with profile', workerQueue.status === 200 && workerPending.length === 2 && !!workerPending[0]?.sociodemographic, `pending=${workerPending.length}`);
+
+  // Worker approves ChildA.
+  const childA = parentSeen.find((p) => p.last_name.startsWith('ChildA'));
+  const approved = await api(workerCk, '/api/pupils/verify', 'POST', {
+    pupil_id: childA.id,
+    action: 'approve',
+  });
+  check('worker approves ChildA -> enrolled', approved.status === 200 && approved.json?.pupil?.enrollmentStatus === 'enrolled', `HTTP ${approved.status}`);
+
+  // Worker rejects ChildB with a reason.
+  const childB = parentSeen.find((p) => p.last_name.startsWith('ChildB'));
+  // Reject without a reason must fail (ChildB still pending).
+  const noReason = await api(workerCk, '/api/pupils/verify', 'POST', {
+    pupil_id: childB.id,
+    action: 'reject',
+  });
+  check('reject without reason -> 400', noReason.status === 400, `HTTP ${noReason.status}`);
+
+  const rejected = await api(workerCk, '/api/pupils/verify', 'POST', {
+    pupil_id: childB.id,
+    action: 'reject',
+    reason: 'Missing birth certificate; please submit it to the daycare.',
+  });
+  check('worker rejects ChildB with reason -> rejected', rejected.status === 200 && rejected.json?.pupil?.enrollmentStatus === 'rejected', `HTTP ${rejected.status}`);
+
+  // Parent sees the updated statuses: ChildA enrolled, ChildB rejected with reason.
+  const after = await api(parentCk, '/api/pupils?status=pending,enrolled,rejected');
+  const smokeAfter = (after.json?.pupils || []).filter((p) =>
+    p.first_name === 'Smoke' && String(p.last_name).includes(runId.slice(-4))
+  );
+  const childAAfter = smokeAfter.find((p) => p.last_name.startsWith('ChildA'));
+  const childBAfter = smokeAfter.find((p) => p.last_name.startsWith('ChildB'));
+  check(
+    'parent sees ChildA enrolled + ChildB rejected with reason',
+    after.status === 200 &&
+      childAAfter?.enrollment_status === 'enrolled' &&
+      childBAfter?.enrollment_status === 'rejected' &&
+      String(childBAfter?.rejection_reason || '').includes('birth certificate'),
+    JSON.stringify(smokeAfter.map((p) => ({ id: p.id, status: p.enrollment_status, reason: p.rejection_reason })))
+  );
 }
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);

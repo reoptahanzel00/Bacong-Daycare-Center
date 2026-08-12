@@ -18,6 +18,9 @@ import {
   MessageSquare,
   Activity,
   CheckCircle,
+  ShieldCheck,
+  X,
+  AlertTriangle,
 } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import PupilDetailModal from '@/components/PupilDetailModal';
@@ -36,6 +39,7 @@ import {
 import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
 import { fetchHealthLogs, saveHealthLog } from '@/services/healthLogsService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
+import { verifyPupil } from '@/services/pupilService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
 
 interface WorkerViewProps {
@@ -69,7 +73,7 @@ export default function WorkerView({
   onArchivePupil,
   onEditPupil
 }: WorkerViewProps) {
-  const { showToast, logAuditAction } = useDaycare();
+  const { showToast, logAuditAction, updatePupilEnrollment } = useDaycare();
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
@@ -78,6 +82,10 @@ export default function WorkerView({
   const [backgrounds, setBackgrounds] = useState<Record<string, ChildBackground | null>>({});
   const [backgroundPupil, setBackgroundPupil] = useState<MockPupil | null>(null);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
+  const [verifyPupilRecord, setVerifyPupilRecord] = useState<MockPupil | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<'approve' | 'reject' | null>(null);
 
   // ECCD checklist state: ✓ (present) per item, per pupil, per round.
   const [selectedRound, setSelectedRound] = useState<EccdRound>(1);
@@ -330,6 +338,50 @@ export default function WorkerView({
     }
     setIsBackgroundModalOpen(false);
     setBackgroundPupil(null);
+  };
+
+  const pendingPupils = pupils.filter(p => p.enrollmentStatus === 'pending');
+  const rejectedPupils = pupils.filter(p => p.enrollmentStatus === 'rejected');
+
+  const openVerifyModal = (pupil: MockPupil, action: 'approve' | 'reject') => {
+    setVerifyPupilRecord(pupil);
+    setVerifyAction(action);
+    setRejectReason('');
+    setIsVerifyModalOpen(true);
+  };
+
+  const handleVerify = async () => {
+    if (!verifyPupilRecord || !verifyAction) return;
+    if (verifyAction === 'reject' && !rejectReason.trim()) {
+      showToast('Please provide a reason for rejecting this enrollment.', 'danger');
+      return;
+    }
+    const res = await verifyPupil(verifyPupilRecord.id, verifyAction, rejectReason.trim() || undefined);
+    if (res.success) {
+      const pupil = verifyPupilRecord;
+      updatePupilEnrollment(
+        pupil.id,
+        verifyAction === 'approve' ? 'enrolled' : 'rejected',
+        rejectReason.trim() || null
+      );
+      showToast(
+        verifyAction === 'approve'
+          ? `${pupil.firstName} ${pupil.lastName} is now enrolled.`
+          : `Enrollment for ${pupil.firstName} ${pupil.lastName} was rejected.`,
+        verifyAction === 'approve' ? 'success' : 'info'
+      );
+      logAuditAction(
+        verifyAction === 'approve' ? 'Approved Parent Enrollment' : 'Rejected Parent Enrollment',
+        pupil.id,
+        `${pupil.firstName} ${pupil.lastName}${verifyAction === 'reject' ? ` — ${rejectReason.trim()}` : ''}`
+      );
+    } else {
+      showToast(res.error ? String(res.error) : 'Could not verify this enrollment.', 'danger');
+    }
+    setIsVerifyModalOpen(false);
+    setVerifyPupilRecord(null);
+    setVerifyAction(null);
+    setRejectReason('');
   };
 
   const presentCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'present').length;
@@ -589,6 +641,145 @@ export default function WorkerView({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* 2b. Verify Parent-Submitted Enrollments */}
+      {activeTab === 'verify' && (
+        <div className="card bg-white p-5 space-y-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck size={18} className="text-[#2F8F8A]" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                Enrollment Verification
+              </span>
+            </div>
+            <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">Parent-Submitted Child Profiles</h3>
+            <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              Parents submitted these sociodemographic profiles (ECCD Form Section 1) at account
+              creation. Review each one, then approve the enrollment or reject it with a reason.
+            </p>
+          </div>
+
+          {pendingPupils.length === 0 ? (
+            <div className="p-6 rounded-3xl bg-[#EBF5F4] border border-dashed border-[#2F8F8A]/30 text-center">
+              <CheckCircle size={28} className="text-[#2F8F8A] mx-auto mb-2" />
+              <p className="text-sm font-bold text-[#2F8F8A] m-0">No pending enrollments</p>
+              <p className="text-xs text-[#6B6B6B] m-0 mt-1">
+                New parent-submitted profiles will appear here for verification.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingPupils.map((pupil) => {
+                const profile = pupil.sociodemographic;
+                return (
+                  <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <Image
+                          src={pupil.avatar || DEFAULT_AVATAR}
+                          alt={pupil.firstName}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-2xl object-cover shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="badge badge-warning">{pupil.id}</span>
+                            <span className="badge badge-primary">Pending</span>
+                          </div>
+                          <h4 className="text-sm font-bold text-[#2B2B2B] m-0 mt-1">
+                            {pupil.firstName} {pupil.lastName}
+                          </h4>
+                          <span className="text-[11px] text-[#6B6B6B]">
+                            {pupil.sex} • Born: {pupil.birthDate} • Submitted {pupil.enrollmentDate || 'recently'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => openVerifyModal(pupil, 'approve')}
+                          className="btn btn-primary btn-sm font-bold"
+                          suppressHydrationWarning
+                        >
+                          <CheckCircle2 size={14} />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => openVerifyModal(pupil, 'reject')}
+                          className="btn btn-secondary btn-sm font-bold text-[#D32F2F]"
+                          suppressHydrationWarning
+                        >
+                          <X size={14} />
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A]">Guardian</div>
+                        <div><strong className="text-[#2B2B2B]">Name:</strong> {pupil.guardian?.fullName || '—'} ({pupil.guardian?.relationship || '—'})</div>
+                        <div><strong className="text-[#2B2B2B]">Phone:</strong> {pupil.guardian?.phone || '—'}</div>
+                        <div><strong className="text-[#2B2B2B]">Address:</strong> {pupil.address || '—'}</div>
+                      </div>
+                      <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A]">Sociodemographic Profile</div>
+                        <div>
+                          <strong className="text-[#2B2B2B]">Handedness:</strong>{' '}
+                          {profile?.handedness ? profile.handedness.replace(/_/g, ' ') : '—'}
+                        </div>
+                        <div>
+                          <strong className="text-[#2B2B2B]">Currently studying:</strong>{' '}
+                          {profile?.currently_studying ? 'Yes' : 'No'}
+                          {profile?.currently_studying && profile?.school_name ? ` — ${profile.school_name}` : ''}
+                        </div>
+                        <div>
+                          <strong className="text-[#2B2B2B]">Address parts:</strong>{' '}
+                          {[profile?.barangay, profile?.municipality, profile?.province, profile?.region]
+                            .filter(Boolean)
+                            .join(', ') || '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <details className="text-[11px]">
+                      <summary className="cursor-pointer font-bold text-[#2F8F8A]">Parent &amp; sibling details</summary>
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-[#4A4A4A]">
+                        <div><strong>Father:</strong> {profile?.father_name || '—'}{profile?.father_age ? ` (${profile.father_age})` : ''}{profile?.father_occupation ? `, ${profile.father_occupation}` : ''}{profile?.father_education ? ` — ${profile.father_education}` : ''}</div>
+                        <div><strong>Mother:</strong> {profile?.mother_name || '—'}{profile?.mother_age ? ` (${profile.mother_age})` : ''}{profile?.mother_occupation ? `, ${profile.mother_occupation}` : ''}{profile?.mother_education ? ` — ${profile.mother_education}` : ''}</div>
+                        <div><strong>Siblings:</strong> {profile?.siblings_count ?? '—'}</div>
+                        <div><strong>Birth order:</strong> {profile?.birth_order || '—'}</div>
+                      </div>
+                    </details>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {rejectedPupils.length > 0 && (
+            <div className="pt-2 border-t border-[#E6E4DF]">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#9B9B9B] m-0 mb-2">
+                Recently Rejected ({rejectedPupils.length})
+              </h4>
+              <div className="space-y-2">
+                {rejectedPupils.map((pupil) => (
+                  <div key={pupil.id} className="p-3 rounded-2xl bg-[#FFF7F7] border border-[#FFCDD2] text-xs">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={14} className="text-[#D32F2F] shrink-0" />
+                      <strong className="text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</strong>
+                      <span className="badge badge-danger">Rejected</span>
+                    </div>
+                    {pupil.rejectionReason && (
+                      <p className="text-[11px] text-[#6B6B6B] m-0 mt-1">Reason: {pupil.rejectionReason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -997,6 +1188,82 @@ export default function WorkerView({
         initial={backgroundPupil ? backgrounds[backgroundPupil.id] ?? null : null}
         childName={backgroundPupil ? `${backgroundPupil.firstName} ${backgroundPupil.lastName}` : undefined}
       />
+
+      {/* Verify Enrollment Confirmation */}
+      {isVerifyModalOpen && verifyPupilRecord && verifyAction && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" suppressHydrationWarning>
+          <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-md p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
+                  verifyAction === 'approve' ? 'bg-[#EBF5F4] text-[#2F8F8A]' : 'bg-[#FFEBEE] text-[#D32F2F]'
+                }`}>
+                  {verifyAction === 'approve' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">
+                    {verifyAction === 'approve' ? 'Approve enrollment?' : 'Reject enrollment?'}
+                  </h3>
+                  <p className="text-xs text-[#6B6B6B] m-0">
+                    {verifyPupilRecord.firstName} {verifyPupilRecord.lastName} ({verifyPupilRecord.id})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
+                className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+                suppressHydrationWarning
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {verifyAction === 'approve' ? (
+              <p className="text-xs text-[#4A4A4A] leading-relaxed m-0 bg-[#EBF5F4] border border-[#B7DDDA] rounded-2xl p-3">
+                The child becomes <strong>enrolled</strong> and the parent is notified. Their
+                sociodemographic profile stays attached to the pupil record.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#2B2B2B]">Reason for rejection *</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  placeholder="e.g. Missing birth certificate; please contact the daycare to complete the profile."
+                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-sm text-[#2B2B2B] outline-none focus:border-[#D32F2F] focus:ring-2 focus:ring-[#D32F2F]/20 transition-all resize-y"
+                />
+                <p className="text-[10px] text-[#9B9B9B] m-0">
+                  The parent will see this reason in their portal.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#E6E4DF]">
+              <button
+                onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
+                className="px-4 py-2 rounded-2xl text-xs font-bold text-[#6B6B6B] bg-[#FAF8F5] hover:bg-[#EAE6DF] border-none cursor-pointer transition-all"
+                suppressHydrationWarning
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleVerify}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold text-white border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5 ${
+                  verifyAction === 'approve'
+                    ? 'bg-[#2F8F8A] hover:bg-[#1D605D]'
+                    : 'bg-[#D32F2F] hover:bg-[#B71C1C]'
+                }`}
+                suppressHydrationWarning
+              >
+                {verifyAction === 'approve' ? <CheckCircle2 size={14} /> : <X size={14} />}
+                {verifyAction === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

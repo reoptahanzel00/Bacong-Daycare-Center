@@ -10,6 +10,65 @@ type AuthMode = 'signin' | 'create';
 
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
 
+type Handedness = 'right' | 'left' | 'both' | 'not_yet_established';
+
+interface ChildProfileForm {
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  sex: 'Male' | 'Female';
+  barangay: string;
+  municipality: string;
+  province: string;
+  region: string;
+  handedness: Handedness;
+  currentlyStudying: boolean;
+  schoolName: string;
+  relationship: 'Mother' | 'Father' | 'Grandmother' | 'Grandfather' | 'Legal Guardian';
+  fatherName: string;
+  fatherAge: string;
+  fatherOccupation: string;
+  fatherEducation: string;
+  motherName: string;
+  motherAge: string;
+  motherOccupation: string;
+  motherEducation: string;
+  siblingsCount: string;
+  birthOrder: string;
+}
+
+const EMPTY_CHILD: ChildProfileForm = {
+  firstName: '',
+  lastName: '',
+  birthDate: '',
+  sex: 'Male',
+  barangay: '',
+  municipality: '',
+  province: '',
+  region: '',
+  handedness: 'right',
+  currentlyStudying: false,
+  schoolName: '',
+  relationship: 'Mother',
+  fatherName: '',
+  fatherAge: '',
+  fatherOccupation: '',
+  fatherEducation: '',
+  motherName: '',
+  motherAge: '',
+  motherOccupation: '',
+  motherEducation: '',
+  siblingsCount: '',
+  birthOrder: '',
+};
+
+const HANDEDNESS_OPTIONS: Array<{ value: Handedness; label: string }> = [
+  { value: 'right', label: 'Right' },
+  { value: 'left', label: 'Left' },
+  { value: 'both', label: 'Both' },
+  { value: 'not_yet_established', label: 'Not yet established' },
+];
+
 const ROLE_OPTIONS: Array<{ id: UserRole; label: string; hint: string; isPublic: boolean }> = [
   { id: 'parent', label: 'Parent / Guardian', hint: 'For parents and guardians of enrolled pupils.', isPublic: true },
   { id: 'worker', label: 'Daycare Worker', hint: 'Daycare staff who manage registers and evaluations.', isPublic: false },
@@ -41,6 +100,7 @@ export default function AuthPage() {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<{ message: string; linked: boolean } | null>(null);
+  const [children, setChildren] = useState<ChildProfileForm[]>([{ ...EMPTY_CHILD }]);
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.id === createRole) || ROLE_OPTIONS[0];
 
@@ -57,9 +117,22 @@ export default function AuthPage() {
     setMode(next);
     setErrorMessage(null);
     setCreateError(null);
+    setChildren([{ ...EMPTY_CHILD }]);
     if (typeof window !== 'undefined') {
       window.location.hash = next === 'create' ? 'create' : '';
     }
+  };
+
+  const updateChild = (index: number, patch: Partial<ChildProfileForm>) => {
+    setChildren((prev) => prev.map((child, i) => (i === index ? { ...child, ...patch } : child)));
+  };
+
+  const addChild = () => {
+    setChildren((prev) => (prev.length >= 5 ? prev : [...prev, { ...EMPTY_CHILD }]));
+  };
+
+  const removeChild = (index: number) => {
+    setChildren((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   };
 
   const handleForgotPassword = async () => {
@@ -148,9 +221,33 @@ export default function AuthPage() {
       setCreateError('Please fill in your full name and email address.');
       return;
     }
+    if (createRole === 'parent' && !phone.trim()) {
+      setCreateError('Please provide a guardian contact phone number.');
+      return;
+    }
     if (!PASSWORD_RE.test(createPassword)) {
       setCreateError('Password must be at least 8 characters with uppercase, lowercase, and a number.');
       return;
+    }
+    if (createRole === 'parent') {
+      const incomplete = children.findIndex((child) => {
+        const coreMissing =
+          !child.firstName.trim() ||
+          !child.lastName.trim() ||
+          !child.birthDate ||
+          !child.barangay.trim() ||
+          !child.municipality.trim() ||
+          !child.province.trim() ||
+          !child.region.trim();
+        const studyingMissing = child.currentlyStudying && !child.schoolName.trim();
+        return coreMissing || studyingMissing;
+      });
+      if (incomplete !== -1) {
+        setCreateError(
+          `Child #${incomplete + 1}: please complete the required sociodemographic fields (name, birth date, sex, address, and school name if currently studying).`
+        );
+        return;
+      }
     }
 
     setLoading(true);
@@ -164,6 +261,32 @@ export default function AuthPage() {
           phone: phone.trim(),
           email: createEmail.trim(),
           password: createPassword.trim(),
+          children: createRole === 'parent'
+            ? children.map((child) => ({
+                firstName: child.firstName.trim(),
+                lastName: child.lastName.trim(),
+                birthDate: child.birthDate,
+                sex: child.sex,
+                barangay: child.barangay.trim(),
+                municipality: child.municipality.trim(),
+                province: child.province.trim(),
+                region: child.region.trim(),
+                handedness: child.handedness,
+                currentlyStudying: child.currentlyStudying,
+                schoolName: child.schoolName.trim() || null,
+                relationship: child.relationship,
+                fatherName: child.fatherName.trim() || null,
+                fatherAge: child.fatherAge ? Number(child.fatherAge) : null,
+                fatherOccupation: child.fatherOccupation.trim() || null,
+                fatherEducation: child.fatherEducation.trim() || null,
+                motherName: child.motherName.trim() || null,
+                motherAge: child.motherAge ? Number(child.motherAge) : null,
+                motherOccupation: child.motherOccupation.trim() || null,
+                motherEducation: child.motherEducation.trim() || null,
+                siblingsCount: child.siblingsCount ? Number(child.siblingsCount) : null,
+                birthOrder: child.birthOrder.trim() || null,
+              }))
+            : undefined,
         }),
       });
       const data = await res.json();
@@ -181,7 +304,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-6" suppressHydrationWarning>
-      <div className="w-full max-w-4xl bg-white rounded-3xl border border-[#E6E4DF] shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+      <div className={`w-full bg-white rounded-3xl border border-[#E6E4DF] shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 ${mode === 'create' ? 'max-w-5xl' : 'max-w-4xl'}`}>
 
         {/* Left Side: Branding */}
         <div className="bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] p-10 color-white flex flex-col justify-between text-white">
@@ -397,7 +520,7 @@ export default function AuthPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Guardian Contact Phone</label>
+                        <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Guardian Contact Phone *</label>
                         <input
                           type="tel"
                           value={phone}
@@ -406,7 +529,7 @@ export default function AuthPage() {
                           className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
                         />
                         <p className="text-[10px] text-[#9B9B9B] font-semibold mt-1">
-                          If this matches your child&apos;s guardian phone, your account is linked automatically.
+                          Used for your guardian record and daycare contact.
                         </p>
                       </div>
 
@@ -443,12 +566,321 @@ export default function AuthPage() {
                         </div>
                       </div>
 
+                      {/* Sociodemographic Profile (ECCD Form Section 1) */}
+                      <div className="pt-2 border-t border-[#E6E4DF]">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <h3 className="text-sm font-extrabold text-[#2B2B2B] m-0">Child&apos;s Sociodemographic Profile</h3>
+                            <p className="text-[10px] text-[#6B6B6B] m-0 mt-0.5">
+                              ECCD Form Section 1 — a Daycare Worker verifies this before enrollment.
+                            </p>
+                          </div>
+                          {children.length > 1 && (
+                            <span className="text-[10px] font-bold text-[#2F8F8A] shrink-0">
+                              {children.length} of 5 children
+                            </span>
+                          )}
+                        </div>
+
+                        {children.map((child, index) => (
+                          <div
+                            key={index}
+                            className="mt-3 p-4 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A]">
+                                Child #{index + 1}
+                              </span>
+                              {children.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeChild(index)}
+                                  className="text-[10px] font-bold text-[#D32F2F] hover:underline cursor-pointer border-none bg-transparent"
+                                  suppressHydrationWarning
+                                >
+                                  Remove child
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">First Name *</label>
+                                <input
+                                  type="text"
+                                  value={child.firstName}
+                                  onChange={(e) => updateChild(index, { firstName: e.target.value })}
+                                  placeholder="Child&apos;s first name"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Last Name *</label>
+                                <input
+                                  type="text"
+                                  value={child.lastName}
+                                  onChange={(e) => updateChild(index, { lastName: e.target.value })}
+                                  placeholder="Child&apos;s last name"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Date of Birth *</label>
+                                <input
+                                  type="date"
+                                  value={child.birthDate}
+                                  onChange={(e) => updateChild(index, { birthDate: e.target.value })}
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Sex *</label>
+                                <select
+                                  value={child.sex}
+                                  onChange={(e) => updateChild(index, { sex: e.target.value as 'Male' | 'Female' })}
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                >
+                                  <option value="Male">Male</option>
+                                  <option value="Female">Female</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Relationship *</label>
+                                <select
+                                  value={child.relationship}
+                                  onChange={(e) =>
+                                    updateChild(index, {
+                                      relationship: e.target.value as ChildProfileForm['relationship'],
+                                    })
+                                  }
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                >
+                                  <option value="Mother">Mother</option>
+                                  <option value="Father">Father</option>
+                                  <option value="Grandmother">Grandmother</option>
+                                  <option value="Grandfather">Grandfather</option>
+                                  <option value="Legal Guardian">Legal Guardian</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Address *</label>
+                              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                <input
+                                  type="text"
+                                  value={child.barangay}
+                                  onChange={(e) => updateChild(index, { barangay: e.target.value })}
+                                  placeholder="Barangay"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                                <input
+                                  type="text"
+                                  value={child.municipality}
+                                  onChange={(e) => updateChild(index, { municipality: e.target.value })}
+                                  placeholder="Municipality / City"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                                <input
+                                  type="text"
+                                  value={child.province}
+                                  onChange={(e) => updateChild(index, { province: e.target.value })}
+                                  placeholder="Province"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                                <input
+                                  type="text"
+                                  value={child.region}
+                                  onChange={(e) => updateChild(index, { region: e.target.value })}
+                                  placeholder="Region"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Handedness *</label>
+                              <div className="flex flex-wrap gap-2">
+                                {HANDEDNESS_OPTIONS.map((option) => (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => updateChild(index, { handedness: option.value })}
+                                    className={`px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
+                                      child.handedness === option.value
+                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#2F8F8A]'
+                                        : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
+                                    }`}
+                                    suppressHydrationWarning
+                                  >
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">
+                                  Is the child presently studying? *
+                                </label>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateChild(index, { currentlyStudying: true })}
+                                    className={`flex-1 px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
+                                      child.currentlyStudying
+                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#2F8F8A]'
+                                        : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
+                                    }`}
+                                    suppressHydrationWarning
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateChild(index, { currentlyStudying: false, schoolName: '' })}
+                                    className={`flex-1 px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
+                                      !child.currentlyStudying
+                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#2F8F8A]'
+                                        : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
+                                    }`}
+                                    suppressHydrationWarning
+                                  >
+                                    No
+                                  </button>
+                                </div>
+                              </div>
+                              {child.currentlyStudying && (
+                                <div>
+                                  <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">
+                                    Name of school / learning center *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={child.schoolName}
+                                    onChange={(e) => updateChild(index, { schoolName: e.target.value })}
+                                    placeholder="e.g. Bacong Daycare Center"
+                                    className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Optional parent + sibling details */}
+                            <details className="text-[11px]">
+                              <summary className="cursor-pointer font-bold text-[#2F8F8A]">
+                                Parent &amp; sibling details (optional)
+                              </summary>
+                              <div className="mt-3 space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <input
+                                    type="text"
+                                    value={child.fatherName}
+                                    onChange={(e) => updateChild(index, { fatherName: e.target.value })}
+                                    placeholder="Father&apos;s name"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={120}
+                                    value={child.fatherAge}
+                                    onChange={(e) => updateChild(index, { fatherAge: e.target.value })}
+                                    placeholder="Father&apos;s age"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={child.fatherOccupation}
+                                    onChange={(e) => updateChild(index, { fatherOccupation: e.target.value })}
+                                    placeholder="Father&apos;s occupation"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={child.fatherEducation}
+                                    onChange={(e) => updateChild(index, { fatherEducation: e.target.value })}
+                                    placeholder="Father&apos;s educational attainment"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <input
+                                    type="text"
+                                    value={child.motherName}
+                                    onChange={(e) => updateChild(index, { motherName: e.target.value })}
+                                    placeholder="Mother&apos;s name"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={120}
+                                    value={child.motherAge}
+                                    onChange={(e) => updateChild(index, { motherAge: e.target.value })}
+                                    placeholder="Mother&apos;s age"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={child.motherOccupation}
+                                    onChange={(e) => updateChild(index, { motherOccupation: e.target.value })}
+                                    placeholder="Mother&apos;s occupation"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={child.motherEducation}
+                                    onChange={(e) => updateChild(index, { motherEducation: e.target.value })}
+                                    placeholder="Mother&apos;s educational attainment"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={50}
+                                    value={child.siblingsCount}
+                                    onChange={(e) => updateChild(index, { siblingsCount: e.target.value })}
+                                    placeholder="Number of siblings"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={child.birthOrder}
+                                    onChange={(e) => updateChild(index, { birthOrder: e.target.value })}
+                                    placeholder="Birth order (1st, 2nd, 3rd...)"
+                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  />
+                                </div>
+                              </div>
+                            </details>
+                          </div>
+                        ))}
+
+                        {children.length < 5 && (
+                          <button
+                            type="button"
+                            onClick={addChild}
+                            className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-[#2F8F8A]/40 text-[11px] font-bold text-[#2F8F8A] bg-[#EBF5F4]/50 hover:bg-[#EBF5F4] transition-all cursor-pointer"
+                            suppressHydrationWarning
+                          >
+                            + Add another child (max 5)
+                          </button>
+                        )}
+                      </div>
+
                       <button
                         type="submit"
                         disabled={loading}
                         className="w-full py-3.5 px-6 rounded-2xl bg-[#2F8F8A] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
                       >
-                        <span>{loading ? 'Creating your account...' : 'Create Parent Account'}</span>
+                        <span>{loading ? 'Creating your account...' : 'Submit for Verification'}</span>
                         {!loading && <ArrowRight size={16} />}
                       </button>
                     </>

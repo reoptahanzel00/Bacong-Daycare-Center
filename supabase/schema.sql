@@ -33,9 +33,10 @@ CREATE TABLE IF NOT EXISTS pupils (
   birth_date DATE NOT NULL,
   sex TEXT NOT NULL CHECK (sex IN ('Male', 'Female')),
   address TEXT NOT NULL,
-  enrollment_status TEXT NOT NULL DEFAULT 'enrolled' CHECK (enrollment_status IN ('enrolled', 'archived')),
+  enrollment_status TEXT NOT NULL DEFAULT 'enrolled' CHECK (enrollment_status IN ('pending', 'enrolled', 'rejected', 'archived')),
   enrollment_date DATE NOT NULL DEFAULT CURRENT_DATE,
   archive_reason TEXT CHECK (archive_reason IN ('Graduated', 'Transferred', 'Dropped Out', 'Other')),
+  rejection_reason TEXT,
   avatar_url TEXT,
   consecutive_absences INT DEFAULT 0,
   school_year_id UUID REFERENCES school_years(id),
@@ -131,7 +132,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   pupil_id TEXT REFERENCES pupils(id) ON DELETE SET NULL,
-  type TEXT NOT NULL CHECK (type IN ('consecutive_absences', 'announcement', 'milestone')),
+  type TEXT NOT NULL CHECK (type IN ('consecutive_absences', 'announcement', 'milestone', 'enrollment')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   channel TEXT NOT NULL DEFAULT 'PORTAL' CHECK (channel IN ('PORTAL', 'EMAIL', 'SMS')),
@@ -204,10 +205,40 @@ CREATE TABLE IF NOT EXISTS child_backgrounds (
   UNIQUE (pupil_id)
 );
 
+-- 16. ECCD Sociodemographic Profile (ECCD Form Section 1)
+-- Submitted by the parent at account creation; reviewed by a Daycare Worker
+-- before the pupil's enrollment is approved. One record per pupil.
+CREATE TABLE IF NOT EXISTS sociodemographic_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
+  handedness TEXT CHECK (handedness IN ('right', 'left', 'both', 'not_yet_established')),
+  currently_studying BOOLEAN NOT NULL DEFAULT false,
+  school_name TEXT,
+  barangay TEXT,
+  municipality TEXT,
+  province TEXT,
+  region TEXT,
+  father_name TEXT,
+  father_age INT,
+  father_occupation TEXT,
+  father_education TEXT,
+  mother_name TEXT,
+  mother_age INT,
+  mother_occupation TEXT,
+  mother_education TEXT,
+  siblings_count INT,
+  birth_order TEXT,
+  updated_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (pupil_id)
+);
+
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
 -- ==========================================================================
 CREATE INDEX IF NOT EXISTS idx_pupils_school_year ON pupils(school_year_id);
+CREATE INDEX IF NOT EXISTS idx_pupils_enrollment_status ON pupils(enrollment_status, created_at);
 CREATE INDEX IF NOT EXISTS idx_attendance_pupil_date ON attendance(pupil_id, date);
 CREATE INDEX IF NOT EXISTS idx_attendance_date_status ON attendance(date, status);
 CREATE INDEX IF NOT EXISTS idx_guardians_user_id ON guardians(user_id);
@@ -243,6 +274,7 @@ ALTER TABLE parent_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE health_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eccd_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE child_backgrounds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sociodemographic_profiles ENABLE ROW LEVEL SECURITY;
 
 -- Users RLS: each user reads their own profile; admins read all profiles.
 -- Provisioning/updates go through the admin API (service role, bypasses RLS),
@@ -339,9 +371,10 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
--- Parent notes, health logs & ECCD scores: NO client policies — all access
--- goes through the server API (service role) with session-derived identities,
--- so direct client writes/reads are denied by default.
+-- Parent notes, health logs, ECCD scores, child backgrounds & sociodemographic
+-- profiles: NO client policies — all access goes through the server API
+-- (service role) with session-derived identities, so direct client writes/reads
+-- are denied by default.
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION

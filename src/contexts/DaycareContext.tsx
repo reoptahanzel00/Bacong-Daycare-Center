@@ -19,6 +19,7 @@ import {
   enrollPupil,
   type PupilRow,
   type PupilEnrollPayload,
+  type SociodemographicProfileRow,
 } from '@/services/pupilService';
 import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceService';
 import { fetchProgress, recordObservation, type ProgressPayload } from '@/services/progressService';
@@ -37,6 +38,7 @@ export interface MockPupil {
   address?: string;
   enrollmentStatus: string;
   enrollmentDate?: string;
+  rejectionReason?: string | null;
   avatar?: string;
   guardian?: {
     fullName: string;
@@ -44,6 +46,7 @@ export interface MockPupil {
     phone?: string;
     isPrimary?: boolean;
   };
+  sociodemographic?: SociodemographicProfileRow | null;
   consecutiveAbsences?: number;
 }
 
@@ -123,6 +126,7 @@ interface DaycareContextValue {
 
   // CRUD Actions
   handleSavePupil: (pupilData: MockPupil) => void;
+  updatePupilEnrollment: (pupilId: string, status: 'enrolled' | 'rejected', reason?: string | null) => void;
   handleArchivePupil: (pupilId: string) => void;
   handleEditPupil: (pupil: MockPupil) => void;
   handleSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
@@ -216,6 +220,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     address: row.address,
     enrollmentStatus: row.enrollment_status,
     enrollmentDate: row.enrollment_date,
+    rejectionReason: row.rejection_reason ?? null,
     consecutiveAbsences: row.consecutive_absences ?? 0,
     avatar: row.avatar_url || DEFAULT_AVATAR,
     guardian: Array.isArray(row.guardian) && row.guardian.length > 0
@@ -229,6 +234,9 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           };
         })()
       : undefined,
+    sociodemographic: Array.isArray(row.sociodemographic)
+      ? (row.sociodemographic[0] || null)
+      : (row.sociodemographic || null),
   }), []);
 
   /** Builds the POST /api/pupils payload from a MockPupil. */
@@ -257,7 +265,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const syncFromServer = useCallback(async () => {
     try {
       const [pupilRes, attendanceRes, progressRes, usersRes, auditRes, announcementRes] = await Promise.all([
-        fetchPupils('enrolled'),
+        fetchPupils(['pending', 'enrolled', 'rejected']),
         fetchAttendance(),
         fetchProgress(),
         fetchUsers(),
@@ -479,6 +487,19 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     setPupilToEdit(null);
   }, [pupilToEdit, toEnrollPayload, logAuditAction, showToast]);
 
+  /** Local-only update after a worker approves/rejects a parent enrollment. */
+  const updatePupilEnrollment = useCallback((
+    pupilId: string,
+    status: 'enrolled' | 'rejected',
+    reason?: string | null,
+  ) => {
+    setPupils(prev => prev.map(p =>
+      p.id === pupilId
+        ? { ...p, enrollmentStatus: status, rejectionReason: reason ?? null }
+        : p
+    ));
+  }, []);
+
   const handleArchivePupil = useCallback(async (pupilId: string) => {
     const targetPupil = pupils.find(p => p.id === pupilId);
     if (targetPupil) {
@@ -595,7 +616,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const value: DaycareContextValue = {
     currentRole, setCurrentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
     pupils, attendance, progress, announcements, users, auditLogs,
-    handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
+    handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
     logAuditAction,
     showToast,

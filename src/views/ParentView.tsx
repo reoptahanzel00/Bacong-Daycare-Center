@@ -16,6 +16,7 @@ import {
   Clock,
   CheckCircle,
   Pencil,
+  AlertCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { DEFAULT_AVATAR } from '@/data/mockData';
@@ -298,6 +299,15 @@ export default function ParentView({
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#EAE6DF] text-[#6B6B6B]'}`}>
                   {p.id}
                 </span>
+                {p.enrollmentStatus !== 'enrolled' && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                    p.enrollmentStatus === 'pending'
+                      ? (isSelected ? 'bg-[#F5B942]/30 text-white' : 'bg-[#FEF8EC] text-[#B98A00]')
+                      : (isSelected ? 'bg-white/20 text-white' : 'bg-[#FFEBEE] text-[#D32F2F]')
+                  }`}>
+                    {p.enrollmentStatus}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -351,6 +361,10 @@ export default function ParentView({
               </div>
             </div>
           </div>
+
+          {/* Pending / Rejected status gate: no attendance/ECCD tooling until approved */}
+          {child?.enrollmentStatus === 'enrolled' ? (
+            <>
 
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
@@ -574,11 +588,52 @@ export default function ParentView({
             </div>
 
           </div>
+            </>
+          ) : (
+            <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                  child?.enrollmentStatus === 'rejected' ? 'bg-[#FFEBEE] text-[#D32F2F]' : 'bg-[#FEF8EC] text-[#B98A00]'
+                }`}>
+                  {child?.enrollmentStatus === 'rejected' ? <AlertCircle size={22} /> : <Clock size={22} />}
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-base font-extrabold text-[#2B2B2B] m-0">
+                    {child?.enrollmentStatus === 'rejected'
+                      ? 'Enrollment needs attention'
+                      : 'Enrollment pending verification'}
+                  </h4>
+                  <p className="text-xs text-[#6B6B6B] leading-relaxed m-0">
+                    {child?.enrollmentStatus === 'rejected' ? (
+                      <>The Daycare Worker could not approve this enrollment. Please contact the
+                      daycare center to resolve the following: <strong>{child?.rejectionReason || 'No reason provided.'}</strong></>
+                    ) : (
+                      <>Your child&apos;s sociodemographic profile has been submitted and is being
+                      reviewed by the Daycare Worker. Once approved, attendance, ECCD checklists,
+                      and health tracking will appear here.</>
+                    )}
+                  </p>
+                  <span className={`badge ${child?.enrollmentStatus === 'rejected' ? 'badge-danger' : 'badge-warning'} font-bold uppercase`}>
+                    {child?.enrollmentStatus || 'pending'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
       {/* TAB 2: ECCD DepEd Domain Checklist Viewer */}
       {activeTab === 'eccd_checklist' && (
+        child?.enrollmentStatus !== 'enrolled' ? (
+          <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm text-center">
+            <Clock size={28} className="text-[#B98A00] mx-auto mb-2" />
+            <p className="text-sm font-bold text-[#2B2B2B] m-0">ECCD checklist unavailable</p>
+            <p className="text-xs text-[#6B6B6B] m-0 mt-1">
+              This tool unlocks once the Daycare Worker approves this child&apos;s enrollment.
+            </p>
+          </div>
+        ) : (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -701,6 +756,7 @@ export default function ParentView({
             })}
           </div>
         </div>
+        )
       )}
 
       {/* TAB 3: Direct Teacher Messaging & Absence Excusal Form */}
@@ -822,6 +878,15 @@ export default function ParentView({
 
       {/* TAB 4: Nutritional & Growth Tracker */}
       {activeTab === 'health_tracker' && (
+        child?.enrollmentStatus !== 'enrolled' ? (
+          <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm text-center">
+            <Activity size={28} className="text-[#B98A00] mx-auto mb-2" />
+            <p className="text-sm font-bold text-[#2B2B2B] m-0">Health tracking unavailable</p>
+            <p className="text-xs text-[#6B6B6B] m-0 mt-1">
+              Nutritional and growth tracking unlocks once this child&apos;s enrollment is approved.
+            </p>
+          </div>
+        ) : (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
@@ -882,6 +947,7 @@ export default function ParentView({
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* TAB 5: Classroom Moments & Photo Gallery */}

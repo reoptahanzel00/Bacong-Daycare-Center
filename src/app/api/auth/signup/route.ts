@@ -14,6 +14,41 @@ const SignupSchema = z.object({
   phone: z.string().max(20).optional(),
 });
 
+/** Per-child sociodemographic profile (ECCD Form Section 1) at signup. */
+const ChildProfileSchema = z.object({
+  firstName: z.string().min(1, "Child's first name is required").max(100).trim(),
+  lastName: z.string().min(1, "Child's last name is required").max(100).trim(),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be YYYY-MM-DD'),
+  sex: z.enum(['Male', 'Female']),
+  barangay: z.string().max(100).trim(),
+  municipality: z.string().max(100).trim(),
+  province: z.string().max(100).trim(),
+  region: z.string().max(100).trim(),
+  handedness: z.enum(['right', 'left', 'both', 'not_yet_established']),
+  currentlyStudying: z.boolean().default(false),
+  schoolName: z.string().max(150).trim().optional().nullable(),
+  relationship: z.enum(['Mother', 'Father', 'Grandmother', 'Grandfather', 'Legal Guardian']),
+  fatherName: z.string().max(100).trim().optional().nullable(),
+  fatherAge: z.number().int().min(0).max(120).optional().nullable(),
+  fatherOccupation: z.string().max(100).trim().optional().nullable(),
+  fatherEducation: z.string().max(100).trim().optional().nullable(),
+  motherName: z.string().max(100).trim().optional().nullable(),
+  motherAge: z.number().int().min(0).max(120).optional().nullable(),
+  motherOccupation: z.string().max(100).trim().optional().nullable(),
+  motherEducation: z.string().max(100).trim().optional().nullable(),
+  siblingsCount: z.number().int().min(0).max(50).optional().nullable(),
+  birthOrder: z.string().max(50).trim().optional().nullable(),
+});
+
+// Parents must submit at least one child profile at signup (max 5).
+const ChildrenSchema = z
+  .array(ChildProfileSchema)
+  .min(1, 'Please provide your child\'s sociodemographic profile.')
+  .max(5, 'You can register up to 5 children at a time.')
+  .optional();
+
+const SignupBodySchema = SignupSchema.extend({ children: ChildrenSchema });
+
 /**
  * Lightweight in-memory rate limiter (per IP). Best-effort protection for the
  * public signup surface; not a substitute for a full gateway-level limiter.
@@ -52,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const parsed = SignupSchema.parse(body);
+    const parsed = SignupBodySchema.parse(body);
     const email = parsed.email.toLowerCase();
 
     // Public self-registration is for parents only. Worker/Official/Admin
@@ -61,6 +96,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: `${parsed.role} accounts are created by the Barangay Admin. Please contact the IT Administration.` },
         { status: 403 }
+      );
+    }
+    if (!parsed.children || parsed.children.length === 0) {
+      return NextResponse.json(
+        { error: 'Please provide your child\'s sociodemographic profile to create a parent account.' },
+        { status: 400 }
       );
     }
 
@@ -94,29 +135,92 @@ export async function POST(request: Request) {
       console.warn('[Signup API] Profile insert warning:', profileError.message);
     }
 
-    // 3. Auto-link when the guardian phone matches an existing record.
-    let linked = false;
-    if (parsed.phone) {
-      const { data: guardian } = await admin
-        .from('guardians')
-        .select('id, full_name')
-        .eq('phone', parsed.phone)
-        .maybeSingle();
-      if (guardian) {
-        const { error: linkError } = await admin
-          .from('guardians')
-          .update({ user_id: authData.user.id })
-          .eq('id', guardian.id);
-        if (!linkError) linked = true;
+    // 3. Create a pending pupil + guardian + sociodemographic profile for each
+    //    submitted child. A Daycare Worker verifies before the child is
+    //    officially enrolled.
+    const createdPupilIds: string[] = [];
+    let pupilCreateError: string | null = null;
+    for (const child of parsed.children) {
+      const pupilId = `PUP-${new Date().getFullYear()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
+      const address = [
+        child.barangay.trim(),
+        child.municipality.trim(),
+        child.province.trim(),
+        child.region.trim(),
+      ]
+        .filter((part) => part.length > 0)
+        .join(', ');
+
+      const { error: pupilError } = await admin.from('pupils').insert({
+        id: pupilId,
+        first_name: child.firstName,
+        last_name: child.lastName,
+        birth_date: child.birthDate,
+        sex: child.sex,
+        address,
+        enrollment_status: 'pending',
+        enrollment_date: new Date().toISOString().split('T')[0],
+        consecutive_absences: 0,
+        created_by: authData.user.id,
+      });
+      if (pupilError) {
+        pupilCreateError = pupilError.message;
+        break;
       }
+
+      const { error: guardianError } = await admin.from('guardians').insert({
+        pupil_id: pupilId,
+        user_id: authData.user.id,
+        full_name: parsed.fullName,
+        relationship: child.relationship,
+        phone: parsed.phone || 'Not provided',
+        is_primary_contact: true,
+      });
+      if (guardianError) {
+        pupilCreateError = guardianError.message;
+        break;
+      }
+
+      const { error: profileError } = await admin.from('sociodemographic_profiles').insert({
+        pupil_id: pupilId,
+        handedness: child.handedness,
+        currently_studying: child.currentlyStudying,
+        school_name: child.schoolName || null,
+        barangay: child.barangay,
+        municipality: child.municipality,
+        province: child.province,
+        region: child.region,
+        father_name: child.fatherName || null,
+        father_age: child.fatherAge ?? null,
+        father_occupation: child.fatherOccupation || null,
+        father_education: child.fatherEducation || null,
+        mother_name: child.motherName || null,
+        mother_age: child.motherAge ?? null,
+        mother_occupation: child.motherOccupation || null,
+        mother_education: child.motherEducation || null,
+        siblings_count: child.siblingsCount ?? null,
+        birth_order: child.birthOrder || null,
+        updated_by: authData.user.id,
+      });
+      if (profileError) {
+        pupilCreateError = profileError.message;
+        break;
+      }
+      createdPupilIds.push(pupilId);
+    }
+
+    if (pupilCreateError) {
+      console.warn('[Signup API] Child profile insert warning:', pupilCreateError);
     }
 
     return NextResponse.json({
       success: true,
-      message: linked
-        ? 'Account created and linked to your child! You can sign in now.'
-        : 'Account created. A Barangay Admin will connect you to your child shortly.',
-      linked,
+      message:
+        createdPupilIds.length > 0
+          ? `Account created. ${createdPupilIds.length} child profile(s) submitted for verification by the Daycare Worker.`
+          : 'Account created, but your child profile could not be saved. Please contact the Barangay Admin.',
+      linked: createdPupilIds.length > 0,
+      pupilIds: createdPupilIds,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

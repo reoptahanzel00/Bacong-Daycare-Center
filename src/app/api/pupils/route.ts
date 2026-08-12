@@ -17,7 +17,13 @@ const PupilSchema = z.object({
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status') || 'enrolled';
+  const rawStatus = searchParams.get('status') || 'enrolled';
+  const statuses = rawStatus
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s): s is 'pending' | 'enrolled' | 'rejected' | 'archived' =>
+      ['pending', 'enrolled', 'rejected', 'archived'].includes(s)
+    );
 
   try {
     const session = await getServerSession();
@@ -27,12 +33,13 @@ export async function GET(request: Request) {
 
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from('pupils')
-      .select('*, guardian:guardians(*)')
-      .eq('enrollment_status', status)
-      .order('created_at', { ascending: false })
-      .limit(500);
+      .select('*, guardian:guardians(*), sociodemographic:sociodemographic_profiles(*)');
+    if (statuses.length > 0) {
+      query = query.in('enrollment_status', statuses);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(500);
 
     if (error) {
       return NextResponse.json({ pupils: [], warning: error.message });
