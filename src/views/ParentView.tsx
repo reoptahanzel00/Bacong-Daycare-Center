@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Heart, 
   TrendingUp, 
@@ -19,6 +19,7 @@ import {
 import Image from 'next/image';
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
+import { fetchEccdRatings } from '@/services/eccdService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface ParentViewProps {
@@ -46,6 +47,7 @@ export default function ParentView({
 
   // 109-Item ECCD Checklist Viewer State
   const [selectedDomainId, setSelectedDomainId] = useState<string>('gross_motor');
+  const [childRatings, setChildRatings] = useState<Record<string, 'P' | 'O' | 'R'>>({});
 
   // Direct Teacher Message / Absence Note Form State
   const [absenceReason, setAbsenceReason] = useState<string>('Illness / Medical');
@@ -80,6 +82,26 @@ export default function ParentView({
   const child = pupils.find(p => p.id === selectedChildId) || pupils[0];
 
   const childAttendance = attendance.filter(a => a.pupil_id === child?.id);
+
+  // Load the child's real ECCD checklist ratings from the evaluation tool.
+  useEffect(() => {
+    if (!child?.id) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchEccdRatings();
+      if (cancelled || !res.ok) return;
+      const mapped: Record<string, 'P' | 'O' | 'R'> = {};
+      for (const row of res.ratings) {
+        if (row.pupil_id !== child.id) continue;
+        if (row.status_rating === 'Present') mapped[row.milestone_code] = 'P';
+        else if (row.status_rating === 'In_Progress') mapped[row.milestone_code] = 'O';
+        else if (row.status_rating === 'Not_Yet_Observed') mapped[row.milestone_code] = 'R';
+      }
+      setChildRatings(mapped);
+    })();
+    return () => { cancelled = true; };
+  }, [child?.id]);
+
   const presentCount = childAttendance.filter(a => a.status === 'present').length;
   const lateCount = childAttendance.filter(a => a.status === 'late').length;
   const absentCount = childAttendance.filter(a => a.status === 'absent').length;
@@ -136,6 +158,11 @@ export default function ParentView({
 
   // 109-Item ECCD Checklist active domain
   const activeDomain = ECCD_DOMAINS.find(d => d.id === selectedDomainId) || ECCD_DOMAINS[0];
+  const domainRatedItems = activeDomain.items.filter(i => childRatings[i.id]);
+  const domainMasteredItems = domainRatedItems.filter(i => childRatings[i.id] === 'P');
+  const domainMasteryPct = domainRatedItems.length > 0
+    ? Math.round((domainMasteredItems.length / domainRatedItems.length) * 100)
+    : null;
 
   // Classroom photo gallery items
   const galleryPhotos = [
@@ -499,21 +526,37 @@ export default function ParentView({
 
             <div className="flex items-center gap-3 shrink-0">
               <div className="text-right">
-                <span className="text-xs font-extrabold text-[#2F8F8A]">85% Domain Mastery</span>
-                <span className="text-[10px] text-[#9B9B9B] block">Evaluated by Teacher Teresa</span>
+                <span className="text-xs font-extrabold text-[#2F8F8A]">
+                  {domainMasteryPct !== null ? `${domainMasteryPct}% Domain Mastery` : 'No ratings yet'}
+                </span>
+                <span className="text-[10px] text-[#9B9B9B] block">
+                  {domainRatedItems.length} of {activeDomain.items.length} items rated
+                </span>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center font-bold text-sm">
-                85%
+                {domainMasteryPct ?? '—'}
               </div>
             </div>
           </div>
 
           {/* Checklist Items Grid */}
           <div className="space-y-2.5">
-            {activeDomain.items.map((item, idx) => {
-              // Simulated rating for demonstration
-              const isMastered = idx % 5 !== 3;
-              const ratingTag = isMastered ? 'Mastered (P)' : 'Developing (O)';
+            {activeDomain.items.map((item) => {
+              const currentRating = childRatings[item.id];
+              const ratingTag = currentRating === 'P'
+                ? 'Mastered (P)'
+                : currentRating === 'O'
+                  ? 'Developing (O)'
+                  : currentRating === 'R'
+                    ? 'Needs Practice (R)'
+                    : 'Not Rated';
+              const tagClass = currentRating === 'P'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : currentRating === 'O'
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : currentRating === 'R'
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : 'bg-gray-50 text-gray-500 border border-gray-200';
 
               return (
                 <div key={item.id} className="p-3.5 rounded-2xl border border-[#E6E4DF] bg-white hover:border-[#2F8F8A] transition-all flex items-start justify-between gap-3 text-xs">
@@ -527,9 +570,7 @@ export default function ParentView({
                     </div>
                   </div>
 
-                  <span className={`px-3 py-1 rounded-full font-extrabold text-[11px] shrink-0 ${
-                    isMastered ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full font-extrabold text-[11px] shrink-0 ${tagClass}`}>
                     {ratingTag}
                   </span>
                 </div>

@@ -80,7 +80,15 @@ INSERT INTO progress_domains (id, name, description) VALUES
   ('motor', 'Motor Skills (Fine & Gross)', 'Physical balance, hop, pincer grip, crayon drawing'),
   ('language', 'Language & Communication', 'Storytelling, Tagalog vocabulary, listening skills'),
   ('socio-emotional', 'Socio-Emotional Development', 'Sharing toys, group interaction, emotional control'),
-  ('self-help', 'Self-Help & Cognitive', 'Hygiene routines, handwashing, problem solving')
+  ('self-help', 'Self-Help & Cognitive', 'Hygiene routines, handwashing, problem solving'),
+  -- 109-Item DepEd ECCD checklist domains (used by the evaluation tool)
+  ('gross_motor', 'Gross Motor', 'Climbing, running, jumping, balance and body movement'),
+  ('fine_motor', 'Fine Motor', 'Hand-eye coordination, drawing, grip and manipulation'),
+  ('self_help', 'Self-Help', 'Feeding, dressing, toileting and hygiene independence'),
+  ('receptive_language', 'Receptive Language', 'Following instructions, pointing, listening comprehension'),
+  ('expressive_language', 'Expressive Language', 'Vocabulary, sentence formation, asking questions'),
+  ('cognitive', 'Cognitive', 'Problem solving, matching, sorting, memory and reasoning'),
+  ('socio_emotional', 'Socio-Emotional', 'Social interaction, emotional regulation, sharing and cooperation')
 ON CONFLICT (id) DO NOTHING;
 
 -- 7. Developmental Observations Table (4-Domain ECCD Checklist)
