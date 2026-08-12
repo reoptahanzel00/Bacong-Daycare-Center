@@ -52,6 +52,16 @@ const nextConfig = {
     }
 
     return [
+      // Service worker + manifest must always be fetched fresh so updates
+      // reach browsers immediately (never edge/browser-cached).
+      {
+        source: '/sw.js',
+        headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }],
+      },
+      {
+        source: '/manifest.json',
+        headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }],
+      },
       {
         source: '/(.*)',
         headers: securityHeaders,

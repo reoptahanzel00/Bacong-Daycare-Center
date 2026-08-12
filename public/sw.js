@@ -4,7 +4,7 @@
 // deploys are visible immediately. The cache is only an offline fallback.
 // API calls and Next.js static bundles are never intercepted.
 
-const CACHE_NAME = 'bacong-daycare-v3';
+const CACHE_NAME = 'bacong-daycare-v4';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
