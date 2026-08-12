@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const SignupSchema = z.object({
+  role: z.enum(['worker', 'official', 'barangay_admin', 'parent']).default('parent'),
   fullName: z.string().min(2, 'Full name is required').max(100),
   email: z.string().email('Invalid email address'),
   password: z
@@ -53,6 +54,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = SignupSchema.parse(body);
     const email = parsed.email.toLowerCase();
+
+    // Public self-registration is for parents only. Worker/Official/Admin
+    // accounts must be provisioned by a Barangay Admin — never self-assignable.
+    if (parsed.role !== 'parent') {
+      return NextResponse.json(
+        { error: `${parsed.role} accounts are created by the Barangay Admin. Please contact the IT Administration.` },
+        { status: 403 }
+      );
+    }
 
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const admin = createAdminClient();

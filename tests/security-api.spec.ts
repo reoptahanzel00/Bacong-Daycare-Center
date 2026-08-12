@@ -16,6 +16,18 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(400);
   });
 
+  test('POST /api/auth/signup should reject self-assigned privileged roles with 403', async ({ request }) => {
+    const response = await request.post('/api/auth/signup', {
+      data: {
+        role: 'barangay_admin',
+        fullName: 'Sneaky Admin',
+        email: 'sneaky@example.com',
+        password: 'Str0ng!Pass',
+      },
+    });
+    expect(response.status()).toBe(403);
+  });
+
   test('unauthenticated POST /api/attendance/bulk should be rejected with 401', async ({ request }) => {
     const response = await request.post('/api/attendance/bulk', {
       data: { invalidField: true }
