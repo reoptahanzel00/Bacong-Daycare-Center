@@ -58,8 +58,8 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(401);
   });
 
-  test('unauthenticated GET /api/reports/dswd-eccd should be rejected with 401', async ({ request }) => {
-    const response = await request.get('/api/reports/dswd-eccd');
+  test('unauthenticated GET /api/audit-log should be rejected with 401', async ({ request }) => {
+    const response = await request.get('/api/audit-log');
     expect(response.status()).toBe(401);
   });
 });

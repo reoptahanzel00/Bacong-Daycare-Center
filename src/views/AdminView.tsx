@@ -14,6 +14,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { useDaycare, type MockUser, type MockAuditLog, type MockAnnouncement } from '@/contexts/DaycareContext';
+import { resetUserPassword } from '@/services/usersService';
 
 interface AdminViewProps {
   users: MockUser[];
@@ -42,6 +43,7 @@ export default function AdminView({
   const [userSearch, setUserSearch] = useState('');
   const [auditPage, setAuditPage] = useState(1);
   const [resetSent, setResetSent] = useState<Record<string, boolean>>({});
+  const [resetLinks, setResetLinks] = useState<Record<string, string>>({});
 
   const filteredUsers = users.filter(u => {
     const matchesRole = filterRole === 'all' || u.role === filterRole;
@@ -55,10 +57,16 @@ export default function AdminView({
   const paginatedAuditLogs = auditLogs.slice((auditPage - 1) * AUDIT_PAGE_SIZE, auditPage * AUDIT_PAGE_SIZE);
 
   const handleResetPassword = async (userId: string, userEmail: string, userName: string) => {
-    setResetSent(prev => ({ ...prev, [userId]: true }));
-    showToast(`Password reset link sent to ${userEmail}!`, 'success');
-    logAuditAction('Triggered Password Reset', userEmail, `Dispatched password reset token for ${userName}.`);
-    setTimeout(() => setResetSent(prev => ({ ...prev, [userId]: false })), 4000);
+    const res = await resetUserPassword(userId);
+    if (res.success) {
+      setResetLinks(prev => ({ ...prev, [userId]: res.reset_link || '' }));
+      setResetSent(prev => ({ ...prev, [userId]: true }));
+      showToast(`Reset link generated for ${userEmail}!`, 'success');
+      logAuditAction('Generated Password Reset', userEmail, `Created recovery link for ${userName}.`);
+      setTimeout(() => setResetSent(prev => ({ ...prev, [userId]: false })), 6000);
+    } else {
+      showToast(`Could not reset ${userEmail}: ${res.error || 'unknown error'}`, 'danger');
+    }
   };
 
   return (
@@ -169,19 +177,33 @@ export default function AdminView({
                       </button>
                     </td>
                     <td>
-                      <button
-                        onClick={() => handleResetPassword(u.id, u.email, u.fullName || u.name)}
-                        className={`btn btn-sm gap-1.5 transition-all ${
-                          resetSent[u.id]
-                            ? 'bg-[#EBF5F4] text-[#2F8F8A] border-[#2F8F8A]/30'
-                            : 'btn-secondary'
-                        }`}
-                        title={resetSent[u.id] ? 'Reset email sent!' : 'Send password reset email'}
-                        suppressHydrationWarning
-                      >
-                        {resetSent[u.id] ? <CheckCircle size={14} /> : <Key size={14} />}
-                        <span>{resetSent[u.id] ? 'Sent!' : 'Reset Pass'}</span>
-                      </button>
+                      <div className="flex flex-col items-start gap-1">
+                        <button
+                          onClick={() => handleResetPassword(u.id, u.email, u.fullName || u.name)}
+                          className={`btn btn-sm gap-1.5 transition-all ${
+                            resetSent[u.id]
+                              ? 'bg-[#EBF5F4] text-[#2F8F8A] border-[#2F8F8A]/30'
+                              : 'btn-secondary'
+                          }`}
+                          title={resetSent[u.id] ? 'Reset link generated!' : 'Generate password reset link'}
+                          suppressHydrationWarning
+                        >
+                          {resetSent[u.id] ? <CheckCircle size={14} /> : <Key size={14} />}
+                          <span>{resetSent[u.id] ? 'Generated!' : 'Reset Pass'}</span>
+                        </button>
+                        {resetLinks[u.id] && (
+                          <a
+                            href={resetLinks[u.id]}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] text-[#2F8F8A] underline max-w-[180px] truncate"
+                            title={resetLinks[u.id]}
+                            suppressHydrationWarning
+                          >
+                            Open reset link
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
