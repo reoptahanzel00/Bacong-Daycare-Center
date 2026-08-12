@@ -5,6 +5,7 @@ import {
   ShieldCheck, 
   Key, 
   Plus, 
+  Link2,
   History, 
   Search, 
   ChevronLeft, 
@@ -20,6 +21,7 @@ interface AdminViewProps {
   announcements?: MockAnnouncement[];
   activeTab?: string;
   onOpenUserModal: () => void;
+  onLinkParent?: () => void;
   onToggleUserStatus?: (userId: string) => void;
 }
 
@@ -31,6 +33,7 @@ export default function AdminView({
   announcements = [], 
   activeTab = 'users', 
   onOpenUserModal, 
+  onLinkParent,
   onToggleUserStatus 
 }: AdminViewProps) {
   const { showToast, logAuditAction } = useDaycare();
@@ -78,14 +81,24 @@ export default function AdminView({
               Provision user accounts, inspect security mutation audit trails, and verify Data Privacy Act (RA 10173) Row-Level Security policies.
             </p>
           </div>
-          <button
-            onClick={onOpenUserModal}
-            className="btn btn-warning font-bold shrink-0 shadow-md"
-            suppressHydrationWarning
-          >
-            <Plus size={18} />
-            <span>Provision User Account</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={onLinkParent}
+              className="btn btn-secondary font-bold shrink-0 border-none bg-white/15 text-white hover:bg-white/25"
+              suppressHydrationWarning
+            >
+              <Link2 size={16} />
+              <span>Link Parent Accounts</span>
+            </button>
+            <button
+              onClick={onOpenUserModal}
+              className="btn btn-warning font-bold shrink-0 shadow-md"
+              suppressHydrationWarning
+            >
+              <Plus size={18} />
+              <span>Provision User Account</span>
+            </button>
+          </div>
         </div>
       </div>
 
