@@ -93,5 +93,30 @@ If a password is forgotten: Supabase Dashboard → **Authentication → Users** 
 
 - SMS dispatch (Semaphore) and email dispatch (Resend) are implemented as pluggable channels but
   only activate when the respective API keys are configured. In-app feed works without them.
-- Announcements are still local/demo (no database table/API yet).
 - No unit tests yet — E2E covers the main flows in demo mode.
+
+## 6. Operations Setup Checklist (one-time, ~30 minutes)
+
+- [ ] **Backups**: Supabase Dashboard → Project Settings → Backups. Confirm daily backups are
+      enabled. Paid plans add Point-in-Time Recovery — enable it if the budget allows; free tier
+      keeps 7 days of daily backups.
+- [ ] **Uptime monitor** (free): sign up at uptimerobot.com (or betterstack.com), add a monitor for
+      `https://bacong-daycare-center.vercel.app/api/health`, check every 5 minutes, and set an
+      email/phone alert. The endpoint returns `{"status":"healthy"}`.
+- [ ] **Error tracking** (optional but recommended before real users): create a Sentry project,
+      add `SENTRY_DSN` to Vercel, and install `@sentry/nextjs`. The first week of real usage is
+      when errors surface; Sentry makes them visible instead of silent.
+- [ ] **Notification email** (optional): add `RESEND_API_KEY` + `EMAIL_FROM` to Vercel to enable
+      email delivery for absence alerts. No code changes needed.
+- [ ] **Custom domain** (optional): Vercel → Settings → Domains → add e.g. `bacongdaycare.ph`,
+      then update `NEXT_PUBLIC_APP_URL` to match.
+- [ ] **Supabase email templates**: Authentication → Emails → confirm the "Reset password" and
+      "Confirm signup" templates point to `https://bacong-daycare-center.vercel.app` (Site URL in
+      Authentication → URL Configuration).
+
+### Go-live day checklist
+
+- [ ] Walk the staff through the roles with this document (sections 1–3).
+- [ ] Reset the demo passwords and hand accounts out (or let parents self-register via /register).
+- [ ] Mark the first real attendance register and confirm rows appear in Supabase.
+- [ ] Keep the UAT findings as a shared list; prioritize anything that blocks daily use.

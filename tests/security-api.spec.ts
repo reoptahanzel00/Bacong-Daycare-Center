@@ -93,4 +93,19 @@ test.describe('API Security & Health Check Automated Tests', () => {
     });
     expect(response.status()).toBe(401);
   });
+
+  test('unauthenticated parent-notes / announcements / health-logs routes are rejected with 401', async ({ request }) => {
+    const routes = [
+      { method: 'get', url: '/api/parent-notes' },
+      { method: 'post', url: '/api/parent-notes', data: { pupil_id: 'PUP-2026-001', date: '2026-08-12', reason: 'Illness', notes: 'Test' } },
+      { method: 'get', url: '/api/announcements' },
+      { method: 'post', url: '/api/announcements', data: { title: 'Test', body: 'Test' } },
+      { method: 'get', url: '/api/health-logs' },
+      { method: 'post', url: '/api/health-logs', data: { pupil_id: 'PUP-2026-001', weight_kg: '14', height_cm: '98' } },
+    ];
+    for (const r of routes) {
+      const response = await request[r.method as 'get'](r.url, r.data ? { data: r.data } : undefined);
+      expect(response.status(), `${r.method.toUpperCase()} ${r.url}`).toBe(401);
+    }
+  });
 });

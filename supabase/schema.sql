@@ -143,6 +143,33 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient_read
   ON notifications(recipient_user_id, read, created_at DESC);
 
+-- 11. Parent Absence Notes (parent -> worker communication)
+CREATE TABLE IF NOT EXISTS parent_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  note_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  reason TEXT NOT NULL,
+  notes TEXT NOT NULL,
+  phone TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'acknowledged')),
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_parent_notes_status ON parent_notes(status, submitted_at DESC);
+
+-- 12. Health / Nutrition Logs (weight & height per pupil per day)
+CREATE TABLE IF NOT EXISTS health_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
+  weight_kg TEXT,
+  height_cm TEXT,
+  recorded_at DATE NOT NULL DEFAULT CURRENT_DATE,
+  recorded_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (pupil_id, recorded_at)
+);
+
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
 -- ==========================================================================
@@ -178,6 +205,8 @@ ALTER TABLE progress_observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guardians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE parent_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE health_logs ENABLE ROW LEVEL SECURITY;
 
 -- Users RLS: each user reads their own profile; admins read all profiles.
 -- Provisioning/updates go through the admin API (service role, bypasses RLS),
@@ -273,6 +302,10 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   FOR UPDATE TO authenticated
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
+
+-- Parent notes & health logs: NO client policies — all access goes through
+-- the server API (service role) with session-derived identities, so direct
+-- client writes/reads are denied by default.
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION

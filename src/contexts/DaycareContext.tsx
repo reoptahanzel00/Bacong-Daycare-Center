@@ -24,6 +24,7 @@ import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceServic
 import { fetchProgress, recordObservation, type ProgressPayload } from '@/services/progressService';
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
 import { logAuditEntry, fetchAuditLogs } from '@/services/auditService';
+import { fetchAnnouncements, publishAnnouncement } from '@/services/announcementsService';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -255,12 +256,13 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
    */
   const syncFromServer = useCallback(async () => {
     try {
-      const [pupilRes, attendanceRes, progressRes, usersRes, auditRes] = await Promise.all([
+      const [pupilRes, attendanceRes, progressRes, usersRes, auditRes, announcementRes] = await Promise.all([
         fetchPupils('enrolled'),
         fetchAttendance(),
         fetchProgress(),
         fetchUsers(),
         fetchAuditLogs(),
+        fetchAnnouncements(),
       ]);
 
       if (pupilRes.ok) {
@@ -307,6 +309,15 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           action: l.action,
           target: l.target,
           details: l.details || undefined,
+        })));
+      }
+      if (announcementRes.ok) {
+        setAnnouncements(announcementRes.announcements.map(a => ({
+          id: a.id,
+          title: a.title,
+          content: a.body,
+          date: (a.created_at || '').slice(0, 10),
+          postedBy: a.posted_by || undefined,
         })));
       }
     } catch (e) {
@@ -551,8 +562,12 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pupils, logAuditAction, showToast]);
 
-  const handleSaveAnnouncement = useCallback((annData: MockAnnouncement) => {
+  const handleSaveAnnouncement = useCallback(async (annData: MockAnnouncement) => {
     setAnnouncements(prev => [annData, ...prev]);
+    const res = await publishAnnouncement(annData.title, annData.content || annData.body || '');
+    if (!res.success) {
+      showToast(`Notice saved locally — could not reach the server.`, 'warning');
+    }
     logAuditAction('Published Announcement', annData.title, 'Broadcasted daycare notice to parent portal.');
     showToast(`Notice "${annData.title}" broadcasted to parents.`);
   }, [logAuditAction, showToast]);

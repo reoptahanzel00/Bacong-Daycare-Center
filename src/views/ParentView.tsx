@@ -20,6 +20,7 @@ import Image from 'next/image';
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
 import { fetchEccdRatings } from '@/services/eccdService';
+import { submitParentNote } from '@/services/parentNotesService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface ParentViewProps {
@@ -116,12 +117,13 @@ export default function ParentView({
     logAuditAction('Acknowledged Attendance Advisory', child?.id || 'PUP-001', 'Parent acknowledged automated absence alert.');
   };
 
-  const handleSendAbsenceNote = (e: React.FormEvent) => {
+  const handleSendAbsenceNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guardianNotes.trim()) {
       alert('Please enter a brief note explaining the absence or special request.');
       return;
     }
+    if (!child?.id) return;
 
     const newNote = {
       id: `NOTE-${Date.now().toString().slice(-4)}`,
@@ -135,7 +137,20 @@ export default function ParentView({
 
     setSubmittedNotes(prev => [newNote, ...prev]);
     setGuardianNotes('');
-    showToast(`Absence note for ${absenceDate} sent to Teacher Teresa!`, 'success');
+
+    // Persist to the real parent-notes inbox (best-effort).
+    const res = await submitParentNote({
+      pupil_id: child.id,
+      date: absenceDate,
+      reason: absenceReason,
+      notes: guardianNotes,
+      phone: contactPhone,
+    });
+    if (res.success) {
+      showToast(`Absence note for ${absenceDate} sent to Teacher Teresa!`, 'success');
+    } else {
+      showToast(`Note saved locally — could not reach the daycare server.`, 'warning');
+    }
     logAuditAction('Submitted Absence Note', child?.id || 'PUP-001', `Reason: ${absenceReason} for date ${absenceDate}`);
   };
 
