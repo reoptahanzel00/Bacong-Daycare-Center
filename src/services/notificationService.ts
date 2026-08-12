@@ -15,12 +15,9 @@ export interface Notification {
   timestamp: string;
 }
 
-export async function fetchNotifications(recipientId?: string): Promise<Notification[]> {
+export async function fetchNotifications(): Promise<Notification[]> {
   try {
-    const url = recipientId
-      ? `/api/notifications?recipient_id=${recipientId}`
-      : '/api/notifications';
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch('/api/notifications', { cache: 'no-store' });
     const data = await res.json();
     return data.notifications || [];
   } catch {
@@ -28,13 +25,20 @@ export async function fetchNotifications(recipientId?: string): Promise<Notifica
   }
 }
 
-export async function sendNotification(payload: Omit<Notification, 'id' | 'read' | 'timestamp'>) {
+export async function markAllRead() {
   try {
-    const res = await fetch('/api/notifications', {
+    const res = await fetch('/api/notifications/read-all', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
     });
+    return await res.json();
+  } catch {
+    return { success: false, error: 'Network error' };
+  }
+}
+
+export async function markRead(id: string) {
+  try {
+    const res = await fetch(`/api/notifications/${id}`, { method: 'PATCH' });
     return await res.json();
   } catch {
     return { success: false, error: 'Network error' };

@@ -51,8 +51,14 @@ export default function Header({
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      const { markAllRead: markAll } = await import('@/services/notificationService');
+      await markAll();
+    } catch {
+      // Best-effort; the local state already reflects the read state.
+    }
   };
 
 
