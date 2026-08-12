@@ -34,3 +34,16 @@ export async function updateUserStatus(id: string, status: 'active' | 'disabled'
     return { success: false, error: 'Network error' };
   }
 }
+
+export async function resetUserPassword(userId: string) {
+  try {
+    const res = await fetch('/api/users/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, error: 'Network error' };
+  }
+}

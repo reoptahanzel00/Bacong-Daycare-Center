@@ -31,35 +31,39 @@ export default function LoginPage() {
       }
 
       let userRole: 'worker' | 'official' | 'barangay_admin' | 'parent' = 'worker';
-      const cleanEmail = email.trim().toLowerCase();
 
       if (data?.user) {
         // The users table is the authoritative source of role. user_metadata is
         // user-editable and must not be trusted for authorization.
         const { data: profile } = await supabase
           .from('users')
-          .select('role')
+          .select('role, status')
           .eq('id', data.user.id)
           .single();
 
         if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
+          if (profile.status === 'disabled') {
+            await supabase.auth.signOut();
+            setErrorMessage('This account has been disabled. Please contact the Barangay Admin.');
+            setLoading(false);
+            return;
+          }
           userRole = profile.role;
-        } else if (cleanEmail.includes('official')) {
-          userRole = 'official';
-        } else if (cleanEmail.includes('admin')) {
-          userRole = 'barangay_admin';
-        } else if (cleanEmail.includes('parent')) {
-          userRole = 'parent';
-        } else if (cleanEmail.includes('worker')) {
-          userRole = 'worker';
+          localStorage.setItem('bacong_auth_role', userRole);
+          router.push('/');
+          router.refresh();
+          return;
+        } else {
+          // Authenticated in Supabase but no valid profile — fail closed.
+          await supabase.auth.signOut();
+          setErrorMessage('This account is not provisioned for the daycare system. Please contact the Barangay Admin.');
+          setLoading(false);
+          return;
         }
       }
 
-      localStorage.setItem('bacong_auth_role', userRole);
-
-      // Successful login -> Redirect to main dashboard
-      router.push('/');
-      router.refresh();
+      setErrorMessage('Unable to verify your account role. Please try again.');
+      setLoading(false);
     } catch {
       setErrorMessage('Unable to connect to authentication server. Please check your connection.');
       setLoading(false);

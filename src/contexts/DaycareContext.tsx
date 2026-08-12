@@ -343,8 +343,6 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
         let resolvedRole: UserRole | null = null;
 
         if (session?.user) {
-          const userEmail = (session.user.email || '').toLowerCase();
-
           // Authenticated: pull the authoritative roster + register from the API.
           await syncFromServer();
 
@@ -356,14 +354,6 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
 
           if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
             resolvedRole = profile.role as UserRole;
-          } else if (userEmail.includes('official')) {
-            resolvedRole = 'official';
-          } else if (userEmail.includes('admin')) {
-            resolvedRole = 'barangay_admin';
-          } else if (userEmail.includes('parent')) {
-            resolvedRole = 'parent';
-          } else if (userEmail.includes('worker')) {
-            resolvedRole = 'worker';
           }
         }
 
