@@ -22,8 +22,14 @@ import {
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
-import { ECCD_DOMAINS } from '@/data/eccdChecklist';
-import { fetchEccdRatings, saveEccdRatings, type EccdRating } from '@/services/eccdService';
+import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
+import {
+  fetchEccdRatings,
+  saveEccdRatings,
+  fetchEccdScores,
+  saveEccdScores,
+  type EccdRound,
+} from '@/services/eccdService';
 import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
 import { fetchHealthLogs, saveHealthLog } from '@/services/healthLogsService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
@@ -66,27 +72,42 @@ export default function WorkerView({
   const [selectedPupilDetail, setSelectedPupilDetail] = useState<MockPupil | null>(null);
   const [archiveTargetPupil, setArchiveTargetPupil] = useState<MockPupil | null>(null);
 
-  // ECCD checklist evaluations state
-  const [evaluations, setEvaluations] = useState<Record<string, Record<string, 'P' | 'O' | 'R'>>>({});
+  // ECCD checklist state: ✓ (present) per item, per pupil, per round.
+  const [selectedRound, setSelectedRound] = useState<EccdRound>(1);
+  const [evaluations, setEvaluations] = useState<Record<string, Record<string, boolean>>>({});
+  const [eccdScores, setEccdScores] = useState<Record<string, Record<string, { raw: number; scaled?: string }>>>({});
   const [savingEvalPupil, setSavingEvalPupil] = useState<string | null>(null);
 
-  // Load the pupil's saved checklist ratings once on mount (real DB data).
+  // Load the saved checklist ratings + scores for the selected round.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetchEccdRatings();
-      if (cancelled || !res.ok || res.ratings.length === 0) return;
-      const seeded: Record<string, Record<string, 'P' | 'O' | 'R'>> = {};
-      for (const row of res.ratings) {
-        const rating = row.status_rating === 'Present' ? 'P' : row.status_rating === 'In_Progress' ? 'O' : row.status_rating === 'Not_Yet_Observed' ? 'R' : null;
-        if (!rating) continue;
+      const [ratingsRes, scoresRes] = await Promise.all([
+        fetchEccdRatings(selectedRound),
+        fetchEccdScores(selectedRound),
+      ]);
+      if (cancelled) return;
+
+      const seeded: Record<string, Record<string, boolean>> = {};
+      for (const row of ratingsRes.ok ? ratingsRes.ratings : []) {
+        if (row.status_rating !== 'Present') continue;
         if (!seeded[row.pupil_id]) seeded[row.pupil_id] = {};
-        seeded[row.pupil_id][row.milestone_code] = rating;
+        seeded[row.pupil_id][row.milestone_code] = true;
       }
       setEvaluations(seeded);
+
+      const scoreMap: Record<string, Record<string, { raw: number; scaled?: string }>> = {};
+      for (const s of scoresRes.ok ? scoresRes.scores : []) {
+        if (!scoreMap[s.pupil_id]) scoreMap[s.pupil_id] = {};
+        scoreMap[s.pupil_id][s.domain_id] = {
+          raw: s.raw_score,
+          scaled: s.scaled_score != null ? String(s.scaled_score) : undefined,
+        };
+      }
+      setEccdScores(scoreMap);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [selectedRound]);
 
   // Parent Notes Inbox State
   interface ParentNote {
@@ -212,36 +233,43 @@ export default function WorkerView({
     logAuditAction('Acknowledged Parent Absence Note', pupilId, `Teacher Teresa marked absence note for ${pupilName} as Excused.`);
   };
 
-  const handleSetECCDItemRating = (pupilId: string, itemId: string, rating: 'P' | 'O' | 'R') => {
-    setEvaluations(prev => ({
-      ...prev,
-      [pupilId]: {
-        ...(prev[pupilId] || {}),
-        [itemId]: rating
-      }
-    }));
-    showToast(`Recorded ECCD rating ${rating} for item ${itemId}.`, 'info');
+  const handleToggleECCDItem = (pupilId: string, itemId: string) => {
+    setEvaluations(prev => {
+      const pupilMap = { ...(prev[pupilId] || {}) };
+      pupilMap[itemId] = !pupilMap[itemId];
+      return { ...prev, [pupilId]: pupilMap };
+    });
   };
 
   const handleSaveEvaluation = async (pupil: MockPupil) => {
     const pupilRatings = evaluations[pupil.id] || {};
-    const ratings: Array<{ milestone_code: string; domain_id: string; rating: EccdRating }> = [];
-    for (const [itemId, rating] of Object.entries(pupilRatings)) {
+    const ratings: Array<{ milestone_code: string; domain_id: string; present: boolean }> = [];
+    for (const [itemId, present] of Object.entries(pupilRatings)) {
       const domain = ECCD_DOMAINS.find((d) => d.items.some((i) => i.id === itemId));
       if (!domain) continue;
-      ratings.push({ milestone_code: itemId, domain_id: domain.id, rating });
-    }
-    if (ratings.length === 0) {
-      showToast('No ratings to save — tap P/O/R on checklist items first.', 'warning');
-      return;
+      ratings.push({ milestone_code: itemId, domain_id: domain.id, present });
     }
 
     setSavingEvalPupil(pupil.id);
-    const res = await saveEccdRatings(pupil.id, ratings);
+    const res = await saveEccdRatings(pupil.id, selectedRound, ratings);
+
+    // Persist per-domain raw scores (auto from ✓ counts) + manual scaled scores.
+    const scores = ECCD_DOMAINS.map((d) => {
+      const raw = d.items.filter((i) => pupilRatings[i.id]).length;
+      const scaledRaw = eccdScores[pupil.id]?.[d.id]?.scaled;
+      return {
+        domain_id: d.id,
+        raw_score: raw,
+        scaled_score: scaledRaw && scaledRaw.trim() !== '' ? Number(scaledRaw) : null,
+      };
+    });
+    await saveEccdScores(pupil.id, selectedRound, scores);
+
     setSavingEvalPupil(null);
     if (res.success) {
-      showToast(`Saved ${ratings.length} evaluation item(s) for ${pupil.firstName}.`);
-      logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted ${ratings.length} checklist ratings.`);
+      const presentCount = ratings.filter((r) => r.present).length;
+      showToast(`Saved ${presentCount} ✓ item(s) for ${pupil.firstName} (round ${selectedRound}).`);
+      logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted round ${selectedRound} checklist ratings + scores.`);
     } else {
       showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
     }
@@ -288,7 +316,7 @@ export default function WorkerView({
               Barangay Bacong ECCD Daily Operations
             </h2>
             <p className="text-xs md:text-sm text-white/90 mt-1.5 leading-relaxed max-w-2xl m-0">
-              Mark daily attendance registers, evaluate 109 DepEd ECCD milestones, review parent absence notes, and record growth metrics.
+              Mark daily attendance registers, evaluate {ECCD_TOTAL_ITEMS} DepEd ECCD milestones, review parent absence notes, and record growth metrics.
             </p>
           </div>
 
@@ -525,7 +553,7 @@ export default function WorkerView({
         </div>
       )}
 
-      {/* 3. 109-Item DepEd ECCD Checklist Evaluation Tool */}
+      {/* 3. ECCD DepEd Checklist Evaluation Tool */}
       {activeTab === 'progress' && (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -533,21 +561,42 @@ export default function WorkerView({
               <div className="flex items-center gap-2 mb-1">
                 <BookOpen size={18} className="text-[#2F8F8A]" />
                 <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
-                  Teacher 109-Item Evaluation Suite
+                  Official ECCD Evaluation Suite
                 </span>
               </div>
               <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
-                109-Item Official ECCD Evaluation Checklist
+                {ECCD_TOTAL_ITEMS}-Item Official ECCD Evaluation Checklist
               </h3>
               <p className="text-xs text-[#6B6B6B] mt-1 m-0">
-                Evaluate enrolled pupils on official DepEd/DSWD ECCD competency items.
+                Check (✓) the skills the pupil demonstrates. Absence is left unchecked.
+                Administered once a year per official DepEd ECCD procedure.
               </p>
             </div>
 
-            <button onClick={onOpenProgressModal} className="btn btn-primary btn-sm font-bold shrink-0" suppressHydrationWarning>
-              <TrendingUp size={16} />
-              <span>Record Milestone Observation</span>
-            </button>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              {/* Evaluation Round Selector */}
+              <div className="flex items-center gap-1.5 p-1.5 bg-[#FAF8F5] border border-[#E6E4DF] rounded-2xl">
+                {([1, 2, 3] as EccdRound[]).map((round) => (
+                  <button
+                    key={round}
+                    type="button"
+                    onClick={() => setSelectedRound(round)}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
+                      selectedRound === round
+                        ? 'bg-[#2F8F8A] text-white shadow-sm'
+                        : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                    }`}
+                    suppressHydrationWarning
+                  >
+                    {round === 1 ? '1st' : round === 2 ? '2nd' : '3rd'} Assessment
+                  </button>
+                ))}
+              </div>
+              <button onClick={onOpenProgressModal} className="btn btn-primary btn-sm font-bold" suppressHydrationWarning>
+                <TrendingUp size={16} />
+                <span>Record Milestone Observation</span>
+              </button>
+            </div>
           </div>
 
           {/* Domain Selection Pills */}
@@ -576,72 +625,126 @@ export default function WorkerView({
 
           {/* Active Evaluation Roster */}
           <div className="space-y-4">
-            <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Evaluating: {activeDomain.label} ({activeDomain.items.length} Items)</h4>
-            {enrolledPupils.map((pupil) => (
-              <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
-                    <div>
-                      <div className="font-bold text-[#2B2B2B] text-sm">{pupil.firstName} {pupil.lastName}</div>
-                      <span className="text-[10px] text-[#9B9B9B]">{pupil.id} • Room A</span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-sm font-bold text-[#2B2B2B] m-0">
+                {activeDomain.label} ({activeDomain.items.length} Items)
+                <span className="ml-2 text-[11px] font-semibold text-[#9B9B9B]">
+                  Round {selectedRound === 1 ? '1st' : selectedRound === 2 ? '2nd' : '3rd'} Assessment
+                </span>
+              </h4>
+              <span className="text-[11px] text-[#9B9B9B] font-semibold">
+                Tap ✓ when the child demonstrates the skill
+              </span>
+            </div>
+            {enrolledPupils.map((pupil) => {
+              const pupilRatings = evaluations[pupil.id] || {};
+              const domainRaw = activeDomain.items.filter((i) => pupilRatings[i.id]).length;
+              const totalRated = Object.values(pupilRatings).filter(Boolean).length;
+              const scaled = eccdScores[pupil.id]?.[activeDomain.id]?.scaled ?? '';
+              return (
+                <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
+                      <div>
+                        <div className="font-bold text-[#2B2B2B] text-sm">{pupil.firstName} {pupil.lastName}</div>
+                        <span className="text-[10px] text-[#9B9B9B]">{pupil.id} • Room A</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="badge badge-primary text-[10px]">
+                        ✓ {totalRated} total
+                      </span>
+                      <button
+                        onClick={() => handleSaveEvaluation(pupil)}
+                        disabled={savingEvalPupil === pupil.id}
+                        className="btn btn-primary btn-sm font-bold shadow-md"
+                        suppressHydrationWarning
+                      >
+                        {savingEvalPupil === pupil.id ? 'Saving...' : 'Save Evaluation'}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="badge badge-primary text-[10px]">
-                      {Object.keys(evaluations[pupil.id] || {}).length} Rated
-                    </span>
-                    <button
-                      onClick={() => handleSaveEvaluation(pupil)}
-                      disabled={savingEvalPupil === pupil.id}
-                      className="btn btn-primary btn-sm font-bold shadow-md"
-                      suppressHydrationWarning
-                    >
-                      {savingEvalPupil === pupil.id ? 'Saving...' : 'Save Evaluation'}
-                    </button>
-                  </div>
-                </div>
 
-                <div className="max-h-80 overflow-y-auto pr-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                  {activeDomain.items.map((item) => {
-                    const currentRating = evaluations[pupil.id]?.[item.id];
-                    return (
-                      <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-[#2B2B2B] font-semibold truncate flex-1">{item.number}. {item.description}</span>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            onClick={() => handleSetECCDItemRating(pupil.id, item.id, 'P')}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer border-none ${
-                              currentRating === 'P' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            P
-                          </button>
-                          <button
-                            onClick={() => handleSetECCDItemRating(pupil.id, item.id, 'O')}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer border-none ${
-                              currentRating === 'O' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            O
-                          </button>
-                          <button
-                            onClick={() => handleSetECCDItemRating(pupil.id, item.id, 'R')}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer border-none ${
-                              currentRating === 'R' ? 'bg-rose-600 text-white' : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            R
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {/* Raw / Scaled score row for the active domain */}
+                  <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-[#E6E4DF] text-xs">
+                    <span className="font-bold text-[#2F8F8A]">
+                      Raw Score: {domainRaw}/{activeDomain.items.length}
+                    </span>
+                    <span className="text-[#9B9B9B]">•</span>
+                    <label className="text-[#6B6B6B] font-semibold">Scaled Score:</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={19}
+                      value={scaled}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setEccdScores(prev => ({
+                          ...prev,
+                          [pupil.id]: {
+                            ...(prev[pupil.id] || {}),
+                            [activeDomain.id]: { raw: domainRaw, scaled: value },
+                          },
+                        }));
+                      }}
+                      placeholder="1–19"
+                      className="w-16 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                      {activeDomain.items.map((item) => {
+                        const present = !!pupilRatings[item.id];
+                        return (
+                          <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-[#2B2B2B] font-semibold truncate flex-1" title={item.procedure || item.description}>
+                              {item.number}. {item.description}
+                            </span>
+                            <button
+                              onClick={() => handleToggleECCDItem(pupil.id, item.id)}
+                              className={`w-8 h-8 rounded-xl text-sm font-extrabold cursor-pointer border-none shrink-0 transition-all ${
+                                present
+                                  ? 'bg-emerald-600 text-white shadow-sm'
+                                  : 'bg-gray-100 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600'
+                              }`}
+                              title={present ? 'Present — tap to clear' : 'Tap to mark present (✓)'}
+                              suppressHydrationWarning
+                            >
+                              ✓
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+
+          {/* Official Interpretation Reference */}
+          <div className="p-4 rounded-2xl bg-[#FEF8EC] border border-[#F5DAA0] text-[11px] space-y-2">
+            <div className="font-bold text-[#8A5D00]">Official Interpretation of Scaled Scores</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {[
+                ['1–3', 'Development must be monitored after 3 months'],
+                ['4–6', 'Development must be monitored after 6 months'],
+                ['7–13', 'Average overall development'],
+                ['14–16', 'Slightly advanced development'],
+                ['17–19', 'Highly advanced development'],
+              ].map(([range, meaning]) => (
+                <div key={range} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-[#F5DAA0] px-3 py-1.5">
+                  <span className="font-extrabold text-[#8A5D00]">{range}</span>
+                  <span className="text-[#6B6B6B]">{meaning}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-[#9B9B9B] m-0 pt-1">
+              Raw Score = number of ✓ items. Scaled Score is entered manually from the official
+              raw-to-scaled conversion tables (age-based). Standard Score conversion is a future step.
+            </p>
           </div>
         </div>
       )}

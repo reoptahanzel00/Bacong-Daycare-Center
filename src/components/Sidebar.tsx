@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
 
 interface SidebarProps {
   currentRole: string;
@@ -54,7 +55,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
       case 'parent':
         return [
           { id: 'child', label: 'My Child Portal', icon: Heart },
-          { id: 'eccd_checklist', label: '109-Item ECCD Checklist', icon: BookOpen },
+          { id: 'eccd_checklist', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Checklist`, icon: BookOpen },
           { id: 'parent_notes', label: 'Teacher Messages & Notes', icon: MessageSquare },
           { id: 'health_tracker', label: 'Nutritional & Growth Tracker', icon: Activity },
           { id: 'gallery', label: 'Classroom Moments', icon: Image },
@@ -66,7 +67,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
         return [
           { id: 'dashboard', label: 'Daily Register', icon: CalendarCheck },
           { id: 'pupils', label: 'Enrolled Pupils', icon: Users },
-          { id: 'progress', label: '109-Item ECCD Tool', icon: TrendingUp },
+          { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
           { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
           { id: 'health_entry', label: 'Nutritional Growth Log', icon: Activity },
           { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },

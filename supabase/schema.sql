@@ -170,6 +170,23 @@ CREATE TABLE IF NOT EXISTS health_logs (
   UNIQUE (pupil_id, recorded_at)
 );
 
+-- 13. ECCD evaluation rounds (official checklist is administered up to 3x/year)
+ALTER TABLE progress_observations
+  ADD COLUMN IF NOT EXISTS evaluation_round SMALLINT NOT NULL DEFAULT 1;
+
+-- 14. ECCD per-domain raw/scaled scores per round
+CREATE TABLE IF NOT EXISTS eccd_scores (
+  pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
+  domain_id TEXT NOT NULL REFERENCES progress_domains(id) ON DELETE CASCADE,
+  evaluation_round SMALLINT NOT NULL DEFAULT 1,
+  raw_score INT NOT NULL DEFAULT 0,
+  scaled_score INT,
+  evaluation_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (pupil_id, domain_id, evaluation_round)
+);
+
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
 -- ==========================================================================
@@ -207,6 +224,7 @@ ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE health_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eccd_scores ENABLE ROW LEVEL SECURITY;
 
 -- Users RLS: each user reads their own profile; admins read all profiles.
 -- Provisioning/updates go through the admin API (service role, bypasses RLS),
@@ -303,9 +321,9 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
--- Parent notes & health logs: NO client policies — all access goes through
--- the server API (service role) with session-derived identities, so direct
--- client writes/reads are denied by default.
+-- Parent notes, health logs & ECCD scores: NO client policies — all access
+-- goes through the server API (service role) with session-derived identities,
+-- so direct client writes/reads are denied by default.
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION

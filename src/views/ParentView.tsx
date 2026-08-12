@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { DEFAULT_AVATAR } from '@/data/mockData';
-import { ECCD_DOMAINS } from '@/data/eccdChecklist';
-import { fetchEccdRatings } from '@/services/eccdService';
+import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
+import { fetchEccdRatings, fetchEccdScores, type EccdRound } from '@/services/eccdService';
 import { submitParentNote } from '@/services/parentNotesService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
@@ -46,9 +46,11 @@ export default function ParentView({
   const [selectedChildId, setSelectedChildId] = useState<string>(pupils[0]?.id || 'PUP-2026-001');
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Record<string, boolean>>({});
 
-  // 109-Item ECCD Checklist Viewer State
+  // ECCD Checklist Viewer State
   const [selectedDomainId, setSelectedDomainId] = useState<string>('gross_motor');
-  const [childRatings, setChildRatings] = useState<Record<string, 'P' | 'O' | 'R'>>({});
+  const [eccdRound, setEccdRound] = useState<EccdRound>(1);
+  const [childRatings, setChildRatings] = useState<Record<string, boolean>>({});
+  const [childScores, setChildScores] = useState<Record<string, { raw: number; scaled?: number }>>({});
 
   // Direct Teacher Message / Absence Note Form State
   const [absenceReason, setAbsenceReason] = useState<string>('Illness / Medical');
@@ -84,24 +86,32 @@ export default function ParentView({
 
   const childAttendance = attendance.filter(a => a.pupil_id === child?.id);
 
-  // Load the child's real ECCD checklist ratings from the evaluation tool.
+  // Load the child's real ECCD checklist ratings + scores for the selected round.
   useEffect(() => {
     if (!child?.id) return;
     let cancelled = false;
     (async () => {
-      const res = await fetchEccdRatings();
-      if (cancelled || !res.ok) return;
-      const mapped: Record<string, 'P' | 'O' | 'R'> = {};
-      for (const row of res.ratings) {
+      const [ratingsRes, scoresRes] = await Promise.all([
+        fetchEccdRatings(eccdRound),
+        fetchEccdScores(eccdRound),
+      ]);
+      if (cancelled) return;
+      const mapped: Record<string, boolean> = {};
+      for (const row of ratingsRes.ok ? ratingsRes.ratings : []) {
         if (row.pupil_id !== child.id) continue;
-        if (row.status_rating === 'Present') mapped[row.milestone_code] = 'P';
-        else if (row.status_rating === 'In_Progress') mapped[row.milestone_code] = 'O';
-        else if (row.status_rating === 'Not_Yet_Observed') mapped[row.milestone_code] = 'R';
+        if (row.status_rating === 'Present') mapped[row.milestone_code] = true;
       }
       setChildRatings(mapped);
+      const scoreMap: Record<string, { raw: number; scaled?: number }> = {};
+      for (const s of scoresRes.ok ? scoresRes.scores : []) {
+        if (s.pupil_id === child.id) {
+          scoreMap[s.domain_id] = { raw: s.raw_score, scaled: s.scaled_score ?? undefined };
+        }
+      }
+      setChildScores(scoreMap);
     })();
     return () => { cancelled = true; };
-  }, [child?.id]);
+  }, [child?.id, eccdRound]);
 
   const presentCount = childAttendance.filter(a => a.status === 'present').length;
   const lateCount = childAttendance.filter(a => a.status === 'late').length;
@@ -171,13 +181,12 @@ export default function ParentView({
     }
   };
 
-  // 109-Item ECCD Checklist active domain
+  // ECCD Checklist active domain
   const activeDomain = ECCD_DOMAINS.find(d => d.id === selectedDomainId) || ECCD_DOMAINS[0];
-  const domainRatedItems = activeDomain.items.filter(i => childRatings[i.id]);
-  const domainMasteredItems = domainRatedItems.filter(i => childRatings[i.id] === 'P');
-  const domainMasteryPct = domainRatedItems.length > 0
-    ? Math.round((domainMasteredItems.length / domainRatedItems.length) * 100)
-    : null;
+  const domainPresentCount = activeDomain.items.filter(i => childRatings[i.id]).length;
+  const domainMasteryPct = activeDomain.items.length > 0
+    ? Math.round((domainPresentCount / activeDomain.items.length) * 100)
+    : 0;
 
   // Classroom photo gallery items
   const galleryPhotos = [
@@ -482,7 +491,7 @@ export default function ParentView({
         </>
       )}
 
-      {/* TAB 2: 109-Item DepEd ECCD Domain Checklist Viewer */}
+      {/* TAB 2: ECCD DepEd Domain Checklist Viewer */}
       {activeTab === 'eccd_checklist' && (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -494,13 +503,33 @@ export default function ParentView({
                 </span>
               </div>
               <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
-                109-Item Official ECCD Domain Checklist Viewer
+                {ECCD_TOTAL_ITEMS}-Item Official ECCD Domain Checklist Viewer
               </h3>
               <p className="text-xs text-[#6B6B6B] mt-1 m-0">
-                Detailed skill breakdown for <strong>{child?.firstName} {child?.lastName}</strong> across 7 developmental domains.
+                Official DepEd checklist for <strong>{child?.firstName} {child?.lastName}</strong> —
+                check (✓) means the skill was demonstrated.
               </p>
             </div>
-            <span className="badge badge-primary shrink-0 font-bold">109 Items Total</span>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 p-1.5 bg-[#FAF8F5] border border-[#E6E4DF] rounded-2xl">
+                {([1, 2, 3] as EccdRound[]).map((round) => (
+                  <button
+                    key={round}
+                    type="button"
+                    onClick={() => setEccdRound(round)}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
+                      eccdRound === round
+                        ? 'bg-[#2F8F8A] text-white shadow-sm'
+                        : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                    }`}
+                    suppressHydrationWarning
+                  >
+                    {round === 1 ? '1st' : round === 2 ? '2nd' : '3rd'}
+                  </button>
+                ))}
+              </div>
+              <span className="badge badge-primary font-bold">{ECCD_TOTAL_ITEMS} Items Total</span>
+            </div>
           </div>
 
           {/* Domain Selection Pills */}
@@ -542,14 +571,17 @@ export default function ParentView({
             <div className="flex items-center gap-3 shrink-0">
               <div className="text-right">
                 <span className="text-xs font-extrabold text-[#2F8F8A]">
-                  {domainMasteryPct !== null ? `${domainMasteryPct}% Domain Mastery` : 'No ratings yet'}
+                  {domainMasteryPct}% Present
                 </span>
                 <span className="text-[10px] text-[#9B9B9B] block">
-                  {domainRatedItems.length} of {activeDomain.items.length} items rated
+                  Raw Score: {domainPresentCount} of {activeDomain.items.length}
+                  {childScores[activeDomain.id]?.scaled != null && (
+                    <> • Scaled: {childScores[activeDomain.id].scaled}</>
+                  )}
                 </span>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center font-bold text-sm">
-                {domainMasteryPct ?? '—'}
+                {domainMasteryPct}
               </div>
             </div>
           </div>
@@ -557,21 +589,7 @@ export default function ParentView({
           {/* Checklist Items Grid */}
           <div className="space-y-2.5">
             {activeDomain.items.map((item) => {
-              const currentRating = childRatings[item.id];
-              const ratingTag = currentRating === 'P'
-                ? 'Mastered (P)'
-                : currentRating === 'O'
-                  ? 'Developing (O)'
-                  : currentRating === 'R'
-                    ? 'Needs Practice (R)'
-                    : 'Not Rated';
-              const tagClass = currentRating === 'P'
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : currentRating === 'O'
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                  : currentRating === 'R'
-                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                    : 'bg-gray-50 text-gray-500 border border-gray-200';
+              const present = !!childRatings[item.id];
 
               return (
                 <div key={item.id} className="p-3.5 rounded-2xl border border-[#E6E4DF] bg-white hover:border-[#2F8F8A] transition-all flex items-start justify-between gap-3 text-xs">
@@ -585,8 +603,12 @@ export default function ParentView({
                     </div>
                   </div>
 
-                  <span className={`px-3 py-1 rounded-full font-extrabold text-[11px] shrink-0 ${tagClass}`}>
-                    {ratingTag}
+                  <span className={`px-3 py-1 rounded-full font-extrabold text-[11px] shrink-0 ${
+                    present
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-gray-50 text-gray-500 border border-gray-200'
+                  }`}>
+                    {present ? '✓ Present' : '– Not shown'}
                   </span>
                 </div>
               );

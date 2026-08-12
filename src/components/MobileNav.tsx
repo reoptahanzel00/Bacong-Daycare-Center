@@ -20,6 +20,7 @@ import {
   FolderCheck
 } from 'lucide-react';
 import type { UserRole } from '@/contexts/DaycareContext';
+import { ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export default function MobileNav({
       items: [
         { id: 'dashboard', label: 'Daily Register', icon: CheckCircle2 },
         { id: 'pupils', label: 'Pupil Roster', icon: Users },
-        { id: 'progress', label: '109-Item ECCD Tool', icon: TrendingUp },
+        { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
         { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
         { id: 'health_entry', label: 'Nutritional Log', icon: Activity },
         { id: 'announcements', label: 'Announcements', icon: Megaphone },
@@ -77,7 +78,7 @@ export default function MobileNav({
       badge: 'Family Portal',
       items: [
         { id: 'child', label: 'Child Profile', icon: Heart },
-        { id: 'eccd_checklist', label: '109-Item ECCD Checklist', icon: BookOpen },
+        { id: 'eccd_checklist', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Checklist`, icon: BookOpen },
         { id: 'parent_notes', label: 'Teacher Messages', icon: MessageSquare },
         { id: 'health_tracker', label: 'Nutritional & Growth', icon: Activity },
         { id: 'gallery', label: 'Classroom Moments', icon: Image },
