@@ -5,14 +5,18 @@ import { WifiOff } from 'lucide-react';
 
 /** Small floating banner shown while the browser is offline. */
 export default function OfflineIndicator() {
-  const [offline, setOffline] = useState(
-    () => typeof navigator !== 'undefined' && !navigator.onLine
-  );
+  // Always render null on first paint so the server and client HTML match.
+  // The real online/offline state is read after hydration (client-only).
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     const goOnline = () => setOffline(false);
     const goOffline = () => setOffline(true);
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOffline(true);
+    }
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
     return () => {

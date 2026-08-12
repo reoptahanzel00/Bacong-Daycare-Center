@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useEffect } from 'react';
 import { 
   CheckCircle2, 
   Plus, 
@@ -22,6 +23,7 @@ import { DEFAULT_AVATAR } from '@/data/mockData';
 import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
+import { fetchEccdRatings, saveEccdRatings, type EccdRating } from '@/services/eccdService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
 
 interface WorkerViewProps {
@@ -64,6 +66,25 @@ export default function WorkerView({
 
   // ECCD checklist evaluations state
   const [evaluations, setEvaluations] = useState<Record<string, Record<string, 'P' | 'O' | 'R'>>>({});
+  const [savingEvalPupil, setSavingEvalPupil] = useState<string | null>(null);
+
+  // Load the pupil's saved checklist ratings once on mount (real DB data).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetchEccdRatings();
+      if (cancelled || !res.ok || res.ratings.length === 0) return;
+      const seeded: Record<string, Record<string, 'P' | 'O' | 'R'>> = {};
+      for (const row of res.ratings) {
+        const rating = row.status_rating === 'Present' ? 'P' : row.status_rating === 'In_Progress' ? 'O' : row.status_rating === 'Not_Yet_Observed' ? 'R' : null;
+        if (!rating) continue;
+        if (!seeded[row.pupil_id]) seeded[row.pupil_id] = {};
+        seeded[row.pupil_id][row.milestone_code] = rating;
+      }
+      setEvaluations(seeded);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Parent Notes Inbox State
   interface ParentNote {
@@ -180,6 +201,30 @@ export default function WorkerView({
       }
     }));
     showToast(`Recorded ECCD rating ${rating} for item ${itemId}.`, 'info');
+  };
+
+  const handleSaveEvaluation = async (pupil: MockPupil) => {
+    const pupilRatings = evaluations[pupil.id] || {};
+    const ratings: Array<{ milestone_code: string; domain_id: string; rating: EccdRating }> = [];
+    for (const [itemId, rating] of Object.entries(pupilRatings)) {
+      const domain = ECCD_DOMAINS.find((d) => d.items.some((i) => i.id === itemId));
+      if (!domain) continue;
+      ratings.push({ milestone_code: itemId, domain_id: domain.id, rating });
+    }
+    if (ratings.length === 0) {
+      showToast('No ratings to save — tap P/O/R on checklist items first.', 'warning');
+      return;
+    }
+
+    setSavingEvalPupil(pupil.id);
+    const res = await saveEccdRatings(pupil.id, ratings);
+    setSavingEvalPupil(null);
+    if (res.success) {
+      showToast(`Saved ${ratings.length} evaluation item(s) for ${pupil.firstName}.`);
+      logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted ${ratings.length} checklist ratings.`);
+    } else {
+      showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
+    }
   };
 
   const presentCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'present').length;
@@ -494,7 +539,7 @@ export default function WorkerView({
           {/* Active Evaluation Roster */}
           <div className="space-y-4">
             <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Evaluating: {activeDomain.label} ({activeDomain.items.length} Items)</h4>
-            {enrolledPupils.slice(0, 3).map((pupil) => (
+            {enrolledPupils.map((pupil) => (
               <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -504,12 +549,25 @@ export default function WorkerView({
                       <span className="text-[10px] text-[#9B9B9B]">{pupil.id} • Room A</span>
                     </div>
                   </div>
-                  <span className="badge badge-primary text-[10px]">Baseline Evaluation</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="badge badge-primary text-[10px]">
+                      {Object.keys(evaluations[pupil.id] || {}).length} Rated
+                    </span>
+                    <button
+                      onClick={() => handleSaveEvaluation(pupil)}
+                      disabled={savingEvalPupil === pupil.id}
+                      className="btn btn-primary btn-sm font-bold shadow-md"
+                      suppressHydrationWarning
+                    >
+                      {savingEvalPupil === pupil.id ? 'Saving...' : 'Save Evaluation'}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                  {activeDomain.items.slice(0, 4).map((item) => {
-                    const currentRating = evaluations[pupil.id]?.[item.id] || 'P';
+                <div className="max-h-80 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  {activeDomain.items.map((item) => {
+                    const currentRating = evaluations[pupil.id]?.[item.id];
                     return (
                       <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between gap-2">
                         <span className="text-[11px] text-[#2B2B2B] font-semibold truncate flex-1">{item.number}. {item.description}</span>
@@ -542,6 +600,7 @@ export default function WorkerView({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </div>
             ))}

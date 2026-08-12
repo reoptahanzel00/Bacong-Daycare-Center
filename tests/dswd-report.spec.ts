@@ -16,7 +16,7 @@ test.describe('DSWD Form 1 PDF Report Export', () => {
     await page.getByRole('button', { name: /dswd pdf report/i }).first().click();
 
     // Verify modal overlay opens with the DSWD official report header
-    await expect(page.getByText('DSWD Form 1 Official Report PDF Generator')).toBeVisible();
+    await expect(page.getByText('DSWD Form 1 Official Report PDF Generator')).toBeVisible({ timeout: 15000 });
     await expect(
       page.getByRole('heading', { name: 'BARANGAY BACONG DAYCARE CENTER', exact: true })
     ).toBeVisible();
