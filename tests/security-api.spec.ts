@@ -9,6 +9,13 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(body.service).toContain('Bacong Daycare');
   });
 
+  test('POST /api/auth/signup should reject a weak password with 400', async ({ request }) => {
+    const response = await request.post('/api/auth/signup', {
+      data: { fullName: 'Test Parent', email: 'weak@example.com', password: 'weak' },
+    });
+    expect(response.status()).toBe(400);
+  });
+
   test('unauthenticated POST /api/attendance/bulk should be rejected with 401', async ({ request }) => {
     const response = await request.post('/api/attendance/bulk', {
       data: { invalidField: true }
