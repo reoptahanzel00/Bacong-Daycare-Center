@@ -230,11 +230,9 @@ CREATE POLICY "Progress INSERT Policy" ON progress_observations
   FOR INSERT TO authenticated
   WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
 
--- Audit Log RLS: Immutable (Insert Only, No Updates/Deletes)
-CREATE POLICY "Audit Log INSERT Policy" ON audit_log
-  FOR INSERT TO authenticated
-  WITH CHECK (true);
-
+-- Audit Log RLS: Immutable. Writes happen ONLY through the server API
+-- (/api/audit-log) using the service-role key, so there is deliberately NO
+-- client INSERT policy — authenticated users cannot forge audit entries.
 CREATE POLICY "Audit Log SELECT Policy" ON audit_log
   FOR SELECT TO authenticated
   USING (public.current_user_role() = 'barangay_admin');
