@@ -323,6 +323,16 @@ CREATE POLICY "Guardians UPDATE Policy" ON guardians
   USING (public.current_user_role() IN ('worker', 'barangay_admin'))
   WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
 
+-- Sociodemographic profiles RLS: parents read their linked children's profile;
+-- staff reads all. Writes happen ONLY through the server API (service role),
+-- so there is deliberately NO client INSERT/UPDATE/DELETE policy.
+CREATE POLICY "Sociodemographic SELECT Policy" ON sociodemographic_profiles
+  FOR SELECT TO authenticated
+  USING (
+    pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
+    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
+  );
+
 -- Attendance RLS: Parents view attendance of linked children only.
 -- UPDATE exists so workers/admins can correct registers; matching the API.
 CREATE POLICY "Attendance SELECT Policy" ON attendance
@@ -371,10 +381,12 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
--- Parent notes, health logs, ECCD scores, child backgrounds & sociodemographic
--- profiles: NO client policies — all access goes through the server API
--- (service role) with session-derived identities, so direct client writes/reads
--- are denied by default.
+-- Parent notes, health logs, ECCD scores & child backgrounds: NO client
+-- policies — all access goes through the server API (service role) with
+-- session-derived identities, so direct client writes/reads are denied.
+-- Sociodemographic profiles are the exception: they carry a SELECT policy so
+-- the pupil-roster JOIN (session client) can resolve profiles for parents
+-- (linked children) and staff; writes still go through the server API only.
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION
