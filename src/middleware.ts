@@ -36,11 +36,12 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
+  const isRegisterPage = request.nextUrl.pathname.startsWith('/register');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
   const isStaticAsset = request.nextUrl.pathname.startsWith('/_next');
 
   // Enforce authentication in BOTH development and production — no NODE_ENV bypass
-  if (!user && !isLoginPage && !isApiRoute && !isStaticAsset) {
+  if (!user && !isLoginPage && !isRegisterPage && !isApiRoute && !isStaticAsset) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

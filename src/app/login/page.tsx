@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { School, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -214,10 +215,16 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="text-center pt-4 border-t border-[#E6E4DF]">
-            <p className="text-[11px] text-[#9B9B9B] m-0">
-              Need account assistance? Contact <strong className="text-[#2B2B2B]">Barangay Bacong IT Administration</strong>.
-            </p>
+<div className="text-center pt-4 border-t border-[#E6E4DF]">
+<p className="text-[11px] text-[#9B9B9B] m-0">
+New parent?{' '}
+<Link href="/register" className="text-[#2F8F8A] font-bold hover:underline">
+Create an account
+</Link>
+</p>
+<p className="text-[11px] text-[#9B9B9B] m-0">
+Need account assistance? Contact <strong className="text-[#2B2B2B]">Barangay Bacong IT Administration</strong>.
+</p>
           </div>
 
         </div>
