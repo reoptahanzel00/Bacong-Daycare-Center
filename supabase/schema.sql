@@ -187,6 +187,23 @@ CREATE TABLE IF NOT EXISTS eccd_scores (
   PRIMARY KEY (pupil_id, domain_id, evaluation_round)
 );
 
+-- 15. ECCD Child & Family Background (ECCD Form Section 2)
+-- One record per pupil; parents maintain their child's info, workers review
+-- it before administering the checklist.
+CREATE TABLE IF NOT EXISTS child_backgrounds (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
+  child_background TEXT,
+  family_environment TEXT,
+  stimulating_activities TEXT,
+  home_environment TEXT,
+  others TEXT,
+  updated_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (pupil_id)
+);
+
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
 -- ==========================================================================
@@ -225,6 +242,7 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE health_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eccd_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE child_backgrounds ENABLE ROW LEVEL SECURITY;
 
 -- Users RLS: each user reads their own profile; admins read all profiles.
 -- Provisioning/updates go through the admin API (service role, bypasses RLS),

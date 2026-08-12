@@ -20,6 +20,17 @@ export interface EccdScoreRow {
   scaled_score?: number | null;
 }
 
+export interface ChildBackground {
+  pupil_id: string;
+  child_background?: string | null;
+  family_environment?: string | null;
+  stimulating_activities?: string | null;
+  home_environment?: string | null;
+  others?: string | null;
+  updated_by?: string | null;
+  updated_at?: string | null;
+}
+
 export async function fetchEccdRatings(round: EccdRound = 1) {
   try {
     const res = await fetch(`/api/eccd?round=${round}`, { cache: 'no-store' });
@@ -67,6 +78,36 @@ export async function saveEccdScores(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pupil_id: pupilId, round, scores }),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, error: 'Network error' };
+  }
+}
+
+export async function fetchChildBackground(pupilId: string) {
+  try {
+    const res = await fetch(`/api/eccd/background?pupil_id=${encodeURIComponent(pupilId)}`, { cache: 'no-store' });
+    const data = await res.json();
+    return {
+      ok: res.ok,
+      background: (data.background || null) as ChildBackground | null,
+      warning: data.warning as string | undefined,
+    };
+  } catch {
+    return { ok: false, background: null as ChildBackground | null, warning: 'Network error' };
+  }
+}
+
+export async function saveChildBackground(
+  pupilId: string,
+  fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>
+) {
+  try {
+    const res = await fetch('/api/eccd/background', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pupil_id: pupilId, ...fields }),
     });
     return await res.json();
   } catch {

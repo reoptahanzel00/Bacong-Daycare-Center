@@ -132,6 +132,23 @@ console.log('--- Phase 1: worker flow on deployed app ---');
   const afterResave = await api(ck, '/api/eccd?round=2');
   const mine2 = (afterResave.json?.ratings || []).filter((r) => r.pupil_id === 'PUP-2026-001');
   check('re-save replaces rows (FM-01 removed)', resaved.status === 200 && mine2.length === 4, `rows=${mine2.length}`);
+
+  // Child & Family Background (ECCD Form Section 2)
+  const bgSaved = await api(ck, '/api/eccd/background', 'POST', {
+    pupil_id: 'PUP-2026-001',
+    child_background: 'Cheerful and active during play.',
+    family_environment: 'Lives with both parents.',
+    stimulating_activities: 'Parent reads Tagalog storybooks nightly.',
+  });
+  check('POST /api/eccd/background -> success', bgSaved.status === 200 && bgSaved.json?.success === true, `HTTP ${bgSaved.status}`);
+
+  const bgGet = await api(ck, '/api/eccd/background?pupil_id=PUP-2026-001');
+  const bg = bgGet.json?.background;
+  check(
+    'GET /api/eccd/background -> saved fields',
+    bgGet.status === 200 && bg?.child_background?.includes('Cheerful') && bg?.family_environment?.includes('both parents'),
+    `HTTP ${bgGet.status}`
+  );
 }
 
 // ---- Phase 2: parent scoping ----
@@ -163,6 +180,15 @@ console.log('--- Phase 2: parent scoping ---');
     pupil_id: 'PUP-2026-001', round: 2, scores: [],
   });
   check('parent POST /api/eccd/scores -> 403', deniedScores.status === 403, `HTTP ${deniedScores.status}`);
+
+  const bgParent = await api(ck, '/api/eccd/background?pupil_id=PUP-2026-001');
+  check('parent reads own child background', bgParent.status === 200 && !!bgParent.json?.background, `HTTP ${bgParent.status}`);
+
+  const bgDenied = await api(ck, '/api/eccd/background', 'POST', {
+    pupil_id: 'PUP-2026-002',
+    child_background: 'sneaky edit',
+  });
+  check('parent POST background for non-linked pupil -> 403', bgDenied.status === 403, `HTTP ${bgDenied.status}`);
 }
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);

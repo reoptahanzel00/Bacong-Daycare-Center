@@ -106,6 +106,18 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(401);
   });
 
+  test('unauthenticated GET /api/eccd/background should be rejected with 401', async ({ request }) => {
+    const response = await request.get('/api/eccd/background?pupil_id=PUP-2026-001');
+    expect(response.status()).toBe(401);
+  });
+
+  test('unauthenticated POST /api/eccd/background should be rejected with 401', async ({ request }) => {
+    const response = await request.post('/api/eccd/background', {
+      data: { pupil_id: 'PUP-2026-001', child_background: 'Test note' },
+    });
+    expect(response.status()).toBe(401);
+  });
+
   test('unauthenticated parent-notes / announcements / health-logs routes are rejected with 401', async ({ request }) => {
     const routes = [
       { method: 'get', url: '/api/parent-notes' },

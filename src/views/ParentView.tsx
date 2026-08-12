@@ -15,12 +15,14 @@ import {
   Send,
   Clock,
   CheckCircle,
+  Pencil,
 } from 'lucide-react';
 import Image from 'next/image';
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
-import { fetchEccdRatings, fetchEccdScores, type EccdRound } from '@/services/eccdService';
+import { fetchEccdRatings, fetchEccdScores, fetchChildBackground, saveChildBackground, type ChildBackground, type EccdRound } from '@/services/eccdService';
 import { submitParentNote } from '@/services/parentNotesService';
+import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface ParentViewProps {
@@ -51,6 +53,8 @@ export default function ParentView({
   const [eccdRound, setEccdRound] = useState<EccdRound>(1);
   const [childRatings, setChildRatings] = useState<Record<string, boolean>>({});
   const [childScores, setChildScores] = useState<Record<string, { raw: number; scaled?: number }>>({});
+  const [childBackground, setChildBackground] = useState<ChildBackground | null>(null);
+  const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
 
   // Direct Teacher Message / Absence Note Form State
   const [absenceReason, setAbsenceReason] = useState<string>('Illness / Medical');
@@ -112,6 +116,41 @@ export default function ParentView({
     })();
     return () => { cancelled = true; };
   }, [child?.id, eccdRound]);
+
+  // Load the child's ECCD Form Section 2 background record.
+  useEffect(() => {
+    if (!child?.id) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchChildBackground(child.id);
+      if (!cancelled && res.ok) setChildBackground(res.background);
+    })();
+    return () => { cancelled = true; };
+  }, [child?.id]);
+
+  const handleSaveChildBackground = async (
+    fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>
+  ) => {
+    if (!child?.id) return;
+    const res = await saveChildBackground(child.id, fields);
+    if (res.success) {
+      setChildBackground({ pupil_id: child.id, ...fields, updated_at: new Date().toISOString() });
+      showToast('Child & family background saved. The teacher can review it before assessments.', 'success');
+      logAuditAction('Updated Child & Family Background', child.id, `${child.firstName} ${child.lastName}`);
+    } else {
+      showToast(res.error || 'Could not save background info.', 'danger');
+    }
+    setIsBackgroundModalOpen(false);
+  };
+
+  const backgroundRows = [
+    { label: "Child's background", value: childBackground?.child_background },
+    { label: 'Family environment', value: childBackground?.family_environment },
+    { label: "Parents' stimulating activities", value: childBackground?.stimulating_activities },
+    { label: 'Home environment', value: childBackground?.home_environment },
+    { label: 'Others', value: childBackground?.others },
+  ];
+  const hasBackground = backgroundRows.some((r) => r.value?.trim());
 
   const presentCount = childAttendance.filter(a => a.status === 'present').length;
   const lateCount = childAttendance.filter(a => a.status === 'late').length;
@@ -331,6 +370,53 @@ export default function ParentView({
               <div className="text-2xl font-extrabold text-[#D32F2F]">{absentCount}</div>
               <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Days Absent</div>
             </div>
+          </div>
+
+          {/* Child & Family Background (ECCD Form Section 2) */}
+          <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[#2F8F8A]">
+                <BookOpen size={20} />
+                <div>
+                  <h3 className="text-base font-bold text-[#2B2B2B] m-0">Child & Family Background</h3>
+                  <p className="text-[11px] text-[#6B6B6B] m-0">
+                    ECCD Form Section 2 — helps the teacher understand {child?.firstName}&apos;s development context before assessments.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsBackgroundModalOpen(true)}
+                className="btn btn-primary btn-sm font-bold shrink-0"
+                suppressHydrationWarning
+              >
+                <Pencil size={14} />
+                {hasBackground ? 'Edit Info' : 'Add Child Info'}
+              </button>
+            </div>
+
+            {hasBackground ? (
+              <div className="space-y-3">
+                {backgroundRows.filter((r) => r.value?.trim()).map((row) => (
+                  <div key={row.label} className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF]">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A] mb-1">{row.label}</div>
+                    <p className="text-xs text-[#4A4A4A] leading-relaxed m-0 whitespace-pre-wrap">{row.value}</p>
+                  </div>
+                ))}
+                {childBackground?.updated_at && (
+                  <p className="text-[10px] text-[#9B9B9B] m-0">
+                    Last updated {new Date(childBackground.updated_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-[#EBF5F4] border border-dashed border-[#2F8F8A]/30 text-center">
+                <p className="text-xs font-bold text-[#2F8F8A] m-0">No background info shared yet</p>
+                <p className="text-[11px] text-[#6B6B6B] m-0 mt-1">
+                  Add your child&apos;s background, family environment, and home details so the teacher can
+                  personalize the ECCD assessment.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Interactive Consecutive Absence Alert Warning */}
@@ -940,6 +1026,15 @@ export default function ParentView({
           </div>
         </div>
       )}
+
+      {/* Child & Family Background modal — shared with the ECCD Section 2 form */}
+      <ChildBackgroundModal
+        isOpen={isBackgroundModalOpen}
+        onClose={() => setIsBackgroundModalOpen(false)}
+        onSave={handleSaveChildBackground}
+        initial={childBackground}
+        childName={child ? `${child.firstName} ${child.lastName}` : undefined}
+      />
 
     </div>
   );

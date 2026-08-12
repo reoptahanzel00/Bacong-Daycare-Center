@@ -28,10 +28,14 @@ import {
   saveEccdRatings,
   fetchEccdScores,
   saveEccdScores,
+  fetchChildBackground,
+  saveChildBackground,
+  type ChildBackground,
   type EccdRound,
 } from '@/services/eccdService';
 import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
 import { fetchHealthLogs, saveHealthLog } from '@/services/healthLogsService';
+import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
 
 interface WorkerViewProps {
@@ -71,6 +75,9 @@ export default function WorkerView({
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
   const [selectedPupilDetail, setSelectedPupilDetail] = useState<MockPupil | null>(null);
   const [archiveTargetPupil, setArchiveTargetPupil] = useState<MockPupil | null>(null);
+  const [backgrounds, setBackgrounds] = useState<Record<string, ChildBackground | null>>({});
+  const [backgroundPupil, setBackgroundPupil] = useState<MockPupil | null>(null);
+  const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
 
   // ECCD checklist state: ✓ (present) per item, per pupil, per round.
   const [selectedRound, setSelectedRound] = useState<EccdRound>(1);
@@ -291,6 +298,38 @@ export default function WorkerView({
     } else {
       showToast(`Could not save health log: ${res.error || 'unknown error'}`, 'danger');
     }
+  };
+
+  const openBackgroundModal = async (pupil: MockPupil) => {
+    setBackgroundPupil(pupil);
+    setIsBackgroundModalOpen(true);
+    const res = await fetchChildBackground(pupil.id);
+    if (res.ok) {
+      setBackgrounds(prev => ({ ...prev, [pupil.id]: res.background }));
+    }
+  };
+
+  const handleSaveBackground = async (
+    fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>
+  ) => {
+    if (!backgroundPupil) return;
+    const res = await saveChildBackground(backgroundPupil.id, fields);
+    if (res.success) {
+      setBackgrounds(prev => ({
+        ...prev,
+        [backgroundPupil.id]: { pupil_id: backgroundPupil.id, ...fields, updated_at: new Date().toISOString() },
+      }));
+      showToast(`Child & family background saved for ${backgroundPupil.firstName}.`, 'success');
+      logAuditAction(
+        'Updated Child & Family Background',
+        backgroundPupil.id,
+        `${backgroundPupil.firstName} ${backgroundPupil.lastName}`
+      );
+    } else {
+      showToast(res.error || 'Could not save background info.', 'danger');
+    }
+    setIsBackgroundModalOpen(false);
+    setBackgroundPupil(null);
   };
 
   const presentCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'present').length;
@@ -656,6 +695,15 @@ export default function WorkerView({
                         ✓ {totalRated} total
                       </span>
                       <button
+                        onClick={() => openBackgroundModal(pupil)}
+                        className="btn btn-secondary btn-sm font-bold"
+                        title="ECCD Form Section 2 - Child & Family Background"
+                        suppressHydrationWarning
+                      >
+                        <FileText size={14} />
+                        Background
+                      </button>
+                      <button
                         onClick={() => handleSaveEvaluation(pupil)}
                         disabled={savingEvalPupil === pupil.id}
                         className="btn btn-primary btn-sm font-bold shadow-md"
@@ -939,6 +987,15 @@ export default function WorkerView({
             onArchivePupil(archiveTargetPupil.id);
           }
         }}
+      />
+
+      {/* ECCD Form Section 2 — Child & Family Background */}
+      <ChildBackgroundModal
+        isOpen={isBackgroundModalOpen}
+        onClose={() => { setIsBackgroundModalOpen(false); setBackgroundPupil(null); }}
+        onSave={handleSaveBackground}
+        initial={backgroundPupil ? backgrounds[backgroundPupil.id] ?? null : null}
+        childName={backgroundPupil ? `${backgroundPupil.firstName} ${backgroundPupil.lastName}` : undefined}
       />
 
     </div>
