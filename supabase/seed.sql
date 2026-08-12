@@ -47,3 +47,22 @@ INSERT INTO announcements (id, title, body) VALUES
   ('a0000000-0000-0000-0000-000000000001', '📢 Nutrition Month Feeding Program', 'Barangay Nutrition Council feeding session on Friday, Aug 15. Please bring reusable food containers.'),
   ('a0000000-0000-0000-0000-000000000002', '🩺 Dengue Awareness & Clean-up Drive', 'Barangay Health Workers will conduct a fogging and clean-up activity on Saturday morning.')
 ON CONFLICT (id) DO NOTHING;
+
+-- 6. Seed Demo Attendance (recent school days so UAT dashboards/reports
+--    show meaningful data). Most pupils are present; a few late/absent rows
+--    demonstrate the consecutive-absences trigger and absence alerts.
+INSERT INTO attendance (pupil_id, date, status)
+SELECT p.id, d::date, 'present'
+FROM pupils p
+CROSS JOIN unnest(ARRAY[
+  '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07',
+  '2026-08-10', '2026-08-11'
+]::date[]) AS d
+ON CONFLICT (pupil_id, date) DO NOTHING;
+
+INSERT INTO attendance (pupil_id, date, status) VALUES
+  ('PUP-2026-001', '2026-08-04', 'late'),
+  ('PUP-2026-003', '2026-08-06', 'absent'),
+  ('PUP-2026-002', '2026-08-10', 'absent'),
+  ('PUP-2026-002', '2026-08-11', 'absent')
+ON CONFLICT (pupil_id, date) DO NOTHING;

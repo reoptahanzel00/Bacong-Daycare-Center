@@ -23,6 +23,7 @@ import {
 import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceService';
 import { fetchProgress, recordObservation, type ProgressPayload } from '@/services/progressService';
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
+import { logAuditEntry, fetchAuditLogs } from '@/services/auditService';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -254,11 +255,12 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
    */
   const syncFromServer = useCallback(async () => {
     try {
-      const [pupilRes, attendanceRes, progressRes, usersRes] = await Promise.all([
+      const [pupilRes, attendanceRes, progressRes, usersRes, auditRes] = await Promise.all([
         fetchPupils('enrolled'),
         fetchAttendance(),
         fetchProgress(),
         fetchUsers(),
+        fetchAuditLogs(),
       ]);
 
       if (pupilRes.ok) {
@@ -294,6 +296,17 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           phone: u.phone || undefined,
           status: u.status,
           createdAt: u.created_at,
+        })));
+      }
+      if (auditRes.ok) {
+        setAuditLogs(auditRes.logs.map(l => ({
+          id: l.id,
+          timestamp: l.created_at ? new Date(l.created_at).toLocaleString('sv').replace('T', ' ') : '',
+          userName: l.user_name,
+          role: l.role,
+          action: l.action,
+          target: l.target,
+          details: l.details || undefined,
         })));
       }
     } catch (e) {
@@ -422,6 +435,9 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
       details,
     };
     setAuditLogs(prev => [newLog, ...prev.slice(0, 499)]); // Cap at 500 entries
+    // Persist to the immutable server-side trail (fire-and-forget; the local
+    // entry keeps the UI responsive even when the write is delayed/fails).
+    logAuditEntry(action, target, details).catch(() => {});
   }, [currentRole]);
 
   const handleSavePupil = useCallback(async (pupilData: MockPupil) => {
