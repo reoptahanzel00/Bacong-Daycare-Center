@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { 
   CheckCircle2, 
   Plus, 
@@ -17,6 +18,7 @@ import {
   Activity,
   CheckCircle,
 } from 'lucide-react';
+import { DEFAULT_AVATAR } from '@/data/mockData';
 import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
@@ -302,7 +304,7 @@ export default function WorkerView({
                         <tr key={pupil.id}>
                           <td>
                             <div className="flex items-center gap-2.5">
-                              <img src={pupil.avatar} alt={pupil.firstName} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                              <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover shrink-0" />
                               <div>
                                 <div className="font-bold text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</div>
                                 <span className="text-[10px] text-[#9B9B9B]">{pupil.id}</span>
@@ -389,7 +391,7 @@ export default function WorkerView({
             {filteredEnrolledPupils.map((pupil) => (
               <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-white hover:-translate-y-1 transition-all space-y-3 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <img src={pupil.avatar} alt={pupil.firstName} className="w-12 h-12 rounded-2xl object-cover shrink-0" />
+                  <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={48} height={48} className="w-12 h-12 rounded-2xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="badge badge-primary">{pupil.id}</span>
@@ -496,7 +498,7 @@ export default function WorkerView({
               <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <img src={pupil.avatar} alt={pupil.firstName} className="w-9 h-9 rounded-full object-cover" />
+                    <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
                     <div>
                       <div className="font-bold text-[#2B2B2B] text-sm">{pupil.firstName} {pupil.lastName}</div>
                       <span className="text-[10px] text-[#9B9B9B]">{pupil.id} • Room A</span>

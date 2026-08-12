@@ -30,7 +30,7 @@ export const INITIAL_PUPILS = [
     address: 'Purok 2, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1595454114216-892fe21272e7?auto=format&fit=crop&w=200&q=80',
+    avatar: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Juan Reyes',
       relationship: 'Father',

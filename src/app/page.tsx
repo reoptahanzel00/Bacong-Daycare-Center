@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import Toast from '@/components/Toast';
+import OfflineIndicator from '@/components/OfflineIndicator';
 import PupilModal from '@/components/PupilModal';
 import ProgressModal from '@/components/ProgressModal';
 import AnnouncementModal from '@/components/AnnouncementModal';
@@ -133,6 +134,9 @@ function AppContent() {
 
       {/* Global toast notification */}
       <Toast toast={toast} onClose={() => setToast(null)} />
+
+      {/* Offline indicator */}
+      <OfflineIndicator />
 
       {/* All modals — mounted once at root level, opened via context state */}
       <PupilModal

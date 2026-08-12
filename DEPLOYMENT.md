@@ -18,6 +18,8 @@ Copy `.env.example` to `.env.local` and fill in all values before running or dep
 | `SUPABASE_SERVICE_ROLE_KEY` | âœ… Yes (server-only) | Service role key for admin operations. **Never expose to client.** |
 | `SEMAPHORE_API_KEY` | âš ï¸ Optional | Philippine SMS gateway API key. Get from https://semaphore.co |
 | `SEMAPHORE_SENDER_NAME` | âš ï¸ Optional | Sender name for SMS (e.g. `BacongDaycare`) |
+| `RESEND_API_KEY` | ⚠️ Optional | Email dispatch for notifications. Get from https://resend.com |
+| `EMAIL_FROM` | ⚠️ Optional | Sender address for notification emails (e.g. `Bacong Daycare <noreply@yourdomain.com>`) |
 | `NEXT_PUBLIC_APP_URL` | âš ï¸ Optional | Full URL of the deployed app (e.g. `https://bacong-daycare.vercel.app`) |
 
 > âš ï¸ **Security:** Never commit `.env.local` to git. It is already in `.gitignore`.  

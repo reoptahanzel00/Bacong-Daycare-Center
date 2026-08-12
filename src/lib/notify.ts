@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendEmail } from '@/lib/email';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type NotificationType = 'consecutive_absences' | 'announcement' | 'milestone';
@@ -38,6 +39,24 @@ export async function notifyUsers(targets: NotifyTarget[], payload: NotifyPayloa
     }));
     const { error } = await admin.from('notifications').insert(rows);
     if (error) console.warn('[Notify] insert warning:', error.message);
+
+    // Email dispatch (best-effort): resolved from the users table, only when
+    // the EMAIL channel is requested and a provider is configured.
+    if (payload.channel === 'EMAIL') {
+      const { data: profiles } = await admin
+        .from('users')
+        .select('id, email')
+        .in('id', targets.map((t) => t.user_id));
+      for (const p of profiles || []) {
+        if (p.email) {
+          await sendEmail({
+            to: p.email,
+            subject: payload.title,
+            text: `${payload.message}\n\n— Barangay Bacong Daycare Center`,
+          });
+        }
+      }
+    }
   } catch (e) {
     console.warn('[Notify] skipped:', e);
   }

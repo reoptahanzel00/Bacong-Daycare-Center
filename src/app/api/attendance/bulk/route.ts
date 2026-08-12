@@ -74,6 +74,7 @@ export async function POST(request: Request) {
             message: alertPupils
               .map((p) => `${p.first_name} has ${p.consecutive_absences} consecutive absences.`)
               .join(' '),
+            channel: 'EMAIL',
             severity: 'high',
           });
         }

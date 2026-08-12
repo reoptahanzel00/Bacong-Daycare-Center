@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
+import {
   Heart, 
   TrendingUp, 
   AlertTriangle, 
@@ -16,6 +16,8 @@ import {
   Clock,
   CheckCircle,
 } from 'lucide-react';
+import Image from 'next/image';
+import { DEFAULT_AVATAR } from '@/data/mockData';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
@@ -201,7 +203,7 @@ export default function ParentView({
                     : 'bg-[#FAF8F5] text-[#2B2B2B] border-[#E6E4DF] hover:border-[#F2896B]'
                 }`}
               >
-                <img src={p.avatar} alt={p.firstName} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                <Image src={p.avatar || DEFAULT_AVATAR} alt={p.firstName} width={24} height={24} className="w-6 h-6 rounded-full object-cover shrink-0" />
                 <span>{p.firstName} {p.lastName}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#EAE6DF] text-[#6B6B6B]'}`}>
                   {p.id}
@@ -219,9 +221,11 @@ export default function ParentView({
           <div className="card bg-gradient-to-br from-[#F2896B] via-[#E87556] to-[#D96B4D] text-white p-6 rounded-3xl shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
               <div className="flex items-center gap-4">
-                <img
+                <Image
                   src={child?.avatar || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=150&q=80'}
-                  alt={child?.firstName}
+                  alt={child?.firstName || 'Child avatar'}
+                  width={64}
+                  height={64}
                   className="w-16 h-16 rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"
                 />
                 <div>
@@ -743,10 +747,11 @@ export default function ParentView({
                 className="group rounded-3xl border border-[#E6E4DF] bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3"
               >
                 <div className="h-44 overflow-hidden relative">
-                  <img
+                  <Image
                     src={photo.src}
                     alt={photo.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-all duration-500"
                   />
                   <span className="absolute top-3 right-3 badge badge-primary text-[10px]">
                     {photo.tag}
