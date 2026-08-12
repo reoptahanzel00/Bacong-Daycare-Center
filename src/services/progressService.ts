@@ -5,10 +5,24 @@
 export interface ProgressPayload {
   pupil_id: string;
   domain: 'Motor Skills' | 'Language & Communication' | 'Socio-Emotional' | 'Self-Help & Cognitive';
-  title: string;
+  title?: string;
   note: string;
   date: string;
+  rating?: string;
   recordedBy?: string;
+}
+
+/** Client-shaped observation row returned by GET /api/progress. */
+export interface ProgressRow {
+  id: string;
+  pupil_id: string;
+  domain: string;
+  title?: string;
+  note?: string;
+  date: string;
+  rating?: string;
+  recorded_by?: string | null;
+  created_at?: string;
 }
 
 export async function fetchProgress(pupilId?: string) {
@@ -16,9 +30,9 @@ export async function fetchProgress(pupilId?: string) {
     const url = pupilId ? `/api/progress?pupil_id=${pupilId}` : '/api/progress';
     const res = await fetch(url, { cache: 'no-store' });
     const data = await res.json();
-    return data.observations || [];
+    return { ok: res.ok, observations: (data.observations || []) as ProgressRow[], warning: data.warning as string | undefined };
   } catch {
-    return [];
+    return { ok: false, observations: [] as ProgressRow[], warning: 'Network error' };
   }
 }
 

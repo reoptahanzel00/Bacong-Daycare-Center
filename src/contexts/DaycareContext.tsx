@@ -9,10 +9,20 @@ import {
   INITIAL_ANNOUNCEMENTS,
   INITIAL_USERS,
   INITIAL_AUDIT_LOGS,
+  DEFAULT_AVATAR,
   getStoredData,
   saveStoredData,
 } from '@/data/mockData';
 import { createClient } from '@/lib/supabase/client';
+import {
+  fetchPupils,
+  enrollPupil,
+  type PupilRow,
+  type PupilEnrollPayload,
+} from '@/services/pupilService';
+import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceService';
+import { fetchProgress, recordObservation, type ProgressPayload } from '@/services/progressService';
+import { fetchUsers, updateUserStatus } from '@/services/usersService';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -185,6 +195,102 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isDSWDReportModalOpen, setIsDSWDReportModalOpen] = useState(false);
 
+  // ---- Real-data helpers -------------------------------------------------
+
+  /** Maps a snake_case API pupil row to the client MockPupil shape. */
+  const mapPupilRow = useCallback((row: PupilRow): MockPupil => ({
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    birthDate: row.birth_date,
+    sex: row.sex,
+    address: row.address,
+    enrollmentStatus: row.enrollment_status,
+    enrollmentDate: row.enrollment_date,
+    consecutiveAbsences: row.consecutive_absences ?? 0,
+    avatar: row.avatar_url || DEFAULT_AVATAR,
+    guardian: row.guardian
+      ? {
+          fullName: row.guardian.full_name,
+          relationship: row.guardian.relationship,
+          phone: row.guardian.phone,
+          isPrimary: row.guardian.is_primary_contact,
+        }
+      : undefined,
+  }), []);
+
+  /** Builds the POST /api/pupils payload from a MockPupil. */
+  const toEnrollPayload = useCallback((
+    pupil: MockPupil,
+    id?: string,
+    enrollmentStatus?: string,
+  ): PupilEnrollPayload => ({
+    id,
+    firstName: pupil.firstName,
+    lastName: pupil.lastName,
+    birthDate: pupil.birthDate,
+    sex: pupil.sex as 'Male' | 'Female',
+    address: pupil.address || '',
+    enrollmentStatus: (enrollmentStatus || pupil.enrollmentStatus || 'enrolled') as 'enrolled' | 'archived',
+    guardianName: pupil.guardian?.fullName || '',
+    relationship: (pupil.guardian?.relationship || 'Mother') as PupilEnrollPayload['relationship'],
+    guardianPhone: pupil.guardian?.phone || '',
+  }), []);
+
+  /**
+   * Pulls the authoritative pupil roster + attendance register from the API.
+   * Runs once a real Supabase session exists; localStorage stays as the
+   * offline/demo fallback when the API is unreachable.
+   */
+  const syncFromServer = useCallback(async () => {
+    try {
+      const [pupilRes, attendanceRes, progressRes, usersRes] = await Promise.all([
+        fetchPupils('enrolled'),
+        fetchAttendance(),
+        fetchProgress(),
+        fetchUsers(),
+      ]);
+
+      if (pupilRes.ok) {
+        setPupils(pupilRes.pupils.map(mapPupilRow));
+      }
+      if (attendanceRes.ok) {
+        setAttendance(attendanceRes.records.map(r => ({
+          pupil_id: r.pupil_id,
+          date: r.date,
+          status: r.status,
+          notes: r.notes,
+        })));
+      }
+      if (progressRes.ok) {
+        setProgress(progressRes.observations.map(r => ({
+          id: r.id,
+          pupil_id: r.pupil_id,
+          domain: r.domain,
+          title: r.title,
+          rating: r.rating,
+          note: r.note,
+          date: r.date,
+          recordedBy: r.recorded_by || undefined,
+        })));
+      }
+      if (usersRes.ok) {
+        setUsers(usersRes.users.map(u => ({
+          id: u.id,
+          name: u.full_name,
+          fullName: u.full_name,
+          email: u.email,
+          role: u.role,
+          phone: u.phone || undefined,
+          status: u.status,
+          createdAt: u.created_at,
+        })));
+      }
+    } catch (e) {
+      console.warn('Server sync failed; continuing with local data.', e);
+    }
+  }, [mapPupilRow]);
+
   // Hydrate from localStorage & load Supabase session role on mount
   useEffect(() => {
     let cancelled = false;
@@ -215,6 +321,9 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           const userEmail = (session.user.email || '').toLowerCase();
+
+          // Authenticated: pull the authoritative roster + register from the API.
+          await syncFromServer();
 
           const { data: profile } = await supabase
             .from('users')
@@ -263,7 +372,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, syncFromServer]);
 
   // Persist to localStorage whenever data changes
   useEffect(() => { if (isHydrated) saveStoredData('pupils', pupils); }, [pupils, isHydrated]);
@@ -305,32 +414,61 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs(prev => [newLog, ...prev.slice(0, 499)]); // Cap at 500 entries
   }, [currentRole]);
 
-  const handleSavePupil = useCallback((pupilData: MockPupil) => {
-    if (pupilToEdit) {
+  const handleSavePupil = useCallback(async (pupilData: MockPupil) => {
+    const isEdit = !!pupilToEdit;
+
+    if (isEdit) {
+      // Upsert with the existing id so the DB row updates in place.
+      await enrollPupil(toEnrollPayload(pupilData, pupilToEdit.id));
       setPupils(prev => prev.map(p => p.id === pupilData.id ? pupilData : p));
       logAuditAction('Updated Pupil Profile', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, 'Modified pupil demographic / guardian information.');
       showToast(`Pupil profile for ${pupilData.firstName} updated.`);
     } else {
-      setPupils(prev => [pupilData, ...prev]);
-      logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
+      // New pupil: let the server generate the authoritative id.
+      const res = await enrollPupil(toEnrollPayload(pupilData));
+      if (res.success && res.pupil?.id) {
+        const serverPupil: MockPupil = {
+          id: res.pupil.id,
+          firstName: res.pupil.firstName,
+          lastName: res.pupil.lastName,
+          birthDate: res.pupil.birthDate,
+          sex: res.pupil.sex,
+          address: res.pupil.address,
+          enrollmentStatus: res.pupil.enrollmentStatus,
+          enrollmentDate: res.pupil.enrollmentDate,
+          consecutiveAbsences: res.pupil.consecutiveAbsences,
+          avatar: pupilData.avatar || DEFAULT_AVATAR,
+          guardian: res.pupil.guardian,
+        };
+        setPupils(prev => [serverPupil, ...prev]);
+        logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${serverPupil.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
+      } else {
+        // DB not reachable (offline/demo) — keep the optimistic local pupil.
+        setPupils(prev => [pupilData, ...prev]);
+        logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
+      }
       showToast(`Pupil ${pupilData.firstName} ${pupilData.lastName} enrolled successfully!`);
     }
     setPupilToEdit(null);
-  }, [pupilToEdit, logAuditAction, showToast]);
+  }, [pupilToEdit, toEnrollPayload, logAuditAction, showToast]);
 
-  const handleArchivePupil = useCallback((pupilId: string) => {
+  const handleArchivePupil = useCallback(async (pupilId: string) => {
     const targetPupil = pupils.find(p => p.id === pupilId);
+    if (targetPupil) {
+      // Soft-archive server-side (enrollment_status = archived).
+      await enrollPupil(toEnrollPayload(targetPupil, pupilId, 'archived'));
+    }
     setPupils(prev => prev.map(p => p.id === pupilId ? { ...p, enrollmentStatus: 'archived' } : p));
     logAuditAction('Archived Pupil Record', pupilId, `Soft-archived record for ${targetPupil?.firstName} ${targetPupil?.lastName}.`);
     showToast(`Record for ${targetPupil?.firstName || pupilId} archived.`, 'danger');
-  }, [pupils, logAuditAction, showToast]);
+  }, [pupils, toEnrollPayload, logAuditAction, showToast]);
 
   const handleEditPupil = useCallback((pupil: MockPupil) => {
     setPupilToEdit(pupil);
     setIsPupilModalOpen(true);
   }, []);
 
-  const handleSaveAttendance = useCallback((records: MockAttendance[], dateStr: string) => {
+  const handleSaveAttendance = useCallback(async (records: MockAttendance[], dateStr: string) => {
     // Atomically replace all records for this specific date
     setAttendance(prev => {
       const filtered = prev.filter(a => a.date !== dateStr);
@@ -361,14 +499,40 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     }));
 
     logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
+    // Optimistic toast — the local save already happened.
     showToast(`Attendance register for ${dateStr} saved!`);
+
+    // Persist to the real daily register; surface failure without blocking UX.
+    const res = await saveBulkAttendance(
+      dateStr,
+      records.map(({ pupil_id, status, notes }) => ({ pupil_id, status, notes })),
+    );
+    if (!res.success) {
+      showToast(`Database sync unavailable — register saved locally for ${dateStr}.`, 'warning');
+    }
   }, [attendance, logAuditAction, showToast]);
 
-  const handleSaveProgress = useCallback((progressData: MockProgress) => {
+  const handleSaveProgress = useCallback(async (progressData: MockProgress) => {
+    const payload: ProgressPayload = {
+      pupil_id: progressData.pupil_id,
+      domain: progressData.domain as ProgressPayload['domain'],
+      title: progressData.title || (progressData.rating ? `${progressData.rating} observation` : 'Milestone observation'),
+      note: progressData.note || progressData.notes || '',
+      date: progressData.date,
+      rating: progressData.rating,
+    };
+
     setProgress(prev => [progressData, ...prev]);
     const targetPupil = pupils.find(p => p.id === progressData.pupil_id);
     logAuditAction('Recorded Progress Observation', `${targetPupil?.firstName || progressData.pupil_id}`, `Added milestone observation under ${progressData.domain}.`);
+    // Optimistic toast — the local save already happened.
     showToast(`Development milestone recorded for ${targetPupil?.firstName || 'pupil'}.`);
+
+    // Persist to the real observations table; surface failure without blocking UX.
+    const res = await recordObservation(payload);
+    if (!res.success) {
+      showToast('Milestone saved locally — database sync unavailable.', 'warning');
+    }
   }, [pupils, logAuditAction, showToast]);
 
   const handleSaveAnnouncement = useCallback((annData: MockAnnouncement) => {
@@ -383,17 +547,19 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     showToast(`User account created for ${userData.name}.`);
   }, [logAuditAction, showToast]);
 
-  const handleToggleUserStatus = useCallback((userId: string) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        const nextStatus = u.status === 'active' ? 'disabled' : 'active';
-        logAuditAction('Toggled Account Status', u.email, `Changed account status to ${nextStatus}.`);
-        showToast(`Account ${u.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
-        return { ...u, status: nextStatus };
-      }
-      return u;
-    }));
-  }, [logAuditAction, showToast]);
+  const handleToggleUserStatus = useCallback(async (userId: string) => {
+    const targetUser = users.find(u => u.id === userId);
+    if (!targetUser) return;
+
+    const nextStatus = targetUser.status === 'active' ? 'disabled' : 'active';
+
+    // Persist to the real users table (admin API).
+    await updateUserStatus(userId, nextStatus);
+
+    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, status: nextStatus } : u)));
+    logAuditAction('Toggled Account Status', targetUser.email, `Changed account status to ${nextStatus}.`);
+    showToast(`Account ${targetUser.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
+  }, [users, logAuditAction, showToast]);
 
   const value: DaycareContextValue = {
     currentRole, setCurrentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
