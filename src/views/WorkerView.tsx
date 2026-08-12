@@ -24,6 +24,8 @@ import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
 import { fetchEccdRatings, saveEccdRatings, type EccdRating } from '@/services/eccdService';
+import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
+import { fetchHealthLogs, saveHealthLog } from '@/services/healthLogsService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
 
 interface WorkerViewProps {
@@ -99,37 +101,50 @@ export default function WorkerView({
     submittedAt: string;
   }
 
-  const [inboxNotes, setInboxNotes] = useState<ParentNote[]>([
-    {
-      id: 'NOTE-101',
-      pupilId: 'PUP-2026-001',
-      pupilName: 'Maria Santos',
-      date: '2026-02-09',
-      reason: 'Doctor Visit / Checkup',
-      notes: 'Maria had her routine 4-year-old pediatric checkup and immunization update at Barangay Bacong Health Center.',
-      phone: '0917-888-9900',
-      status: 'Excused & Acknowledged',
-      submittedAt: 'Feb 9, 2026 07:45 AM',
-    },
-    {
-      id: 'NOTE-102',
-      pupilId: 'PUP-2026-003',
-      pupilName: 'Juan Santos',
-      date: '2026-02-10',
-      reason: 'Illness / Fever',
-      notes: 'Juan developed a mild fever this morning. Requesting excused absence for today.',
-      phone: '0917-888-9900',
-      status: 'Pending Teacher Review',
-      submittedAt: 'Feb 10, 2026 07:15 AM',
-    }
-  ]);
+  const [inboxNotes, setInboxNotes] = useState<ParentNote[]>([]);
 
   // Nutritional Log State
-  const [healthLogs] = useState<Record<string, { weight: string; height: string; status: string }>>({
-    'PUP-2026-001': { weight: '14.5', height: '98.5', status: 'Normal' },
-    'PUP-2026-002': { weight: '15.1', height: '100.2', status: 'Normal' },
-    'PUP-2026-003': { weight: '13.8', height: '96.0', status: 'Normal' },
-  });
+  const [healthLogs, setHealthLogs] = useState<Record<string, { weight: string; height: string }>>({});
+  const [healthDrafts, setHealthDrafts] = useState<Record<string, { weight: string; height: string }>>({});
+  const [savingHealthPupil, setSavingHealthPupil] = useState<string | null>(null);
+
+  // Load the real parent-notes inbox + health logs once on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [notesRes, healthRes] = await Promise.all([fetchParentNotes(), fetchHealthLogs()]);
+      if (cancelled) return;
+
+      if (notesRes.ok && notesRes.notes.length > 0) {
+        const pupilName = (row: ParentNoteRow) => {
+          const p = pupils.find(x => x.id === row.pupil_id);
+          return p ? `${p.firstName} ${p.lastName}` : row.pupil_id;
+        };
+        setInboxNotes(notesRes.notes.map((row) => ({
+          id: row.id,
+          pupilId: row.pupil_id,
+          pupilName: pupilName(row),
+          date: row.note_date,
+          reason: row.reason,
+          notes: row.notes,
+          phone: row.phone || '',
+          status: row.status === 'acknowledged' ? 'Excused & Acknowledged' : 'Pending Teacher Review',
+          submittedAt: row.submitted_at ? new Date(row.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
+        })));
+      }
+
+      if (healthRes.ok && healthRes.logs.length > 0) {
+        const map: Record<string, { weight: string; height: string }> = {};
+        for (const log of healthRes.logs) {
+          if (!map[log.pupil_id]) {
+            map[log.pupil_id] = { weight: log.weight_kg || '', height: log.height_cm || '' };
+          }
+        }
+        setHealthLogs(map);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [pupils]);
 
   const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
 
@@ -186,9 +201,14 @@ export default function WorkerView({
     setDailyAttendanceState(updatedState);
   };
 
-  const handleAcknowledgeParentNote = (noteId: string, pupilId: string, pupilName: string) => {
+  const handleAcknowledgeParentNote = async (noteId: string, pupilId: string, pupilName: string) => {
     setInboxNotes(prev => prev.map(n => n.id === noteId ? { ...n, status: 'Excused & Acknowledged' } : n));
-    showToast(`Absence note for ${pupilName} marked as Excused!`, 'success');
+    const res = await acknowledgeParentNote(noteId);
+    if (res.success) {
+      showToast(`Absence note for ${pupilName} marked as Excused!`, 'success');
+    } else {
+      showToast(`Marked locally — could not reach the server.`, 'warning');
+    }
     logAuditAction('Acknowledged Parent Absence Note', pupilId, `Teacher Teresa marked absence note for ${pupilName} as Excused.`);
   };
 
@@ -224,6 +244,24 @@ export default function WorkerView({
       logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted ${ratings.length} checklist ratings.`);
     } else {
       showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
+    }
+  };
+
+  const handleSaveHealthLog = async (pupil: MockPupil, weight: string, height: string) => {
+    setSavingHealthPupil(pupil.id);
+    const res = await saveHealthLog(pupil.id, weight, height);
+    setSavingHealthPupil(null);
+    if (res.success) {
+      setHealthLogs(prev => ({ ...prev, [pupil.id]: { weight, height } }));
+      setHealthDrafts(prev => {
+        const next = { ...prev };
+        delete next[pupil.id];
+        return next;
+      });
+      showToast(`Updated health record for ${pupil.firstName}!`, 'success');
+      logAuditAction('Updated Pupil Health Log', pupil.id, `Recorded weight ${weight}kg, height ${height}cm.`);
+    } else {
+      showToast(`Could not save health log: ${res.error || 'unknown error'}`, 'danger');
     }
   };
 
@@ -697,36 +735,49 @@ export default function WorkerView({
               </thead>
               <tbody>
                 {enrolledPupils.map((pupil) => {
-                  const log = healthLogs[pupil.id] || { weight: '14.2', height: '98.0', status: 'Normal' };
+                  const saved = healthLogs[pupil.id];
+                  const draft = healthDrafts[pupil.id] || saved || { weight: '', height: '' };
                   return (
                     <tr key={pupil.id}>
                       <td className="font-bold text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</td>
                       <td>
                         <input
                           type="text"
-                          defaultValue={log.weight}
+                          value={draft.weight}
+                          onChange={(e) => setHealthDrafts(prev => ({
+                            ...prev,
+                            [pupil.id]: { weight: e.target.value, height: draft.height },
+                          }))}
+                          placeholder="kg"
                           className="w-20 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
                         />
                       </td>
                       <td>
                         <input
                           type="text"
-                          defaultValue={log.height}
+                          value={draft.height}
+                          onChange={(e) => setHealthDrafts(prev => ({
+                            ...prev,
+                            [pupil.id]: { weight: draft.weight, height: e.target.value },
+                          }))}
+                          placeholder="cm"
                           className="w-20 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
                         />
                       </td>
                       <td>
-                        <span className="badge badge-success">{log.status}</span>
+                        {saved ? (
+                          <span className="badge badge-success">Recorded</span>
+                        ) : (
+                          <span className="badge badge-warning">No log yet</span>
+                        )}
                       </td>
                       <td>
                         <button
-                          onClick={() => {
-                            showToast(`Updated health record for ${pupil.firstName}!`, 'success');
-                            logAuditAction('Updated Pupil Health Log', pupil.id, 'Recorded weight and height measurement.');
-                          }}
+                          onClick={() => handleSaveHealthLog(pupil, draft.weight, draft.height)}
+                          disabled={savingHealthPupil === pupil.id}
                           className="btn btn-secondary btn-sm text-xs"
                         >
-                          Save Log
+                          {savingHealthPupil === pupil.id ? 'Saving...' : 'Save Log'}
                         </button>
                       </td>
                     </tr>
