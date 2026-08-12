@@ -118,6 +118,23 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 10. Notifications Table (per-user in-app feed)
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  pupil_id TEXT REFERENCES pupils(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('consecutive_absences', 'announcement', 'milestone')),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'PORTAL' CHECK (channel IN ('PORTAL', 'EMAIL', 'SMS')),
+  severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('high', 'medium', 'info')),
+  read BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_read
+  ON notifications(recipient_user_id, read, created_at DESC);
+
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
 -- ==========================================================================
@@ -152,6 +169,7 @@ ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE progress_observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guardians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Users RLS: each user reads their own profile; admins read all profiles.
 -- Provisioning/updates go through the admin API (service role, bypasses RLS),
@@ -236,6 +254,17 @@ CREATE POLICY "Progress INSERT Policy" ON progress_observations
 CREATE POLICY "Audit Log SELECT Policy" ON audit_log
   FOR SELECT TO authenticated
   USING (public.current_user_role() = 'barangay_admin');
+
+-- Notifications RLS: each user reads/updates their own feed. Inserts happen
+-- ONLY through the server API (service role), so no client INSERT policy.
+CREATE POLICY "Notifications SELECT Own" ON notifications
+  FOR SELECT TO authenticated
+  USING (recipient_user_id = auth.uid());
+
+CREATE POLICY "Notifications UPDATE Own" ON notifications
+  FOR UPDATE TO authenticated
+  USING (recipient_user_id = auth.uid())
+  WITH CHECK (recipient_user_id = auth.uid());
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION

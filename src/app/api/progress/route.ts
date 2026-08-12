@@ -127,6 +127,22 @@ export async function POST(request: Request) {
         );
       }
 
+      // Notify the pupil's linked guardians about the new milestone (best-effort).
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const { notifyUsers, guardianUserIdsForPupils } = await import('@/lib/notify');
+        const admin = createAdminClient();
+        const targets = await guardianUserIdsForPupils(admin, [parsed.pupil_id]);
+        await notifyUsers(targets, {
+          type: 'milestone',
+          title: 'Milestone Update',
+          message: `A new ECCD milestone observation (${parsed.domain}) was recorded for your child.`,
+          severity: 'info',
+        });
+      } catch (notifyError) {
+        console.warn('[Progress API] Milestone notification skipped:', notifyError);
+      }
+
       return NextResponse.json({ success: true, observation: data });
     } catch {
       // Database not configured — return optimistic local record with warning

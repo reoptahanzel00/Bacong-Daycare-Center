@@ -52,6 +52,34 @@ export async function POST(request: Request) {
           count: records.length,
         });
       }
+
+      // Notify linked guardians when a pupil reaches 3+ consecutive absences.
+      // Best-effort: failures never affect the register save response.
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        const { notifyUsers, guardianUserIdsForPupils } = await import('@/lib/notify');
+        const admin = createAdminClient();
+
+        const { data: affected } = await admin
+          .from('pupils')
+          .select('id, first_name, consecutive_absences')
+          .in('id', records.map((r) => r.pupil_id));
+
+        const alertPupils = (affected || []).filter((p) => p.consecutive_absences >= 3);
+        if (alertPupils.length > 0) {
+          const targets = await guardianUserIdsForPupils(admin, alertPupils.map((p) => p.id));
+          await notifyUsers(targets, {
+            type: 'consecutive_absences',
+            title: 'Absence Alert',
+            message: alertPupils
+              .map((p) => `${p.first_name} has ${p.consecutive_absences} consecutive absences.`)
+              .join(' '),
+            severity: 'high',
+          });
+        }
+      } catch (alertError) {
+        console.warn('[Attendance API] Absence alert skipped:', alertError);
+      }
     } catch {
       // Database not configured yet — graceful degradation
       console.warn('[Attendance API] Database not available, using local state fallback.');
