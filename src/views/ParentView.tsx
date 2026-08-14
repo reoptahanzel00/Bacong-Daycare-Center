@@ -24,6 +24,7 @@ import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
 import { fetchEccdRatings, fetchEccdScores, fetchChildBackground, saveChildBackground, type ChildBackground, type EccdRound } from '@/services/eccdService';
 import { submitParentNote } from '@/services/parentNotesService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
+import ECCDReportModal from '@/components/ECCDReportModal';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
 
 interface ParentViewProps {
@@ -32,7 +33,6 @@ interface ParentViewProps {
   progress: MockProgress[];
   announcements: MockAnnouncement[];
   activeTab?: string;
-  onOpenDSWDReportModal?: () => void;
 }
 
 export default function ParentView({ 
@@ -40,8 +40,7 @@ export default function ParentView({
   attendance, 
   progress, 
   announcements, 
-  activeTab = 'child',
-  onOpenDSWDReportModal 
+  activeTab = 'child'
 }: ParentViewProps) {
   const { showToast, logAuditAction } = useDaycare();
 
@@ -56,6 +55,7 @@ export default function ParentView({
   const [childScores, setChildScores] = useState<Record<string, { raw: number; scaled?: number }>>({});
   const [childBackground, setChildBackground] = useState<ChildBackground | null>(null);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Direct Teacher Message / Absence Note Form State
   const [absenceReason, setAbsenceReason] = useState<string>('Illness / Medical');
@@ -348,16 +348,14 @@ export default function ParentView({
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                {onOpenDSWDReportModal && (
-                  <button
-                    onClick={onOpenDSWDReportModal}
-                    className="btn btn-secondary btn-sm bg-white text-[#D96B4D] font-bold border-none shadow-md"
-                    suppressHydrationWarning
-                  >
-                    <Download size={16} />
-                    <span>Download Report Card</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="btn btn-secondary btn-sm bg-white text-[#D96B4D] font-bold border-none shadow-md"
+                  suppressHydrationWarning
+                >
+                  <Download size={16} />
+                  <span>Download Report Card</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1016,16 +1014,14 @@ export default function ParentView({
                 Verification status for official DSWD and Barangay Bacong daycare enrollment requirements.
               </p>
             </div>
-            {onOpenDSWDReportModal && (
-              <button
-                onClick={onOpenDSWDReportModal}
-                className="btn btn-primary btn-sm font-bold shadow-md"
-                suppressHydrationWarning
-              >
-                <Download size={16} />
-                <span>Download Report Card PDF</span>
-              </button>
-            )}
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="btn btn-primary btn-sm font-bold shadow-md"
+              suppressHydrationWarning
+            >
+              <Download size={16} />
+              <span>Download Report Card PDF</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1100,6 +1096,13 @@ export default function ParentView({
         onSave={handleSaveChildBackground}
         initial={childBackground}
         childName={child ? `${child.firstName} ${child.lastName}` : undefined}
+      />
+
+      {/* ECCD Pupil Evaluation Report — per-student PDF for the linked child */}
+      <ECCDReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        pupil={child ?? null}
       />
 
     </div>

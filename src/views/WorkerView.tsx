@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   X,
   AlertTriangle,
+  FileDown,
 } from 'lucide-react';
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import PupilDetailModal from '@/components/PupilDetailModal';
@@ -39,6 +40,7 @@ import {
 import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
 import { fetchHealthLogs, saveHealthLog } from '@/services/healthLogsService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
+import ECCDReportModal from '@/components/ECCDReportModal';
 import { verifyPupil } from '@/services/pupilService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
 
@@ -92,6 +94,7 @@ export default function WorkerView({
   const [evaluations, setEvaluations] = useState<Record<string, Record<string, boolean>>>({});
   const [eccdScores, setEccdScores] = useState<Record<string, Record<string, { raw: number; scaled?: string }>>>({});
   const [savingEvalPupil, setSavingEvalPupil] = useState<string | null>(null);
+  const [reportPupil, setReportPupil] = useState<MockPupil | null>(null);
 
   // Load the saved checklist ratings + scores for the selected round.
   useEffect(() => {
@@ -285,6 +288,8 @@ export default function WorkerView({
       const presentCount = ratings.filter((r) => r.present).length;
       showToast(`Saved ${presentCount} ✓ item(s) for ${pupil.firstName} (round ${selectedRound}).`);
       logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted round ${selectedRound} checklist ratings + scores.`);
+      // Auto-open the printable ECCD pupil report after grading is saved.
+      setReportPupil(pupil);
     } else {
       showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
     }
@@ -895,6 +900,15 @@ export default function WorkerView({
                         Background
                       </button>
                       <button
+                        onClick={() => setReportPupil(pupil)}
+                        className="btn btn-secondary btn-sm font-bold"
+                        title="Download printable ECCD evaluation report PDF"
+                        suppressHydrationWarning
+                      >
+                        <FileDown size={14} />
+                        <span>Report PDF</span>
+                      </button>
+                      <button
                         onClick={() => handleSaveEvaluation(pupil)}
                         disabled={savingEvalPupil === pupil.id}
                         className="btn btn-primary btn-sm font-bold shadow-md"
@@ -1187,6 +1201,13 @@ export default function WorkerView({
         onSave={handleSaveBackground}
         initial={backgroundPupil ? backgrounds[backgroundPupil.id] ?? null : null}
         childName={backgroundPupil ? `${backgroundPupil.firstName} ${backgroundPupil.lastName}` : undefined}
+      />
+
+      {/* ECCD Pupil Evaluation Report — PDF / print after grading */}
+      <ECCDReportModal
+        isOpen={!!reportPupil}
+        onClose={() => setReportPupil(null)}
+        pupil={reportPupil}
       />
 
       {/* Verify Enrollment Confirmation */}

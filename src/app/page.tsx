@@ -125,7 +125,6 @@ function AppContent() {
                 progress={progress}
                 announcements={announcements}
                 activeTab={activeTab}
-                onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
               />
             )}
           </ErrorBoundary>

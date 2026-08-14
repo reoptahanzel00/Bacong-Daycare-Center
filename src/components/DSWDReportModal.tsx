@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { X, FileText, Download, ShieldCheck } from 'lucide-react';
 import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
+import { exportElementToPdf } from '@/lib/exportPdf';
 
 interface DSWDReportModalProps {
   isOpen: boolean;
@@ -42,40 +43,10 @@ export default function DSWDReportModal({
     setIsExporting(true);
 
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: html2canvas } = await import('html2canvas');
-
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#FFFFFF',
-        logging: false
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(`DSWD_Form_1_Barangay_Bacong_${selectedSchoolYear.replace(' ', '_')}.pdf`);
+      await exportElementToPdf(
+        reportRef.current,
+        `DSWD_Form_1_Barangay_Bacong_${selectedSchoolYear.replace(' ', '_')}.pdf`
+      );
     } catch (err) {
       console.error('PDF export failed:', err);
       alert('Failed to generate PDF. Printing native report format instead.');
