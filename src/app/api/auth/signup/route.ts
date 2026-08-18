@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { rateLimited, clientIp } from '@/lib/rateLimit';
 
 const SignupSchema = z.object({
   role: z.enum(['worker', 'official', 'barangay_admin', 'parent']).default('parent'),
@@ -49,24 +50,8 @@ const ChildrenSchema = z
 
 const SignupBodySchema = SignupSchema.extend({ children: ChildrenSchema });
 
-/**
- * Lightweight in-memory rate limiter (per IP). Best-effort protection for the
- * public signup surface; not a substitute for a full gateway-level limiter.
- */
-const signupAttempts = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5; // per window
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = signupAttempts.get(ip);
-  if (!entry || now > entry.resetAt) {
-    signupAttempts.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > RATE_LIMIT;
-}
 
 /**
  * POST — parent self-registration. Creates the auth account + parent profile,
@@ -75,11 +60,8 @@ function rateLimited(ip: string): boolean {
  */
 export async function POST(request: Request) {
   try {
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
-    if (rateLimited(ip)) {
+    const ip = clientIp(request);
+    if (rateLimited(ip, 'signup', RATE_LIMIT, RATE_WINDOW_MS)) {
       return NextResponse.json(
         { error: 'Too many signup attempts. Please try again later.' },
         { status: 429 }
@@ -119,7 +101,13 @@ export async function POST(request: Request) {
       },
     });
     if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+      // Return a generic message on any auth failure so we do not reveal
+      // whether an email address is already registered (account enumeration).
+      console.warn('[Signup API] Auth error:', authError.message);
+      return NextResponse.json(
+        { error: 'Unable to create the account. Please check your details or contact the Barangay Admin.' },
+        { status: 400 }
+      );
     }
 
     // 2. Insert the parent profile.

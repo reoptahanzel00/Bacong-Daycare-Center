@@ -6,6 +6,18 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   });
 
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
+  const isRegisterPage = request.nextUrl.pathname.startsWith('/register');
+  const isStaticAsset =
+    request.nextUrl.pathname.startsWith('/_next') ||
+    request.nextUrl.pathname.startsWith('/sw.js') ||
+    request.nextUrl.pathname.startsWith('/manifest.json');
+
+  // API routes perform their own session verification per handler — resolve
+  // them here without an extra Supabase round-trip in the middleware.
+  if (isApiRoute) return response;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -34,11 +46,6 @@ export async function middleware(request: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
-  const isRegisterPage = request.nextUrl.pathname.startsWith('/register');
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
-  const isStaticAsset = request.nextUrl.pathname.startsWith('/_next');
 
   // Enforce authentication in BOTH development and production — no NODE_ENV bypass
   if (!user && !isLoginPage && !isRegisterPage && !isApiRoute && !isStaticAsset) {

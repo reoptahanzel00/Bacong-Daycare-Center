@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 
 const AnnouncementSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -15,18 +16,27 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const admin = createAdminClient();
-    const { data, error } = await admin
+    // RLS-bound session client: any authenticated user may read announcements
+    // (see the "Announcements SELECT Auth Policy" in schema.sql).
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from('announcements')
-      .select('id, title, body, posted_by, created_at')
+      .select('id, title, body, posted_by, created_at, author:posted_by(full_name)')
       .order('created_at', { ascending: false })
       .limit(100);
 
     if (error) {
       return NextResponse.json({ announcements: [], warning: error.message });
     }
-    return NextResponse.json({ announcements: data || [] });
+    const announcements = (data || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      body: a.body,
+      posted_by: a.posted_by,
+      author_name: (a.author && typeof a.author === 'object' && 'full_name' in a.author ? a.author.full_name : null) as string | null,
+      created_at: a.created_at,
+    }));
+    return NextResponse.json({ announcements });
   } catch {
     return NextResponse.json({ announcements: [], warning: 'Announcements unavailable.' });
   }

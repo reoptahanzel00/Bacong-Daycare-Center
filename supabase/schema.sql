@@ -333,6 +333,45 @@ CREATE POLICY "Sociodemographic SELECT Policy" ON sociodemographic_profiles
     OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
   );
 
+-- Announcements (low risk) are readable by any authenticated user, so the
+-- feed can use the RLS-bound session client instead of the service role.
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Announcements SELECT Auth Policy" ON announcements
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- Parent notes: parents may read their own; staff read all.
+CREATE POLICY "Parent Notes SELECT Own" ON parent_notes
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+CREATE POLICY "Parent Notes SELECT Staff" ON parent_notes
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+
+-- Health logs: parents read linked children only; staff read all.
+CREATE POLICY "Health Logs SELECT Own" ON health_logs
+  FOR SELECT TO authenticated
+  USING (pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid()));
+CREATE POLICY "Health Logs SELECT Staff" ON health_logs
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+
+-- ECCD scores: parents read linked children only; staff read all.
+CREATE POLICY "ECCD Scores SELECT Own" ON eccd_scores
+  FOR SELECT TO authenticated
+  USING (pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid()));
+CREATE POLICY "ECCD Scores SELECT Staff" ON eccd_scores
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+
+-- Child backgrounds: parents read linked children only; staff read all.
+CREATE POLICY "Child Backgrounds SELECT Own" ON child_backgrounds
+  FOR SELECT TO authenticated
+  USING (pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid()));
+CREATE POLICY "Child Backgrounds SELECT Staff" ON child_backgrounds
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+
 -- Attendance RLS: Parents view attendance of linked children only.
 -- UPDATE exists so workers/admins can correct registers; matching the API.
 CREATE POLICY "Attendance SELECT Policy" ON attendance

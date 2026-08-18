@@ -1081,7 +1081,7 @@ export default function ParentView({
                 <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
                 <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px]">
                   <span className="badge badge-warning">Broadcasted to Parent Portal</span>
-                  <span className="text-[#9B9B9B]">Author: Lead Daycare Worker</span>
+                  <span className="text-[#9B9B9B]">{notice.authorName ? 'Author: ' + notice.authorName : 'Author: Daycare Staff'}</span>
                 </div>
               </div>
             ))}

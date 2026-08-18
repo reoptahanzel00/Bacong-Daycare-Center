@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Nunito, Quicksand } from 'next/font/google';
 import './globals.css';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -40,19 +41,7 @@ export default function RootLayout({
     <html lang="en" className={`${nunito.variable} ${quicksand.variable}`} suppressHydrationWarning>
       <body className="font-sans bg-[#FAF8F5] text-[#2B2B2B] antialiased" suppressHydrationWarning>
         {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                  });
-                });
-              }
-            `,
-          }}
-        />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

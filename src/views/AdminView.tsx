@@ -195,7 +195,7 @@ export default function AdminView({
                           <a
                             href={resetLinks[u.id]}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="text-[10px] text-[#2F8F8A] underline max-w-[180px] truncate"
                             title={resetLinks[u.id]}
                             suppressHydrationWarning

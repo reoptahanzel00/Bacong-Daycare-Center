@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole, type AuthSession } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 
 const NoteField = z.string().max(2000, 'Max 2000 characters').trim().optional().nullable();
 
@@ -38,14 +39,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'pupil_id query parameter is required.' }, { status: 400 });
     }
 
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const admin = createAdminClient();
+    // RLS-bound session client: parents read linked children only; staff read
+    // all (policies in schema.sql). No service role needed for this read.
+    const supabase = await createClient();
 
-    if (session.role === 'parent' && !(await parentOwnsPupil(admin, session, pupilId))) {
-      return NextResponse.json({ error: 'Unauthorized: this pupil is not linked to your account.' }, { status: 403 });
-    }
-
-    const { data, error } = await admin
+    const { data, error } = await supabase
       .from('child_backgrounds')
       .select('*')
       .eq('pupil_id', pupilId)

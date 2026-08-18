@@ -164,45 +164,31 @@ export default function AuthPage() {
     setErrorMessage(null);
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password.trim(),
+      // Server-side sign-in: rate-limited and returns the verified profile/role.
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+        }),
       });
+      const data = await res.json();
 
-      if (error) {
-        setErrorMessage(error.message || 'Invalid email or password. Please check your credentials.');
+      if (!res.ok) {
+        localStorage.removeItem('bacong_auth_role');
+        setErrorMessage(data.error || 'Invalid email or password. Please check your credentials.');
         setLoading(false);
         return;
       }
 
-      if (data?.user) {
+      if (data?.user?.role) {
         // The users table is the authoritative source of role. user_metadata is
         // user-editable and must not be trusted for authorization.
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role, status')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
-          if (profile.status === 'disabled') {
-            await supabase.auth.signOut();
-            setErrorMessage('This account has been disabled. Please contact the Barangay Admin.');
-            setLoading(false);
-            return;
-          }
-          localStorage.setItem('bacong_auth_role', profile.role);
-          router.push('/');
-          router.refresh();
-          return;
-        } else {
-          // Authenticated in Supabase but no valid profile — fail closed.
-          await supabase.auth.signOut();
-          setErrorMessage('This account is not provisioned for the daycare system. Please contact the Barangay Admin.');
-          setLoading(false);
-          return;
-        }
+        localStorage.setItem('bacong_auth_role', data.user.role);
+        router.push('/');
+        router.refresh();
+        return;
       }
 
       setErrorMessage('Unable to verify your account role. Please try again.');
@@ -260,7 +246,7 @@ export default function AuthPage() {
           fullName: fullName.trim(),
           phone: phone.trim(),
           email: createEmail.trim(),
-          password: createPassword.trim(),
+          password: createPassword,
           children: createRole === 'parent'
             ? children.map((child) => ({
                 firstName: child.firstName.trim(),

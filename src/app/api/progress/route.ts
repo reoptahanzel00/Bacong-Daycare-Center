@@ -99,7 +99,6 @@ export async function POST(request: Request) {
     const parsed = ProgressSchema.parse(body);
 
     const record = {
-      id: `PROG-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
       pupil_id: parsed.pupil_id,
       domain_id: DOMAIN_LABEL_TO_ID[parsed.domain] || parsed.domain,
       title: parsed.title || `${parsed.rating || 'Milestone'} observation`,

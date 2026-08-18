@@ -1167,6 +1167,9 @@ export default function WorkerView({
                   <span className="text-[11px] text-[#9B9B9B]">{notice.date}</span>
                 </div>
                 <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
+                {notice.authorName && (
+                  <div className="text-[10px] text-[#9B9B9B] font-semibold">Posted by {notice.authorName}</div>
+                )}
               </div>
             ))}
           </div>

@@ -35,7 +35,7 @@ export default function Header({
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const loadNotifications = async () => {
       try {
         const { fetchNotifications: fetchNotifs } = await import('@/services/notificationService');
         const data = await fetchNotifs();
@@ -43,9 +43,12 @@ export default function Header({
       } catch {
         // Fallback silent — show empty drawer
       }
-    })();
+    };
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 45000);
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, []);
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 
 const EccdRoundSchema = z.coerce.number().int().min(1).max(3).default(1);
 
@@ -27,27 +28,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const round = EccdRoundSchema.parse(searchParams.get('round') || '1');
 
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const admin = createAdminClient();
+    // RLS-bound session client: parents select linked children; staff select
+    // all (policies in schema.sql). No service role needed for this read.
+    const supabase = await createClient();
 
-    let query = admin
+    const { data, error } = await supabase
       .from('eccd_scores')
       .select('pupil_id, domain_id, evaluation_round, raw_score, scaled_score')
-      .eq('evaluation_round', round);
+      .eq('evaluation_round', round)
+      .limit(2000);
 
-    if (session.role === 'parent') {
-      const { data: guardians } = await admin
-        .from('guardians')
-        .select('pupil_id')
-        .eq('user_id', session.userId);
-      const pupilIds = (guardians || []).map((g) => g.pupil_id);
-      if (pupilIds.length === 0) {
-        return NextResponse.json({ scores: [] });
-      }
-      query = query.in('pupil_id', pupilIds);
-    }
-
-    const { data, error } = await query.limit(2000);
     if (error) {
       return NextResponse.json({ scores: [], warning: error.message });
     }

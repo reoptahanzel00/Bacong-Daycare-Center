@@ -91,14 +91,35 @@ export async function POST(request: Request) {
       if (pupilError) {
         console.warn('[Pupils API] DB write warning:', pupilError.message);
       } else {
-        // Write guardian record if pupil saved successfully
-        await supabase.from('guardians').upsert([{
-          pupil_id: pupilId,
-          full_name: parsed.guardianName,
-          relationship: parsed.relationship,
-          phone: parsed.guardianPhone,
-          is_primary_contact: true,
-        }]);
+        // Update-or-insert the primary guardian so re-saves on an existing pupil
+        // do not create duplicate guardian rows every edit.
+        const { data: existingGuardian } = await supabase
+          .from('guardians')
+          .select('id')
+          .eq('pupil_id', pupilId)
+          .eq('is_primary_contact', true)
+          .maybeSingle();
+
+        if (existingGuardian) {
+          const { error: gError } = await supabase
+            .from('guardians')
+            .update({
+              full_name: parsed.guardianName,
+              relationship: parsed.relationship,
+              phone: parsed.guardianPhone,
+            })
+            .eq('id', existingGuardian.id);
+          if (gError) console.warn('[Pupils API] Guardian update warning:', gError.message);
+        } else {
+          const { error: gError } = await supabase.from('guardians').insert([{
+            pupil_id: pupilId,
+            full_name: parsed.guardianName,
+            relationship: parsed.relationship,
+            phone: parsed.guardianPhone,
+            is_primary_contact: true,
+          }]);
+          if (gError) console.warn('[Pupils API] Guardian insert warning:', gError.message);
+        }
       }
     } catch {
       // Database not configured — local state only

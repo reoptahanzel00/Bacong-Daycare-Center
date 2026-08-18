@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 
 const HealthLogSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -17,23 +18,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const admin = createAdminClient();
+    // RLS-bound session client: parents select linked children; staff select
+    // all (policies in schema.sql). No service role needed for this read.
+    const supabase = await createClient();
 
-    let query = admin.from('health_logs').select('*').order('recorded_at', { ascending: false });
-    if (session.role === 'parent') {
-      const { data: guardians } = await admin
-        .from('guardians')
-        .select('pupil_id')
-        .eq('user_id', session.userId);
-      const pupilIds = (guardians || []).map((g) => g.pupil_id);
-      if (pupilIds.length === 0) {
-        return NextResponse.json({ logs: [] });
-      }
-      query = query.in('pupil_id', pupilIds);
-    }
-
-    const { data, error } = await query.limit(500);
+    const { data, error } = await supabase
+      .from('health_logs')
+      .select('*')
+      .order('recorded_at', { ascending: false })
+      .limit(500);
     if (error) {
       return NextResponse.json({ logs: [], warning: error.message });
     }

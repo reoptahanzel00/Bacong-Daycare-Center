@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     // 1. Create account in Supabase Auth
     const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-      email: parsed.email,
+      email: parsed.email.toLowerCase(),
       password: parsed.password,
       email_confirm: true,
       user_metadata: {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     // 2. Insert profile into PostgreSQL users table
     const { error: profileError } = await adminSupabase.from('users').upsert({
       id: authData.user.id,
-      email: parsed.email,
+      email: parsed.email.toLowerCase(),
       full_name: parsed.fullName,
       role: parsed.role,
       phone: parsed.phone || null,

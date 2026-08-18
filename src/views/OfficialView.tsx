@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   CheckCircle2, 
@@ -39,6 +39,24 @@ export default function OfficialView({
 
   // State for dispatched outreach actions
   const [dispatchedOutreach, setDispatchedOutreach] = useState<Record<string, boolean>>({});
+  // Aggregate milestone count (officials cannot read individual notes; the
+  // oversight stat is sourced from the aggregate endpoint instead).
+  const [milestoneCount, setMilestoneCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMilestoneStats() {
+      try {
+        const res = await fetch('/api/progress/stats', { cache: 'no-store' });
+        const data = await res.json();
+        if (!cancelled && typeof data.total === 'number') setMilestoneCount(data.total);
+      } catch {
+        // Ignore â€” fall back to the client-provided progress length.
+      }
+    }
+    loadMilestoneStats();
+    return () => { cancelled = true; };
+  }, []);
 
   const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
   const archivedPupils = pupils.filter(p => p.enrollmentStatus === 'archived');
@@ -134,7 +152,9 @@ export default function OfficialView({
                 <Award size={22} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold text-[#D32F2F] leading-none">{progress.length}</div>
+                <div className="text-2xl font-extrabold text-[#D32F2F] leading-none">
+                  {milestoneCount ?? progress.length}
+                </div>
                 <div className="text-xs text-[#6B6B6B] mt-1">Milestones Evaluated</div>
               </div>
             </div>
@@ -423,6 +443,9 @@ export default function OfficialView({
                   <span className="text-[11px] text-[#9B9B9B]">{notice.date}</span>
                 </div>
                 <p className="text-xs text-[#4A4A4A] m-0">{notice.content}</p>
+                {notice.authorName && (
+                  <div className="text-[10px] text-[#9B9B9B] font-semibold">Posted by {notice.authorName}</div>
+                )}
               </div>
             ))}
           </div>

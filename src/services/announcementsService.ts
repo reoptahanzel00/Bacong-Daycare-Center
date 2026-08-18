@@ -5,6 +5,8 @@ export interface AnnouncementRow {
   title: string;
   body: string;
   posted_by?: string | null;
+  /** Resolved author display name (may be null for staff/non-admin sessions). */
+  author_name?: string | null;
   created_at?: string;
 }
 

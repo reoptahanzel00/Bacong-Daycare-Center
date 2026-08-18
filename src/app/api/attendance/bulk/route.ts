@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       date: parsed.date,
       status: r.status,
       notes: (r.notes || '').trim(),
+      recorded_by: session.userId,
     }));
 
     // Try to persist to Supabase

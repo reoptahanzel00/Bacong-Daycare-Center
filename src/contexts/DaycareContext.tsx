@@ -63,6 +63,8 @@ export interface MockAnnouncement {
   body?: string;
   date: string;
   postedBy?: string;
+  /** Resolved author display name from the server (may be null for staff). */
+  authorName?: string | null;
   content?: string;
   author?: string;
 }
@@ -262,14 +264,17 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
    * Runs once a real Supabase session exists; localStorage stays as the
    * offline/demo fallback when the API is unreachable.
    */
-  const syncFromServer = useCallback(async () => {
+  const syncFromServer = useCallback(async (role: UserRole | null = null) => {
     try {
+      // Admin-only endpoints (user directory, audit trail) are only fetched for
+      // the barangay_admin to avoid firing 401/403 requests for every other role.
+      const isAdmin = role === 'barangay_admin';
       const [pupilRes, attendanceRes, progressRes, usersRes, auditRes, announcementRes] = await Promise.all([
         fetchPupils(['pending', 'enrolled', 'rejected']),
         fetchAttendance(),
         fetchProgress(),
-        fetchUsers(),
-        fetchAuditLogs(),
+        isAdmin ? fetchUsers() : Promise.resolve({ ok: false, users: [] }),
+        isAdmin ? fetchAuditLogs() : Promise.resolve({ ok: false, logs: [] }),
         fetchAnnouncements(),
       ]);
 
@@ -326,6 +331,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           content: a.body,
           date: (a.created_at || '').slice(0, 10),
           postedBy: a.posted_by || undefined,
+          authorName: a.author_name || null,
         })));
       }
     } catch (e) {
@@ -355,6 +361,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     async function loadAuthUserRole() {
       try {
         const savedRole = localStorage.getItem('bacong_auth_role') as UserRole | null;
+        const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
@@ -362,9 +369,9 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
         let resolvedRole: UserRole | null = null;
 
         if (session?.user) {
-          // Authenticated: pull the authoritative roster + register from the API.
-          await syncFromServer();
-
+          // Resolve the role from the users table (authoritative) first, then
+          // pull the authoritative roster + register from the API. Passing the
+          // role lets the sync avoid admin-only endpoints for other roles.
           const { data: profile } = await supabase
             .from('users')
             .select('role')
@@ -374,9 +381,19 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
             resolvedRole = profile.role as UserRole;
           }
+          await syncFromServer(resolvedRole);
         }
 
-        if (!resolvedRole && savedRole && ['worker', 'official', 'barangay_admin', 'parent'].includes(savedRole)) {
+        // Demo mode only: without a configured Supabase project there is no
+        // server profile to verify against, so the local role is acceptable.
+        // In real mode we NEVER trust the client-settable localStorage role to
+        // render privileged views — the server profile is authoritative.
+        if (
+          isDemoMode &&
+          !resolvedRole &&
+          savedRole &&
+          ['worker', 'official', 'barangay_admin', 'parent'].includes(savedRole)
+        ) {
           resolvedRole = savedRole;
         }
 

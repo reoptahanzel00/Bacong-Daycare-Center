@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 
 const ParentNoteSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -18,15 +19,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
-    const { createAdminClient } = await import('@/lib/supabase/admin');
-    const admin = createAdminClient();
+    // RLS-bound session client: parents select their own notes; staff select
+    // all (policies in schema.sql). No service role needed for this read.
+    const supabase = await createClient();
 
-    let query = admin.from('parent_notes').select('*').order('submitted_at', { ascending: false });
-    if (session.role === 'parent') {
-      query = query.eq('user_id', session.userId);
-    }
-
-    const { data, error } = await query.limit(200);
+    const { data, error } = await supabase
+      .from('parent_notes')
+      .select('*')
+      .order('submitted_at', { ascending: false })
+      .limit(200);
     if (error) {
       return NextResponse.json({ notes: [], warning: error.message });
     }
