@@ -23,8 +23,8 @@ interface ECCDReportModalProps {
 type RatingsMap = Record<string, boolean>;
 type DomainScore = { raw: number; scaled?: string | number | null };
 type ScoresMap = Record<string, DomainScore>;
-type RatingsByRound = Record<EccdRound, RatingsMap>;
-type ScoresByRound = Record<EccdRound, ScoresMap>;
+export type RatingsByRound = Record<EccdRound, RatingsMap>;
+export type ScoresByRound = Record<EccdRound, ScoresMap>;
 
 const ROUNDS: EccdRound[] = [1, 2, 3];
 const ROUND_LABELS: Record<EccdRound, string> = {
@@ -84,15 +84,33 @@ function splitYMD(dateStr?: string): { y: string; m: string; d: string } {
   };
 }
 
-/** Age in years/months/days per the official form: each month = 30 days. */
+/** Age in years/months/days per the official DepEd form: 1 month = 30 days borrowing rule. */
 function computeAgeYMD(birthDate: string, asOf: Date): { y: number; m: number; d: number } {
   const dob = new Date(birthDate);
   if (Number.isNaN(dob.getTime())) return { y: 0, m: 0, d: 0 };
-  let totalDays = Math.floor((asOf.getTime() - dob.getTime()) / 86400000);
-  if (totalDays < 0) totalDays = 0;
-  const y = Math.floor(totalDays / 360);
-  const rem = totalDays % 360;
-  return { y, m: Math.floor(rem / 30), d: rem % 30 };
+
+  let dTested = asOf.getDate();
+  let mTested = asOf.getMonth() + 1;
+  let yTested = asOf.getFullYear();
+
+  const dBirth = dob.getDate();
+  const mBirth = dob.getMonth() + 1;
+  const yBirth = dob.getFullYear();
+
+  if (dTested < dBirth) {
+    dTested += 30;
+    mTested -= 1;
+  }
+  if (mTested < mBirth) {
+    mTested += 12;
+    yTested -= 1;
+  }
+
+  const d = Math.max(0, dTested - dBirth);
+  const m = Math.max(0, mTested - mBirth);
+  const y = Math.max(0, yTested - yBirth);
+
+  return { y, m, d };
 }
 
 function fmtDate(d: Date): string {
