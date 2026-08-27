@@ -9,12 +9,12 @@ out/
 dist/
 build/
 
-# Environment variables — NEVER commit these
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment variables — NEVER commit these.
+# Deny by default and allow the one template back, so a new .env.<something>
+# is ignored the moment it is created rather than when someone remembers to
+# add it here. .env.staging.local holds a service-role key.
+.env*
+!.env.example
 
 # TypeScript build cache
 *.tsbuildinfo
