@@ -44,12 +44,12 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex flex-col items-center justify-center min-h-[300px] rounded-3xl border border-[#F2896B]/30 bg-[#FFF5F5] p-8 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#FFEBEE] text-[#C62828] flex items-center justify-center mb-4">
+        <div className="flex flex-col items-center justify-center min-h-[300px] rounded-3xl border border-accent-coral/30 bg-[#FFF5F5] p-8 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-danger-light text-danger flex items-center justify-center mb-4">
             <AlertTriangle size={32} />
           </div>
-          <h3 className="text-base font-bold text-[#2B2B2B] mb-2">Something went wrong</h3>
-          <p className="text-xs text-[#6B6B6B] mb-4 max-w-sm leading-relaxed">
+          <h3 className="text-base font-bold text-ink mb-2">Something went wrong</h3>
+          <p className="text-xs text-ink-muted mb-4 max-w-sm leading-relaxed">
             {this.state.error?.message || 'An unexpected error occurred in this section.'}
           </p>
           <button

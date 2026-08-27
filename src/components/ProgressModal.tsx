@@ -45,24 +45,24 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-lg p-6 space-y-5 animate-scaleUp">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+        <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFEBEE] text-[#C62828] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-danger-light text-danger flex items-center justify-center font-bold shrink-0">
               <TrendingUp size={20} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">Record 4-Domain Milestone</h3>
-              <p className="text-xs text-[#6B6B6B] m-0">
+              <h3 className="text-base font-extrabold text-ink m-0">Record 4-Domain Milestone</h3>
+              <p className="text-xs text-ink-muted m-0">
                 Early Childhood Development (ECCD) Observation Log
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
@@ -70,7 +70,7 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
         </div>
 
         {error && (
-          <div className="bg-[#FFEBEE] border border-[#FFCDD2] text-[#C62828] p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
+          <div className="bg-danger-light border border-danger-border text-danger p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
             <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -79,9 +79,9 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
         <form onSubmit={handleSubmit} className="space-y-4">
           
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Select Enrolled Pupil *</label>
-            <select
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+            <label htmlFor="srccomponentsprogressmodal-select-enrolled-pupil-1" className="text-xs font-bold text-ink-soft">Select Enrolled Pupil *</label>
+            <select id="srccomponentsprogressmodal-select-enrolled-pupil-1"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               value={selectedPupilId}
               onChange={(e) => setSelectedPupilId(e.target.value)}
               suppressHydrationWarning
@@ -96,9 +96,9 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#4A4A4A]">ECCD Domain *</label>
-              <select
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              <label htmlFor="srccomponentsprogressmodal-eccd-domain-2" className="text-xs font-bold text-ink-soft">ECCD Domain *</label>
+              <select id="srccomponentsprogressmodal-eccd-domain-2"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 suppressHydrationWarning
@@ -111,9 +111,9 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#4A4A4A]">Observation Rating *</label>
-              <select
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              <label htmlFor="srccomponentsprogressmodal-observation-rating-3" className="text-xs font-bold text-ink-soft">Observation Rating *</label>
+              <select id="srccomponentsprogressmodal-observation-rating-3"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 value={rating}
                 onChange={(e) => setRating(e.target.value)}
                 suppressHydrationWarning
@@ -126,10 +126,10 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Evaluation Date</label>
-            <input
+            <label htmlFor="srccomponentsprogressmodal-evaluation-date-4" className="text-xs font-bold text-ink-soft">Evaluation Date</label>
+            <input id="srccomponentsprogressmodal-evaluation-date-4"
               type="date"
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               value={evalDate}
               onChange={(e) => setEvalDate(e.target.value)}
               suppressHydrationWarning
@@ -137,10 +137,10 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Observation Notes & Behavioral Checklist *</label>
-            <textarea
+            <label htmlFor="srccomponentsprogressmodal-observation-notes-behavioral-checklist-5" className="text-xs font-bold text-ink-soft">Observation Notes & Behavioral Checklist *</label>
+            <textarea id="srccomponentsprogressmodal-observation-notes-behavioral-checklist-5"
               rows={3}
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white resize-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white resize-none"
               placeholder="e.g. Pupil demonstrates confidence during group drawing and story circle..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -148,18 +148,18 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
             />
           </div>
 
-          <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-line flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#6B6B6B] border border-[#E6E4DF] hover:bg-[#FAF8F5] transition-all cursor-pointer border-none bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-ink-muted border border-line hover:bg-canvas transition-all cursor-pointer border-none bg-transparent"
               suppressHydrationWarning
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
               suppressHydrationWarning
             >
               <Save size={16} />

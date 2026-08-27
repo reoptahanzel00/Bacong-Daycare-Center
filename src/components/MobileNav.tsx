@@ -100,21 +100,21 @@ export default function MobileNav({
       <div className="relative w-80 max-w-[85vw] bg-white h-full shadow-2xl flex flex-col p-6 space-y-6 z-10 overflow-y-auto animate-slideRight">
         
         {/* Drawer Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+        <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] flex items-center justify-center text-white font-bold shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-display to-primary-hover flex items-center justify-center text-white font-bold shadow-md">
               <School size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-[#2B2B2B] leading-tight m-0">Bacong Daycare</h3>
-              <p className="text-[10px] font-semibold text-[#247571] uppercase tracking-wider m-0">
+              <h3 className="text-sm font-extrabold text-ink leading-tight m-0">Bacong Daycare</h3>
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider m-0">
                 {currentConfig.badge}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] transition-all border-none bg-transparent cursor-pointer"
+            className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink transition-all border-none bg-transparent cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -122,7 +122,7 @@ export default function MobileNav({
 
         {/* Navigation Section */}
         <div className="space-y-1.5 flex-1">
-          <div className="text-[10px] font-extrabold text-[#707070] uppercase tracking-wider px-3 mb-2">
+          <div className="text-[10px] font-extrabold text-ink-subtle uppercase tracking-wider px-3 mb-2">
             Navigation Menu
           </div>
           {currentConfig.items.map((item) => {
@@ -137,11 +137,11 @@ export default function MobileNav({
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left border-none cursor-pointer ${
                   isActive
-                    ? 'bg-[#247571] text-white shadow-md'
-                    : 'bg-transparent text-[#4A4A4A] hover:bg-[#FAF8F5]'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-transparent text-ink-soft hover:bg-canvas'
                 }`}
               >
-                <Icon size={18} className={isActive ? 'text-white' : 'text-[#6B6B6B]'} />
+                <Icon size={18} className={isActive ? 'text-white' : 'text-ink-muted'} />
                 <span>{item.label}</span>
               </button>
             );
@@ -151,8 +151,8 @@ export default function MobileNav({
 
 
         {/* Footer info */}
-        <div className="border-t border-[#E6E4DF] pt-4 text-center">
-          <p className="text-[10px] font-semibold text-[#707070] m-0">
+        <div className="border-t border-line pt-4 text-center">
+          <p className="text-[10px] font-semibold text-ink-subtle m-0">
             Barangay Bacong Daycare v1.0 • RA 10173 Compliant
           </p>
         </div>

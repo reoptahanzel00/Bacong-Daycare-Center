@@ -72,33 +72,33 @@ export default function Header({
       case 'barangay_admin':
         return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       case 'parent':
-        return 'bg-[#FFEBEE] text-[#D96B4D] border-[#FFCDD2]';
+        return 'bg-danger-light text-danger border-danger-border';
       case 'worker':
       default:
-        return 'bg-[#EBF5F4] text-[#247571] border-[#2F8F8A]/30';
+        return 'bg-primary-light text-primary border-primary-display/30';
     }
   };
 
   return (
-    <header className="header-bar bg-white/90 backdrop-blur-md border-b border-[#E6E4DF] px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-sm relative">
+    <header className="header-bar bg-white/90 backdrop-blur-md border-b border-line px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-sm relative">
       <div className="flex items-center gap-3.5">
         {onOpenMobileNav && (
           <button
             onClick={onOpenMobileNav}
-            className="lg:hidden p-2 rounded-xl text-[#2B2B2B] hover:bg-[#FAF8F5] transition-all border-none bg-transparent cursor-pointer"
+            className="lg:hidden p-2 rounded-xl text-ink hover:bg-canvas transition-all border-none bg-transparent cursor-pointer"
             aria-label="Open Mobile Navigation"
           >
             <Menu size={22} />
           </button>
         )}
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] flex items-center justify-center color-white shadow-md text-white shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-display to-primary-hover flex items-center justify-center color-white shadow-md text-white shrink-0">
           <School size={22} />
         </div>
         <div>
-          <h2 className="text-sm sm:text-lg font-bold text-[#2B2B2B] leading-tight m-0 truncate max-w-[180px] sm:max-w-none">
+          <h2 className="text-sm sm:text-lg font-bold text-ink leading-tight m-0 truncate max-w-[180px] sm:max-w-none">
             Barangay Bacong Daycare Center
           </h2>
-          <span className="text-[10px] sm:text-xs text-[#6B6B6B] font-medium hidden sm:block" suppressHydrationWarning>
+          <span className="text-[10px] sm:text-xs text-ink-muted font-medium hidden sm:block" suppressHydrationWarning>
             Student Progress & Enrollment Tracker • {currentDateStr}
           </span>
         </div>
@@ -110,9 +110,10 @@ export default function Header({
           <input
             type="text"
             placeholder="Search pupils or records..."
+            aria-label="Search pupils or records"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-full border border-[#E6E4DF] bg-[#FAF8F5] text-xs focus:outline-none focus:border-[#2F8F8A]"
+            className="w-full pl-9 pr-4 py-2 rounded-full border border-line bg-canvas text-xs focus:outline-none focus:border-primary-display"
             suppressHydrationWarning
           />
         </div>
@@ -129,12 +130,12 @@ export default function Header({
         {/* Notification Bell */}
         <div
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          className="relative cursor-pointer p-2 rounded-xl bg-[#FAF8F5] hover:bg-[#EAE6DF] transition-all border border-[#E6E4DF]"
+          className="relative cursor-pointer p-2 rounded-xl bg-canvas hover:bg-line-strong transition-all border border-line"
           title="Notifications"
         >
-          <Bell size={18} className="text-[#6B6B6B]" />
+          <Bell size={18} className="text-ink-muted" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-[#B84324] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+            <span className="absolute -top-1 -right-1 bg-accent-coral-strong text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
               {unreadCount}
             </span>
           )}

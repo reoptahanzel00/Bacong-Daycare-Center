@@ -13,7 +13,6 @@ import {
   Megaphone,
   Eye,
   BellRing,
-  Sparkles,
   BookOpen,
   MessageSquare,
   Activity,
@@ -415,15 +414,9 @@ export default function WorkerView({
     <div className="space-y-6 pb-12" suppressHydrationWarning>
       
       {/* Top Banner Action Bar */}
-      <div className="card bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] text-white p-6 rounded-3xl shadow-lg">
+      <div className="card bg-gradient-to-br from-primary-display to-primary-hover text-white p-6 rounded-3xl shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles size={18} className="text-[#F5B942]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#F5B942]">
-                Lead Daycare Worker Workspace
-              </span>
-            </div>
             <h2 className="text-xl md:text-2xl font-extrabold text-white m-0 tracking-tight">
               Barangay Bacong ECCD Daily Operations
             </h2>
@@ -435,7 +428,7 @@ export default function WorkerView({
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={onOpenPupilModal}
-              className="btn btn-secondary btn-sm bg-white text-[#247571] font-bold border-none"
+              className="btn btn-secondary btn-sm bg-white text-primary font-bold border-none"
               suppressHydrationWarning
             >
               <Plus size={16} />
@@ -456,16 +449,16 @@ export default function WorkerView({
       {/* 1. Daily Register View */}
       {(activeTab === 'dashboard' || activeTab === 'register') && (
         <>
-          <div className="card bg-[#FEF8EC] border border-[#F5DAA0] p-4">
+          <div className="card bg-warn-light border border-warn-border p-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#F5B942] text-[#8A5D00] flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-warn-fill text-warn flex items-center justify-center font-bold shrink-0">
                   <BellRing size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-[#8A5D00] m-0">Daily Attendance Register • {selectedDate}</h4>
-                  <div className="text-xs text-[#6B6B6B] mt-0.5">
-                    <strong className="text-[#247571]">{presentCount} Present</strong> • {lateCount} Late • {absentCount} Absent Today
+                  <h4 className="text-sm font-bold text-warn m-0">Daily Attendance Register • {selectedDate}</h4>
+                  <div className="text-xs text-ink-muted mt-0.5">
+                    <strong className="text-primary">{presentCount} Present</strong> • {lateCount} Late • {absentCount} Absent Today
                   </div>
                 </div>
               </div>
@@ -481,13 +474,14 @@ export default function WorkerView({
                 </button>
                 <input
                   type="date"
+                  aria-label="Attendance register date"
                   value={selectedDate}
                   onChange={(e) => {
                     setSelectedDate(e.target.value);
                     // Reset the edit overlay so the register reflects saved records.
                     setDailyAttendanceState({});
                   }}
-                  className="px-3 py-1.5 rounded-full border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none"
+                  className="px-3 py-1.5 rounded-full border border-line bg-white text-xs font-semibold focus:outline-none"
                   suppressHydrationWarning
                 />
                 <button
@@ -506,8 +500,8 @@ export default function WorkerView({
             <div className="card bg-white p-5 lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-[#2B2B2B] m-0">Daily Register Checklist</h3>
-                  <span className="text-xs text-[#6B6B6B]">Segmented status toggles for day log</span>
+                  <h3 className="text-base font-bold text-ink m-0">Daily Register Checklist</h3>
+                  <span className="text-xs text-ink-muted">Segmented status toggles for day log</span>
                 </div>
               </div>
 
@@ -529,12 +523,12 @@ export default function WorkerView({
                             <div className="flex items-center gap-2.5">
                               <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover shrink-0" />
                               <div>
-                                <div className="font-bold text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</div>
-                                <span className="text-[10px] text-[#707070]">{pupil.id}</span>
+                                <div className="font-bold text-ink">{pupil.firstName} {pupil.lastName}</div>
+                                <span className="text-[10px] text-ink-subtle">{pupil.id}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="text-xs text-[#6B6B6B]">{pupil.guardian?.fullName}</td>
+                          <td className="text-xs text-ink-muted">{pupil.guardian?.fullName}</td>
                           <td>
                             <div className="segmented-control">
                               <button
@@ -570,7 +564,7 @@ export default function WorkerView({
 
             <div className="card bg-white p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-[#2B2B2B] m-0">Daycare Notices</h3>
+                <h3 className="text-sm font-bold text-ink m-0">Daycare Notices</h3>
                 <button
                   onClick={onOpenAnnouncementModal}
                   className="btn btn-secondary btn-sm text-[11px] py-1 px-2.5"
@@ -582,12 +576,12 @@ export default function WorkerView({
 
               <div className="space-y-3">
                 {announcements.slice(0, 4).map((item) => (
-                  <div key={item.id} className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF] text-xs">
+                  <div key={item.id} className="p-3 rounded-2xl bg-canvas border border-line text-xs">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-[#247571] truncate">{item.title}</span>
-                      <span className="text-[10px] text-[#707070] shrink-0">{item.date}</span>
+                      <span className="font-bold text-primary truncate">{item.title}</span>
+                      <span className="text-[10px] text-ink-subtle shrink-0">{item.date}</span>
                     </div>
-                    <p className="text-[#4A4A4A] text-[11px] leading-relaxed m-0">{item.content}</p>
+                    <p className="text-ink-soft text-[11px] leading-relaxed m-0">{item.content}</p>
                   </div>
                 ))}
               </div>
@@ -601,8 +595,8 @@ export default function WorkerView({
         <div className="card bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">Enrolled Pupil Roster</h3>
-              <span className="text-xs text-[#6B6B6B]">Showing {filteredEnrolledPupils.length} active daycare pupils</span>
+              <h3 className="text-base font-bold text-ink m-0">Enrolled Pupil Roster</h3>
+              <span className="text-xs text-ink-muted">Showing {filteredEnrolledPupils.length} active daycare pupils</span>
             </div>
             <button onClick={onOpenPupilModal} className="btn btn-primary btn-sm font-bold" suppressHydrationWarning>
               <Plus size={16} />
@@ -612,7 +606,7 @@ export default function WorkerView({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredEnrolledPupils.map((pupil) => (
-              <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-white hover:-translate-y-1 transition-all space-y-3 shadow-sm">
+              <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-white hover:-translate-y-1 transition-all space-y-3 shadow-sm">
                 <div className="flex items-start gap-3">
                   <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={48} height={48} className="w-12 h-12 rounded-2xl object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -620,17 +614,17 @@ export default function WorkerView({
                       <span className="badge badge-primary">{pupil.id}</span>
                       <span className="badge badge-success">Enrolled</span>
                     </div>
-                    <h4 className="text-sm font-bold text-[#2B2B2B] m-0 mt-1 truncate">{pupil.firstName} {pupil.lastName}</h4>
-                    <span className="text-[11px] text-[#6B6B6B]">{pupil.sex} • Born: {pupil.birthDate}</span>
+                    <h4 className="text-sm font-bold text-ink m-0 mt-1 truncate">{pupil.firstName} {pupil.lastName}</h4>
+                    <span className="text-[11px] text-ink-muted">{pupil.sex} • Born: {pupil.birthDate}</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF] text-xs space-y-1">
-                  <div><strong className="text-[#2B2B2B]">Guardian:</strong> {pupil.guardian?.fullName} ({pupil.guardian?.relationship})</div>
-                  <div><strong className="text-[#2B2B2B]">Phone:</strong> {pupil.guardian?.phone}</div>
+                <div className="p-2.5 rounded-2xl bg-canvas border border-line text-xs space-y-1">
+                  <div><strong className="text-ink">Guardian:</strong> {pupil.guardian?.fullName} ({pupil.guardian?.relationship})</div>
+                  <div><strong className="text-ink">Phone:</strong> {pupil.guardian?.phone}</div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF]">
+                <div className="flex items-center justify-between pt-2 border-t border-line">
                   <button
                     onClick={() => setSelectedPupilDetail(pupil)}
                     className="btn btn-secondary btn-sm text-xs"
@@ -643,7 +637,7 @@ export default function WorkerView({
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onEditPupil(pupil)}
-                      className="p-2 rounded-xl text-[#6B6B6B] hover:bg-[#F5F3EF] border-none bg-transparent cursor-pointer"
+                      className="p-2 rounded-xl text-ink-muted hover:bg-[#F5F3EF] border-none bg-transparent cursor-pointer"
                       title="Edit Profile"
                       suppressHydrationWarning
                     >
@@ -651,7 +645,7 @@ export default function WorkerView({
                     </button>
                     <button
                       onClick={() => setArchiveTargetPupil(pupil)}
-                      className="p-2 rounded-xl text-[#C62828] hover:bg-[#FFEBEE] border-none bg-transparent cursor-pointer"
+                      className="p-2 rounded-xl text-danger hover:bg-danger-light border-none bg-transparent cursor-pointer"
                       title="Soft Archive"
                       suppressHydrationWarning
                     >
@@ -670,23 +664,23 @@ export default function WorkerView({
         <div className="card bg-white p-5 space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <ShieldCheck size={18} className="text-[#247571]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+              <ShieldCheck size={18} className="text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
                 Enrollment Verification
               </span>
             </div>
-            <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">Parent-Submitted Child Profiles</h3>
-            <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+            <h3 className="text-lg font-extrabold text-ink m-0">Parent-Submitted Child Profiles</h3>
+            <p className="text-xs text-ink-muted mt-1 m-0">
               Parents submitted these sociodemographic profiles (ECCD Form Section 1) at account
               creation. Review each one, then approve the enrollment or reject it with a reason.
             </p>
           </div>
 
           {pendingPupils.length === 0 ? (
-            <div className="p-6 rounded-3xl bg-[#EBF5F4] border border-dashed border-[#2F8F8A]/30 text-center">
-              <CheckCircle size={28} className="text-[#247571] mx-auto mb-2" />
-              <p className="text-sm font-bold text-[#247571] m-0">No pending enrollments</p>
-              <p className="text-xs text-[#6B6B6B] m-0 mt-1">
+            <div className="p-6 rounded-3xl bg-primary-light border border-dashed border-primary-display/30 text-center">
+              <CheckCircle size={28} className="text-primary mx-auto mb-2" />
+              <p className="text-sm font-bold text-primary m-0">No pending enrollments</p>
+              <p className="text-xs text-ink-muted m-0 mt-1">
                 New parent-submitted profiles will appear here for verification.
               </p>
             </div>
@@ -695,7 +689,7 @@ export default function WorkerView({
               {pendingPupils.map((pupil) => {
                 const profile = pupil.sociodemographic;
                 return (
-                  <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
+                  <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <Image
@@ -710,10 +704,10 @@ export default function WorkerView({
                             <span className="badge badge-warning">{pupil.id}</span>
                             <span className="badge badge-primary">Pending</span>
                           </div>
-                          <h4 className="text-sm font-bold text-[#2B2B2B] m-0 mt-1">
+                          <h4 className="text-sm font-bold text-ink m-0 mt-1">
                             {pupil.firstName} {pupil.lastName}
                           </h4>
-                          <span className="text-[11px] text-[#6B6B6B]">
+                          <span className="text-[11px] text-ink-muted">
                             {pupil.sex} • Born: {pupil.birthDate} • Submitted {pupil.enrollmentDate || 'recently'}
                           </span>
                         </div>
@@ -729,7 +723,7 @@ export default function WorkerView({
                         </button>
                         <button
                           onClick={() => openVerifyModal(pupil, 'reject')}
-                          className="btn btn-secondary btn-sm font-bold text-[#C62828]"
+                          className="btn btn-secondary btn-sm font-bold text-danger"
                           suppressHydrationWarning
                         >
                           <X size={14} />
@@ -739,25 +733,25 @@ export default function WorkerView({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] space-y-1">
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571]">Guardian</div>
-                        <div><strong className="text-[#2B2B2B]">Name:</strong> {pupil.guardian?.fullName || '—'} ({pupil.guardian?.relationship || '—'})</div>
-                        <div><strong className="text-[#2B2B2B]">Phone:</strong> {pupil.guardian?.phone || '—'}</div>
-                        <div><strong className="text-[#2B2B2B]">Address:</strong> {pupil.address || '—'}</div>
+                      <div className="p-3 rounded-2xl bg-white border border-line space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary">Guardian</div>
+                        <div><strong className="text-ink">Name:</strong> {pupil.guardian?.fullName || '—'} ({pupil.guardian?.relationship || '—'})</div>
+                        <div><strong className="text-ink">Phone:</strong> {pupil.guardian?.phone || '—'}</div>
+                        <div><strong className="text-ink">Address:</strong> {pupil.address || '—'}</div>
                       </div>
-                      <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] space-y-1">
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571]">Sociodemographic Profile</div>
+                      <div className="p-3 rounded-2xl bg-white border border-line space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary">Sociodemographic Profile</div>
                         <div>
-                          <strong className="text-[#2B2B2B]">Handedness:</strong>{' '}
+                          <strong className="text-ink">Handedness:</strong>{' '}
                           {profile?.handedness ? profile.handedness.replace(/_/g, ' ') : '—'}
                         </div>
                         <div>
-                          <strong className="text-[#2B2B2B]">Currently studying:</strong>{' '}
+                          <strong className="text-ink">Currently studying:</strong>{' '}
                           {profile?.currently_studying ? 'Yes' : 'No'}
                           {profile?.currently_studying && profile?.school_name ? ` — ${profile.school_name}` : ''}
                         </div>
                         <div>
-                          <strong className="text-[#2B2B2B]">Address parts:</strong>{' '}
+                          <strong className="text-ink">Address parts:</strong>{' '}
                           {[profile?.barangay, profile?.municipality, profile?.province, profile?.region]
                             .filter(Boolean)
                             .join(', ') || '—'}
@@ -766,8 +760,8 @@ export default function WorkerView({
                     </div>
 
                     <details className="text-[11px]">
-                      <summary className="cursor-pointer font-bold text-[#247571]">Parent &amp; sibling details</summary>
-                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-[#4A4A4A]">
+                      <summary className="cursor-pointer font-bold text-primary">Parent &amp; sibling details</summary>
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink-soft">
                         <div><strong>Father:</strong> {profile?.father_name || '—'}{profile?.father_age ? ` (${profile.father_age})` : ''}{profile?.father_occupation ? `, ${profile.father_occupation}` : ''}{profile?.father_education ? ` — ${profile.father_education}` : ''}</div>
                         <div><strong>Mother:</strong> {profile?.mother_name || '—'}{profile?.mother_age ? ` (${profile.mother_age})` : ''}{profile?.mother_occupation ? `, ${profile.mother_occupation}` : ''}{profile?.mother_education ? ` — ${profile.mother_education}` : ''}</div>
                         <div><strong>Siblings:</strong> {profile?.siblings_count ?? '—'}</div>
@@ -781,20 +775,20 @@ export default function WorkerView({
           )}
 
           {rejectedPupils.length > 0 && (
-            <div className="pt-2 border-t border-[#E6E4DF]">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#707070] m-0 mb-2">
+            <div className="pt-2 border-t border-line">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-ink-subtle m-0 mb-2">
                 Recently Rejected ({rejectedPupils.length})
               </h4>
               <div className="space-y-2">
                 {rejectedPupils.map((pupil) => (
-                  <div key={pupil.id} className="p-3 rounded-2xl bg-[#FFF7F7] border border-[#FFCDD2] text-xs">
+                  <div key={pupil.id} className="p-3 rounded-2xl bg-[#FFF7F7] border border-danger-border text-xs">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle size={14} className="text-[#C62828] shrink-0" />
-                      <strong className="text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</strong>
+                      <AlertTriangle size={14} className="text-danger shrink-0" />
+                      <strong className="text-ink">{pupil.firstName} {pupil.lastName}</strong>
                       <span className="badge badge-danger">Rejected</span>
                     </div>
                     {pupil.rejectionReason && (
-                      <p className="text-[11px] text-[#6B6B6B] m-0 mt-1">Reason: {pupil.rejectionReason}</p>
+                      <p className="text-[11px] text-ink-muted m-0 mt-1">Reason: {pupil.rejectionReason}</p>
                     )}
                   </div>
                 ))}
@@ -810,15 +804,15 @@ export default function WorkerView({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <BookOpen size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <BookOpen size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Official ECCD Evaluation Suite
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 {ECCD_TOTAL_ITEMS}-Item Official ECCD Evaluation Checklist
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Check (✓) the skills the pupil demonstrates. Absence is left unchecked.
                 Administered once a year per official DepEd ECCD procedure.
               </p>
@@ -826,7 +820,7 @@ export default function WorkerView({
 
             <div className="flex flex-col items-end gap-2 shrink-0">
               {/* Evaluation Round Selector */}
-              <div className="flex items-center gap-1.5 p-1.5 bg-[#FAF8F5] border border-[#E6E4DF] rounded-2xl">
+              <div className="flex items-center gap-1.5 p-1.5 bg-canvas border border-line rounded-2xl">
                 {([1, 2, 3] as EccdRound[]).map((round) => (
                   <button
                     key={round}
@@ -834,8 +828,8 @@ export default function WorkerView({
                     onClick={() => setSelectedRound(round)}
                     className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
                       selectedRound === round
-                        ? 'bg-[#247571] text-white shadow-sm'
-                        : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-ink-muted hover:text-ink'
                     }`}
                     suppressHydrationWarning
                   >
@@ -860,13 +854,13 @@ export default function WorkerView({
                   onClick={() => setSelectedDomainId(dom.id)}
                   className={`px-3 py-1.5 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none shrink-0 flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-[#247571] text-white shadow-sm'
-                      : 'bg-[#FAF8F5] text-[#6B6B6B] hover:bg-[#EAE6DF]'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-canvas text-ink-muted hover:bg-line-strong'
                   }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dom.color }}></span>
                   <span>{dom.shortLabel}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#EAE6DF] text-[#6B6B6B]'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-line-strong text-ink-muted'}`}>
                     {dom.items.length}
                   </span>
                 </button>
@@ -877,13 +871,13 @@ export default function WorkerView({
           {/* Active Evaluation Roster */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-sm font-bold text-[#2B2B2B] m-0">
+              <h4 className="text-sm font-bold text-ink m-0">
                 {activeDomain.label} ({activeDomain.items.length} Items)
-                <span className="ml-2 text-[11px] font-semibold text-[#707070]">
+                <span className="ml-2 text-[11px] font-semibold text-ink-subtle">
                   Round {selectedRound === 1 ? '1st' : selectedRound === 2 ? '2nd' : '3rd'} Assessment
                 </span>
               </h4>
-              <span className="text-[11px] text-[#707070] font-semibold">
+              <span className="text-[11px] text-ink-subtle font-semibold">
                 Tap ✓ when the child demonstrates the skill
               </span>
             </div>
@@ -893,13 +887,13 @@ export default function WorkerView({
               const totalRated = Object.values(pupilRatings).filter(Boolean).length;
               const scaled = eccdScores[pupil.id]?.[activeDomain.id]?.scaled ?? '';
               return (
-                <div key={pupil.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
+                <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
                       <div>
-                        <div className="font-bold text-[#2B2B2B] text-sm">{pupil.firstName} {pupil.lastName}</div>
-                        <span className="text-[10px] text-[#707070]">{pupil.id} • Room A</span>
+                        <div className="font-bold text-ink text-sm">{pupil.firstName} {pupil.lastName}</div>
+                        <span className="text-[10px] text-ink-subtle">{pupil.id} • Room A</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -936,13 +930,13 @@ export default function WorkerView({
                   </div>
 
                   {/* Raw / Scaled score row for the active domain */}
-                  <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-[#E6E4DF] text-xs">
-                    <span className="font-bold text-[#247571]">
+                  <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-white border border-line text-xs">
+                    <span className="font-bold text-primary">
                       Raw Score: {domainRaw}/{activeDomain.items.length}
                     </span>
-                    <span className="text-[#707070]">•</span>
-                    <label className="text-[#6B6B6B] font-semibold">Scaled Score:</label>
-                    <input
+                    <span className="text-ink-subtle">•</span>
+                    <label htmlFor="srcviewsworkerview-scaled-score-1" className="text-ink-muted font-semibold">Scaled Score:</label>
+                    <input id="srcviewsworkerview-scaled-score-1"
                       type="number"
                       min={0}
                       max={19}
@@ -958,7 +952,7 @@ export default function WorkerView({
                         }));
                       }}
                       placeholder="1–19"
-                      className="w-16 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
+                      className="w-16 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
                     />
                   </div>
 
@@ -967,8 +961,8 @@ export default function WorkerView({
                       {activeDomain.items.map((item) => {
                         const present = !!pupilRatings[item.id];
                         return (
-                          <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between gap-2">
-                            <span className="text-[11px] text-[#2B2B2B] font-semibold truncate flex-1" title={item.procedure || item.description}>
+                          <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-line flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-ink font-semibold truncate flex-1" title={item.procedure || item.description}>
                               {item.number}. {item.description}
                             </span>
                             <button
@@ -994,8 +988,8 @@ export default function WorkerView({
           </div>
 
           {/* Official Interpretation Reference */}
-          <div className="p-4 rounded-2xl bg-[#FEF8EC] border border-[#F5DAA0] text-[11px] space-y-2">
-            <div className="font-bold text-[#8A5D00]">Official Interpretation of Scaled Scores</div>
+          <div className="p-4 rounded-2xl bg-warn-light border border-warn-border text-[11px] space-y-2">
+            <div className="font-bold text-warn">Official Interpretation of Scaled Scores</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {[
                 ['1–3', 'Development must be monitored after 3 months'],
@@ -1004,13 +998,13 @@ export default function WorkerView({
                 ['14–16', 'Slightly advanced development'],
                 ['17–19', 'Highly advanced development'],
               ].map(([range, meaning]) => (
-                <div key={range} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-[#F5DAA0] px-3 py-1.5">
-                  <span className="font-extrabold text-[#8A5D00]">{range}</span>
-                  <span className="text-[#6B6B6B]">{meaning}</span>
+                <div key={range} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-warn-border px-3 py-1.5">
+                  <span className="font-extrabold text-warn">{range}</span>
+                  <span className="text-ink-muted">{meaning}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-[#707070] m-0 pt-1">
+            <p className="text-[10px] text-ink-subtle m-0 pt-1">
               Raw Score = number of ✓ items. Scaled Score is entered manually from the official
               raw-to-scaled conversion tables (age-based). Standard Score conversion is a future step.
             </p>
@@ -1024,15 +1018,15 @@ export default function WorkerView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <MessageSquare size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <MessageSquare size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Guardian Communication Portal
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Parent Absence Notes Inbox
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Review and acknowledge absence excusal notes submitted by parents.
               </p>
             </div>
@@ -1041,15 +1035,15 @@ export default function WorkerView({
 
           <div className="space-y-3">
             {inboxNotes.map((note) => (
-              <div key={note.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+              <div key={note.id} className="p-4 rounded-3xl border border-line bg-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#2B2B2B] text-sm">{note.pupilName} ({note.pupilId})</span>
+                    <span className="font-bold text-ink text-sm">{note.pupilName} ({note.pupilId})</span>
                     <span className="badge badge-warning text-[10px]">{note.date}</span>
                     <span className="badge badge-primary text-[10px]">{note.reason}</span>
                   </div>
-                  <p className="text-[#4A4A4A] leading-relaxed m-0 text-xs">{note.notes}</p>
-                  <span className="text-[10px] text-[#707070]">Submitted: {note.submittedAt} • Phone: {note.phone}</span>
+                  <p className="text-ink-soft leading-relaxed m-0 text-xs">{note.notes}</p>
+                  <span className="text-[10px] text-ink-subtle">Submitted: {note.submittedAt} • Phone: {note.phone}</span>
                 </div>
 
                 <div className="shrink-0">
@@ -1080,15 +1074,15 @@ export default function WorkerView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Activity size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <Activity size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Early Childhood Health Telemetry
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Pupil Nutritional & Growth Telemetry Entry
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Record height (cm) and weight (kg) measurements for DSWD Form 1 nutritional status tracking.
               </p>
             </div>
@@ -1111,7 +1105,7 @@ export default function WorkerView({
                   const draft = healthDrafts[pupil.id] || saved || { weight: '', height: '' };
                   return (
                     <tr key={pupil.id}>
-                      <td className="font-bold text-[#2B2B2B]">{pupil.firstName} {pupil.lastName}</td>
+                      <td className="font-bold text-ink">{pupil.firstName} {pupil.lastName}</td>
                       <td>
                         <input
                           type="text"
@@ -1121,7 +1115,7 @@ export default function WorkerView({
                             [pupil.id]: { weight: e.target.value, height: draft.height },
                           }))}
                           placeholder="kg"
-                          className="w-20 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
+                          className="w-20 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
                         />
                       </td>
                       <td>
@@ -1133,7 +1127,7 @@ export default function WorkerView({
                             [pupil.id]: { weight: draft.weight, height: e.target.value },
                           }))}
                           placeholder="cm"
-                          className="w-20 px-2 py-1 rounded-xl border border-[#E6E4DF] text-xs font-semibold"
+                          className="w-20 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
                         />
                       </td>
                       <td>
@@ -1166,8 +1160,8 @@ export default function WorkerView({
         <div className="card bg-white p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">Daycare Notices & Broadcast Feed</h3>
-              <span className="text-xs text-[#6B6B6B]">Broadcast official daycare notices to parent portal</span>
+              <h3 className="text-base font-bold text-ink m-0">Daycare Notices & Broadcast Feed</h3>
+              <span className="text-xs text-ink-muted">Broadcast official daycare notices to parent portal</span>
             </div>
             <button onClick={onOpenAnnouncementModal} className="btn btn-primary btn-sm font-bold" suppressHydrationWarning>
               <Megaphone size={16} />
@@ -1177,14 +1171,14 @@ export default function WorkerView({
 
           <div className="space-y-3.5">
             {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#247571]">{notice.title}</span>
-                  <span className="text-[11px] text-[#707070]">{notice.date}</span>
+                  <span className="font-bold text-primary">{notice.title}</span>
+                  <span className="text-[11px] text-ink-subtle">{notice.date}</span>
                 </div>
-                <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
+                <p className="text-xs text-ink-soft leading-relaxed m-0">{notice.content}</p>
                 {notice.authorName && (
-                  <div className="text-[10px] text-[#707070] font-semibold">Posted by {notice.authorName}</div>
+                  <div className="text-[10px] text-ink-subtle font-semibold">Posted by {notice.authorName}</div>
                 )}
               </div>
             ))}
@@ -1232,26 +1226,26 @@ export default function WorkerView({
       {/* Verify Enrollment Confirmation */}
       {isVerifyModalOpen && verifyPupilRecord && verifyAction && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn" suppressHydrationWarning>
-          <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-md p-6 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-md p-6 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${
-                  verifyAction === 'approve' ? 'bg-[#EBF5F4] text-[#247571]' : 'bg-[#FFEBEE] text-[#C62828]'
+                  verifyAction === 'approve' ? 'bg-primary-light text-primary' : 'bg-danger-light text-danger'
                 }`}>
                   {verifyAction === 'approve' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">
+                  <h3 className="text-base font-extrabold text-ink m-0">
                     {verifyAction === 'approve' ? 'Approve enrollment?' : 'Reject enrollment?'}
                   </h3>
-                  <p className="text-xs text-[#6B6B6B] m-0">
+                  <p className="text-xs text-ink-muted m-0">
                     {verifyPupilRecord.firstName} {verifyPupilRecord.lastName} ({verifyPupilRecord.id})
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
-                className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+                className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
                 suppressHydrationWarning
               >
                 <X size={20} />
@@ -1259,31 +1253,31 @@ export default function WorkerView({
             </div>
 
             {verifyAction === 'approve' ? (
-              <p className="text-xs text-[#4A4A4A] leading-relaxed m-0 bg-[#EBF5F4] border border-[#B7DDDA] rounded-2xl p-3">
+              <p className="text-xs text-ink-soft leading-relaxed m-0 bg-primary-light border border-[#B7DDDA] rounded-2xl p-3">
                 The child becomes <strong>enrolled</strong> and the parent is notified. Their
                 sociodemographic profile stays attached to the pupil record.
               </p>
             ) : (
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-[#2B2B2B]">Reason for rejection *</label>
-                <textarea
+                <label htmlFor="srcviewsworkerview-reason-for-rejection-2" className="block text-xs font-bold text-ink">Reason for rejection *</label>
+                <textarea id="srcviewsworkerview-reason-for-rejection-2"
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={3}
                   maxLength={500}
                   placeholder="e.g. Missing birth certificate; please contact the daycare to complete the profile."
-                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-sm text-[#2B2B2B] outline-none focus:border-[#D32F2F] focus:ring-2 focus:ring-[#D32F2F]/20 transition-all resize-y"
+                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-canvas text-sm text-ink outline-none focus:border-danger focus:ring-2 focus:ring-danger/20 transition-all resize-y"
                 />
-                <p className="text-[10px] text-[#707070] m-0">
+                <p className="text-[10px] text-ink-subtle m-0">
                   The parent will see this reason in their portal.
                 </p>
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#E6E4DF]">
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-line">
               <button
                 onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
-                className="px-4 py-2 rounded-2xl text-xs font-bold text-[#6B6B6B] bg-[#FAF8F5] hover:bg-[#EAE6DF] border-none cursor-pointer transition-all"
+                className="px-4 py-2 rounded-2xl text-xs font-bold text-ink-muted bg-canvas hover:bg-line-strong border-none cursor-pointer transition-all"
                 suppressHydrationWarning
               >
                 Cancel
@@ -1292,8 +1286,8 @@ export default function WorkerView({
                 onClick={handleVerify}
                 className={`px-4 py-2 rounded-2xl text-xs font-bold text-white border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5 ${
                   verifyAction === 'approve'
-                    ? 'bg-[#247571] hover:bg-[#1D605D]'
-                    : 'bg-[#D32F2F] hover:bg-[#B71C1C]'
+                    ? 'bg-primary hover:bg-primary-hover'
+                    : 'bg-danger hover:bg-[#B71C1C]'
                 }`}
                 suppressHydrationWarning
               >

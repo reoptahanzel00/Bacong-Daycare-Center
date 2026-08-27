@@ -78,39 +78,39 @@ export default function ChildBackgroundModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-xl p-6 space-y-5 animate-scaleUp">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-xl p-6 space-y-5 animate-scaleUp">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+        <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-primary-light text-primary flex items-center justify-center font-bold shrink-0">
               <BookOpen size={20} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-base font-extrabold text-ink m-0">
                 Child & Family Background
               </h3>
-              <p className="text-xs text-[#6B6B6B] m-0">
+              <p className="text-xs text-ink-muted m-0">
                 ECCD Form Section 2{childName ? ` — ${childName}` : ''} • Official DepEd checklist record
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-[11px] text-[#6B6B6B] leading-relaxed m-0 bg-[#FEF8EC] border border-[#F5DAA0] rounded-2xl p-3">
+        <p className="text-[11px] text-ink-muted leading-relaxed m-0 bg-warn-light border border-warn-border rounded-2xl p-3">
           To the examiner: please fill out the spaces below for additional information.
           Write down your notes, descriptions and observations on the following points.
         </p>
 
         {error && (
-          <div className="flex items-center gap-2 text-xs font-bold text-[#C62828] bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl px-3 py-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-danger bg-danger-light border border-danger-border rounded-2xl px-3 py-2">
             <AlertCircle size={14} />
             {error}
           </div>
@@ -119,30 +119,30 @@ export default function ChildBackgroundModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {FIELDS.map((field) => (
             <div key={field.key} className="space-y-1.5">
-              <label className="text-xs font-bold text-[#2B2B2B] block">{field.label}</label>
-              <textarea
+              <label htmlFor="srccomponentschildbackgroundmodal-field-1" className="text-xs font-bold text-ink block">{field.label}</label>
+              <textarea id="srccomponentschildbackgroundmodal-field-1"
                 value={formData[field.key]}
                 onChange={(e) => setFormData((prev) => ({ ...prev, [field.key]: e.target.value }))}
                 placeholder={field.placeholder}
                 rows={field.key === 'others' ? 2 : 3}
                 maxLength={2000}
-                className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-sm text-[#2B2B2B] outline-none focus:border-[#2F8F8A] focus:ring-2 focus:ring-[#2F8F8A]/20 transition-all resize-y"
+                className="w-full px-3 py-2.5 rounded-2xl border border-line bg-canvas text-sm text-ink outline-none focus:border-primary-display focus:ring-2 focus:ring-primary-display/20 transition-all resize-y"
               />
             </div>
           ))}
 
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#E6E4DF]">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-line">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-2xl text-xs font-bold text-[#6B6B6B] bg-[#FAF8F5] hover:bg-[#EAE6DF] border-none cursor-pointer transition-all"
+              className="px-4 py-2 rounded-2xl text-xs font-bold text-ink-muted bg-canvas hover:bg-line-strong border-none cursor-pointer transition-all"
               suppressHydrationWarning
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-2xl text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+              className="px-4 py-2 rounded-2xl text-xs font-bold text-white bg-primary hover:bg-primary-hover border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5"
               suppressHydrationWarning
             >
               <Save size={14} />

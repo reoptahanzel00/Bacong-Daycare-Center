@@ -29,7 +29,7 @@ export default function OfflineIndicator() {
 
   return (
     <div
-      className="fixed bottom-4 left-4 z-[2100] flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#2B2B2B] text-white text-xs font-bold shadow-lg"
+      className="fixed bottom-4 left-4 z-[2100] flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-xs font-bold shadow-lg"
       role="status"
       suppressHydrationWarning
     >

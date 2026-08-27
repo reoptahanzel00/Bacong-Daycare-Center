@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  ShieldCheck, 
   Key, 
   Plus, 
   Link2,
@@ -79,15 +78,9 @@ export default function AdminView({
     <div className="space-y-6" suppressHydrationWarning>
       
       {/* Admin Hero Banner */}
-      <div className="card bg-gradient-to-br from-[#6366F1] via-[#4F46E5] to-[#2F8F8A] text-white p-6 rounded-3xl shadow-lg">
+      <div className="card bg-gradient-to-br from-[#6366F1] via-[#4F46E5] to-primary-display text-white p-6 rounded-3xl shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <ShieldCheck size={18} className="text-white" />
-              <span className="text-xs font-bold uppercase tracking-wider text-white/90">
-                System Governance & Data Privacy Compliance
-              </span>
-            </div>
             <h1 className="text-xl md:text-2xl font-extrabold text-white m-0 tracking-tight">
               Barangay Admin Governance & RLS Audit Hub 🛡️
             </h1>
@@ -119,10 +112,10 @@ export default function AdminView({
       {/* TAB 1: User Account Provisioning */}
       {(activeTab === 'users' || activeTab === 'overview' || activeTab === 'user_management') && (
         <div className="card bg-white p-5 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6E4DF] pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-line pb-4">
             <div>
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">System User Accounts ({users.length})</h3>
-              <span className="text-xs text-[#6B6B6B]">Managed accounts with Row-Level Security permissions</span>
+              <h3 className="text-base font-bold text-ink m-0">System User Accounts ({users.length})</h3>
+              <span className="text-xs text-ink-muted">Managed accounts with Row-Level Security permissions</span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -131,17 +124,19 @@ export default function AdminView({
                 <input
                   type="text"
                   placeholder="Search name or email..."
+                  aria-label="Search accounts by name or email"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 rounded-full border border-[#E6E4DF] bg-[#FAF8F5] text-xs focus:outline-none focus:border-[#2F8F8A] w-44"
+                  className="pl-8 pr-3 py-1.5 rounded-full border border-line bg-canvas text-xs focus:outline-none focus:border-primary-display w-44"
                   suppressHydrationWarning
                 />
               </div>
-              <span className="font-bold text-[#6B6B6B] text-xs">Role:</span>
+              <span className="font-bold text-ink-muted text-xs">Role:</span>
               <select
+                aria-label="Filter accounts by role"
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
-                className="px-3 py-1.5 rounded-full border border-[#E6E4DF] bg-[#FAF8F5] text-xs font-semibold focus:outline-none"
+                className="px-3 py-1.5 rounded-full border border-line bg-canvas text-xs font-semibold focus:outline-none"
                 suppressHydrationWarning
               >
                 <option value="all">All System Roles</option>
@@ -167,8 +162,8 @@ export default function AdminView({
               <tbody>
                 {filteredUsers.map((u) => (
                   <tr key={u.id}>
-                    <td className="font-bold text-[#2B2B2B]">{u.fullName || u.name}</td>
-                    <td className="text-[#6B6B6B]">{u.email}</td>
+                    <td className="font-bold text-ink">{u.fullName || u.name}</td>
+                    <td className="text-ink-muted">{u.email}</td>
                     <td>
                       <span className="badge badge-primary">{u.role.replace('_', ' ')}</span>
                     </td>
@@ -188,7 +183,7 @@ export default function AdminView({
                           onClick={() => handleResetPassword(u.id, u.email, u.fullName || u.name)}
                           className={`btn btn-sm gap-1.5 transition-all ${
                             resetSent[u.id]
-                              ? 'bg-[#EBF5F4] text-[#247571] border-[#2F8F8A]/30'
+                              ? 'bg-primary-light text-primary border-primary-display/30'
                               : 'btn-secondary'
                           }`}
                           title={resetSent[u.id] ? 'Reset link generated!' : 'Generate password reset link'}
@@ -202,7 +197,7 @@ export default function AdminView({
                             href={resetLinks[u.id]}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[10px] text-[#247571] underline max-w-[180px] truncate"
+                            className="text-[10px] text-primary underline max-w-[180px] truncate"
                             title={resetLinks[u.id]}
                             suppressHydrationWarning
                           >
@@ -223,37 +218,37 @@ export default function AdminView({
       {activeTab === 'audit_logs' && (
         <div className="card bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#247571]">
+            <div className="flex items-center gap-2 text-primary">
               <History size={20} />
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">System Security Audit Log Trail</h3>
+              <h3 className="text-base font-bold text-ink m-0">System Security Audit Log Trail</h3>
             </div>
-            <span className="text-xs text-[#707070]">Real-time mutation telemetry ({auditLogs.length} entries)</span>
+            <span className="text-xs text-ink-subtle">Real-time mutation telemetry ({auditLogs.length} entries)</span>
           </div>
 
           <div className="space-y-2.5 pr-1">
             {paginatedAuditLogs.map((log) => (
-              <div key={log.id} className="p-3 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] flex items-center justify-between text-xs">
+              <div key={log.id} className="p-3 rounded-2xl border border-line bg-canvas flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#247571] border border-[#E6E4DF] flex items-center justify-center font-bold flex-shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-white text-primary border border-line flex items-center justify-center font-bold flex-shrink-0">
                     {log.action.charAt(0)}
                   </div>
                   <div>
-                    <div className="font-bold text-[#2B2B2B]">{log.action}</div>
-                    <div className="text-[#6B6B6B] text-[11px] mt-0.5">{log.details}</div>
-                    <div className="text-[10px] text-[#707070] mt-0.5">{log.userName}</div>
+                    <div className="font-bold text-ink">{log.action}</div>
+                    <div className="text-ink-muted text-[11px] mt-0.5">{log.details}</div>
+                    <div className="text-[10px] text-ink-subtle mt-0.5">{log.userName}</div>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <span className="text-[11px] font-semibold text-[#247571] block">{log.target}</span>
-                  <span className="text-[10px] text-[#707070]">{log.timestamp}</span>
+                  <span className="text-[11px] font-semibold text-primary block">{log.target}</span>
+                  <span className="text-[10px] text-ink-subtle">{log.timestamp}</span>
                 </div>
               </div>
             ))}
           </div>
 
           {totalAuditPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E6E4DF] text-xs">
-              <span className="text-[#707070]">Page {auditPage} of {totalAuditPages} • {auditLogs.length} total entries</span>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line text-xs">
+              <span className="text-ink-subtle">Page {auditPage} of {totalAuditPages} • {auditLogs.length} total entries</span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setAuditPage(p => Math.max(1, p - 1))}
@@ -283,15 +278,15 @@ export default function AdminView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Shield size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <Shield size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Data Privacy Act of 2012 (RA 10173) Audit
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Row-Level Security & Cryptographic Compliance Panel
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Verifying Supabase database RLS policies, encrypted SSR session tokens, and privacy controls.
               </p>
             </div>
@@ -299,48 +294,48 @@ export default function AdminView({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="font-bold text-[#247571]">Row-Level Security (RLS)</span>
-              <div className="font-extrabold text-[#2B2B2B] text-sm">Enforced on PostgreSQL Tables ✅</div>
-              <span className="text-[10px] text-[#707070]">Pupils, Attendance, Progress, Users</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="font-bold text-primary">Row-Level Security (RLS)</span>
+              <div className="font-extrabold text-ink text-sm">Enforced on PostgreSQL Tables ✅</div>
+              <span className="text-[10px] text-ink-subtle">Pupils, Attendance, Progress, Users</span>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
               <span className="font-bold text-[#2B6CB0]">Session JWT Encryption</span>
-              <div className="font-extrabold text-[#2B2B2B] text-sm">HS256 SSR Token Encrypted ✅</div>
-              <span className="text-[10px] text-[#707070]">Next.js Middleware HttpOnly Cookies</span>
+              <div className="font-extrabold text-ink text-sm">HS256 SSR Token Encrypted ✅</div>
+              <span className="text-[10px] text-ink-subtle">Next.js Middleware HttpOnly Cookies</span>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="font-bold text-[#8A5D00]">Database Backup Strategy</span>
-              <div className="font-extrabold text-[#2B2B2B] text-sm">Daily Automated Snapshots ✅</div>
-              <span className="text-[10px] text-[#707070]">Point-in-time recovery active</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="font-bold text-warn">Database Backup Strategy</span>
+              <div className="font-extrabold text-ink text-sm">Daily Automated Snapshots ✅</div>
+              <span className="text-[10px] text-ink-subtle">Point-in-time recovery active</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3 text-xs">
-            <h4 className="text-sm font-bold text-[#2B2B2B] m-0">PostgreSQL RLS Policy Audit Matrix</h4>
+          <div className="p-4 rounded-3xl border border-line bg-canvas space-y-3 text-xs">
+            <h4 className="text-sm font-bold text-ink m-0">PostgreSQL RLS Policy Audit Matrix</h4>
             <div className="space-y-2">
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
                 <div>
-                  <strong className="text-[#2B2B2B]">pupils table RLS</strong>
-                  <div className="text-[11px] text-[#6B6B6B]">Parents restricted to linked child IDs; Workers & Officials read active roster.</div>
+                  <strong className="text-ink">pupils table RLS</strong>
+                  <div className="text-[11px] text-ink-muted">Parents restricted to linked child IDs; Workers & Officials read active roster.</div>
                 </div>
                 <span className="badge badge-success shrink-0">Policy Active ✅</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
                 <div>
-                  <strong className="text-[#2B2B2B]">attendance table RLS</strong>
-                  <div className="text-[11px] text-[#6B6B6B]">Write access restricted to Daycare Worker role (`worker`).</div>
+                  <strong className="text-ink">attendance table RLS</strong>
+                  <div className="text-[11px] text-ink-muted">Write access restricted to Daycare Worker role (`worker`).</div>
                 </div>
                 <span className="badge badge-success shrink-0">Policy Active ✅</span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
                 <div>
-                  <strong className="text-[#2B2B2B]">users table RLS</strong>
-                  <div className="text-[11px] text-[#6B6B6B]">Write access restricted to Barangay Admin role (`barangay_admin`).</div>
+                  <strong className="text-ink">users table RLS</strong>
+                  <div className="text-[11px] text-ink-muted">Write access restricted to Barangay Admin role (`barangay_admin`).</div>
                 </div>
                 <span className="badge badge-success shrink-0">Policy Active ✅</span>
               </div>
@@ -354,20 +349,20 @@ export default function AdminView({
         <div className="card bg-white p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">System Governance & Maintenance Feed</h3>
-              <span className="text-xs text-[#6B6B6B]">System notices broadcasted by Barangay Admin</span>
+              <h3 className="text-base font-bold text-ink m-0">System Governance & Maintenance Feed</h3>
+              <span className="text-xs text-ink-muted">System notices broadcasted by Barangay Admin</span>
             </div>
             <span className="badge badge-primary">System Administration</span>
           </div>
 
           <div className="space-y-3.5">
             {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#247571]">{notice.title}</span>
-                  <span className="text-[11px] text-[#707070]">{notice.date}</span>
+                  <span className="font-bold text-primary">{notice.title}</span>
+                  <span className="text-[11px] text-ink-subtle">{notice.date}</span>
                 </div>
-                <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
+                <p className="text-xs text-ink-soft leading-relaxed m-0">{notice.content}</p>
               </div>
             ))}
           </div>

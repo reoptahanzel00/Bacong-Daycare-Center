@@ -42,24 +42,24 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-lg p-6 space-y-5 animate-scaleUp">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+        <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FEF8EC] text-[#8A5D00] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-warn-light text-warn flex items-center justify-center font-bold shrink-0">
               <Megaphone size={20} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">Publish Daycare Notice</h3>
-              <p className="text-xs text-[#6B6B6B] m-0">
+              <h3 className="text-base font-extrabold text-ink m-0">Publish Daycare Notice</h3>
+              <p className="text-xs text-ink-muted m-0">
                 Broadcast official daycare updates to parent portal
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
@@ -67,7 +67,7 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
         </div>
 
         {error && (
-          <div className="bg-[#FFEBEE] border border-[#FFCDD2] text-[#C62828] p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
+          <div className="bg-danger-light border border-danger-border text-danger p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
             <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -76,10 +76,10 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
         <form onSubmit={handleSubmit} className="space-y-4">
           
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Notice Title *</label>
-            <input
+            <label htmlFor="srccomponentsannouncementmodal-notice-title-1" className="text-xs font-bold text-ink-soft">Notice Title *</label>
+            <input id="srccomponentsannouncementmodal-notice-title-1"
               type="text"
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               placeholder="e.g. Nutrition Month Culminating Activity & Feeding Schedule"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -88,10 +88,10 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Publish Date</label>
-            <input
+            <label htmlFor="srccomponentsannouncementmodal-publish-date-2" className="text-xs font-bold text-ink-soft">Publish Date</label>
+            <input id="srccomponentsannouncementmodal-publish-date-2"
               type="date"
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               suppressHydrationWarning
@@ -99,10 +99,10 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Broadcast Message Body *</label>
-            <textarea
+            <label htmlFor="srccomponentsannouncementmodal-broadcast-message-body-3" className="text-xs font-bold text-ink-soft">Broadcast Message Body *</label>
+            <textarea id="srccomponentsannouncementmodal-broadcast-message-body-3"
               rows={4}
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white resize-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white resize-none"
               placeholder="Provide event details, schedule times, or parent guidelines..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -110,22 +110,22 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
             />
           </div>
 
-          <div className="p-3 rounded-2xl bg-[#EBF5F4] border border-[#2F8F8A]/20 text-[11px] text-[#247571] font-semibold">
+          <div className="p-3 rounded-2xl bg-primary-light border border-primary-display/20 text-[11px] text-primary font-semibold">
             📢 Notice will be immediately broadcasted to all linked parent portal accounts.
           </div>
 
-          <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-line flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#6B6B6B] border border-[#E6E4DF] hover:bg-[#FAF8F5] transition-all cursor-pointer border-none bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-ink-muted border border-line hover:bg-canvas transition-all cursor-pointer border-none bg-transparent"
               suppressHydrationWarning
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
               suppressHydrationWarning
             >
               <Send size={16} />

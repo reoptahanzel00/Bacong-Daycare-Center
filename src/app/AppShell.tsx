@@ -42,7 +42,7 @@ function AppContent() {
   } = useDaycare();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF8F5]" suppressHydrationWarning>
+    <div className="min-h-screen flex flex-col bg-canvas" suppressHydrationWarning>
 
       {/* Full-width sticky header */}
       <Header

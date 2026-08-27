@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${nunito.variable} ${quicksand.variable}`} suppressHydrationWarning>
-      <body className="font-sans bg-[#FAF8F5] text-[#2B2B2B] antialiased" suppressHydrationWarning>
+      <body className="font-sans bg-canvas text-ink antialiased" suppressHydrationWarning>
         {children}
         <ServiceWorkerRegister />
       </body>

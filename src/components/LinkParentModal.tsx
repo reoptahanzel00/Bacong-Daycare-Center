@@ -116,26 +116,26 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-lg p-6 space-y-5 animate-scaleUp">
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
+        <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-primary-light text-primary flex items-center justify-center font-bold shrink-0">
               <Link2 size={20} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">Link Parent Account</h3>
-              <p className="text-xs text-[#6B6B6B] m-0">
+              <h3 className="text-base font-extrabold text-ink m-0">Link Parent Account</h3>
+              <p className="text-xs text-ink-muted m-0">
                 Connect a guardian to their child&apos;s parent login
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all" suppressHydrationWarning>
+          <button onClick={onClose} className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all" suppressHydrationWarning>
             <X size={20} />
           </button>
         </div>
 
         {error && (
-          <div className="bg-[#FFEBEE] border border-[#FFCDD2] text-[#C62828] p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
+          <div className="bg-danger-light border border-danger-border text-danger p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
             <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -144,9 +144,9 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#4A4A4A]">Select Pupil *</label>
-              <select
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              <label htmlFor="srccomponentslinkparentmodal-select-pupil-1" className="text-xs font-bold text-ink-soft">Select Pupil *</label>
+              <select id="srccomponentslinkparentmodal-select-pupil-1"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 value={selectedPupilId}
                 onChange={(e) => {
                   setSelectedPupilId(e.target.value);
@@ -164,9 +164,9 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#4A4A4A]">Guardian *</label>
-              <select
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              <label htmlFor="srccomponentslinkparentmodal-guardian-2" className="text-xs font-bold text-ink-soft">Guardian *</label>
+              <select id="srccomponentslinkparentmodal-guardian-2"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 value={selectedGuardianId}
                 onChange={(e) => setSelectedGuardianId(e.target.value)}
                 disabled={!selectedPupil}
@@ -180,8 +180,8 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF] text-xs flex items-center justify-between">
-            <span className="text-[#6B6B6B]">Current status</span>
+          <div className="p-3 rounded-2xl bg-canvas border border-line text-xs flex items-center justify-between">
+            <span className="text-ink-muted">Current status</span>
             {linkedEmail ? (
               <span className="badge badge-success font-bold">Linked to {linkedEmail}</span>
             ) : (
@@ -193,7 +193,7 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
             <button
               type="button"
               onClick={() => setMode('existing')}
-              className={`flex-1 px-3 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none ${mode === 'existing' ? 'bg-[#247571] text-white shadow-sm' : 'bg-[#FAF8F5] text-[#6B6B6B] hover:bg-[#EAE6DF]'}`}
+              className={`flex-1 px-3 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none ${mode === 'existing' ? 'bg-primary text-white shadow-sm' : 'bg-canvas text-ink-muted hover:bg-line-strong'}`}
               suppressHydrationWarning
             >
               Link Existing Account
@@ -201,7 +201,7 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
             <button
               type="button"
               onClick={() => setMode('create')}
-              className={`flex-1 px-3 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none ${mode === 'create' ? 'bg-[#247571] text-white shadow-sm' : 'bg-[#FAF8F5] text-[#6B6B6B] hover:bg-[#EAE6DF]'}`}
+              className={`flex-1 px-3 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none ${mode === 'create' ? 'bg-primary text-white shadow-sm' : 'bg-canvas text-ink-muted hover:bg-line-strong'}`}
               suppressHydrationWarning
             >
               <UserPlus size={14} className="inline mr-1" />
@@ -210,12 +210,12 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">
+            <label htmlFor="srccomponentslinkparentmodal-field-3" className="text-xs font-bold text-ink-soft">
               {mode === 'existing' ? 'Parent Account Email *' : 'New Parent Email *'}
             </label>
-            <input
+            <input id="srccomponentslinkparentmodal-field-3"
               type="email"
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               placeholder={mode === 'existing' ? 'e.g. parent@bacong.gov.ph' : 'e.g. maria.santos@gmail.com'}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -225,26 +225,26 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
 
           {mode === 'create' && (
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#4A4A4A]">Temporary Password *</label>
-              <input
+              <label htmlFor="srccomponentslinkparentmodal-temporary-password-4" className="text-xs font-bold text-ink-soft">Temporary Password *</label>
+              <input id="srccomponentslinkparentmodal-temporary-password-4"
                 type="text"
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 placeholder="Min 8 chars, with upper, lower & number"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 suppressHydrationWarning
               />
-              <p className="text-[10px] text-[#707070] font-semibold">
+              <p className="text-[10px] text-ink-subtle font-semibold">
                 The guardian logs in with this email and password.
               </p>
             </div>
           )}
 
-          <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-line flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#6B6B6B] border border-[#E6E4DF] hover:bg-[#FAF8F5] transition-all cursor-pointer bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-ink-muted border border-line hover:bg-canvas transition-all cursor-pointer bg-transparent"
               suppressHydrationWarning
             >
               Cancel
@@ -252,7 +252,7 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
               suppressHydrationWarning
             >
               {submitting ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}

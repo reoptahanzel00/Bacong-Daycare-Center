@@ -11,7 +11,6 @@ import {
   Download,
   AlertTriangle,
   BellRing,
-  Shield,
   Utensils,
   CheckCircle,
   PhoneCall,
@@ -105,15 +104,9 @@ export default function OfficialView({
     <div className="space-y-6" suppressHydrationWarning>
       
       {/* Executive Hero Banner */}
-      <div className="card bg-gradient-to-br from-[#1E3A8A] via-[#1D605D] to-[#2F8F8A] text-white p-6 rounded-3xl shadow-lg">
+      <div className="card bg-gradient-to-br from-[#1E3A8A] via-primary-hover to-primary-display text-white p-6 rounded-3xl shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Shield size={18} className="text-[#F5B942]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#F5B942]">
-                Barangay Bacong Council Oversight
-              </span>
-            </div>
             <h1 className="text-xl md:text-2xl font-extrabold text-white m-0 tracking-tight">
               Executive Governance & Telemetry Hub 🏛️
             </h1>
@@ -137,45 +130,45 @@ export default function OfficialView({
         <>
           {/* Executive Metric Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="card flex items-center gap-3.5 p-4 bg-white border border-[#E6E4DF]">
-              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center shrink-0">
+            <div className="card flex items-center gap-3.5 p-4 bg-white border border-line">
+              <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center shrink-0">
                 <Users size={22} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold text-[#2B2B2B] leading-none">{enrolledPupils.length}</div>
-                <div className="text-xs text-[#6B6B6B] mt-1">Enrolled ({archivedPupils.length} Archived)</div>
+                <div className="text-2xl font-extrabold text-ink leading-none">{enrolledPupils.length}</div>
+                <div className="text-xs text-ink-muted mt-1">Enrolled ({archivedPupils.length} Archived)</div>
               </div>
             </div>
 
-            <div className="card flex items-center gap-3.5 p-4 bg-white border border-[#E6E4DF]">
+            <div className="card flex items-center gap-3.5 p-4 bg-white border border-line">
               <div className="w-12 h-12 rounded-2xl bg-[#EBF8FF] text-[#2B6CB0] flex items-center justify-center shrink-0">
                 <CheckCircle2 size={22} />
               </div>
               <div>
                 <div className="text-2xl font-extrabold text-[#2B6CB0] leading-none">{attendanceRate}%</div>
-                <div className="text-xs text-[#6B6B6B] mt-1">Average Attendance Rate</div>
+                <div className="text-xs text-ink-muted mt-1">Average Attendance Rate</div>
               </div>
             </div>
 
-            <div className="card flex items-center gap-3.5 p-4 bg-white border border-[#E6E4DF]">
-              <div className="w-12 h-12 rounded-2xl bg-[#FEF8EC] text-[#8A5D00] flex items-center justify-center shrink-0">
+            <div className="card flex items-center gap-3.5 p-4 bg-white border border-line">
+              <div className="w-12 h-12 rounded-2xl bg-warn-light text-warn flex items-center justify-center shrink-0">
                 <PieChart size={22} />
               </div>
               <div>
-                <div className="text-xl font-extrabold text-[#8A5D00] leading-none">{maleCount} M / {femaleCount} F</div>
-                <div className="text-xs text-[#6B6B6B] mt-1">Sex Demographic Ratio</div>
+                <div className="text-xl font-extrabold text-warn leading-none">{maleCount} M / {femaleCount} F</div>
+                <div className="text-xs text-ink-muted mt-1">Sex Demographic Ratio</div>
               </div>
             </div>
 
-            <div className="card flex items-center gap-3.5 p-4 bg-white border border-[#E6E4DF]">
-              <div className="w-12 h-12 rounded-2xl bg-[#FFEBEE] text-[#C62828] flex items-center justify-center shrink-0">
+            <div className="card flex items-center gap-3.5 p-4 bg-white border border-line">
+              <div className="w-12 h-12 rounded-2xl bg-danger-light text-danger flex items-center justify-center shrink-0">
                 <Award size={22} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold text-[#C62828] leading-none">
+                <div className="text-2xl font-extrabold text-danger leading-none">
                   {milestoneCount ?? progress.length}
                 </div>
-                <div className="text-xs text-[#6B6B6B] mt-1">Milestones Evaluated</div>
+                <div className="text-xs text-ink-muted mt-1">Milestones Evaluated</div>
               </div>
             </div>
           </div>
@@ -184,18 +177,18 @@ export default function OfficialView({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             <div className="card bg-white p-5">
-              <div className="flex items-center gap-2 mb-4 text-[#247571]">
+              <div className="flex items-center gap-2 mb-4 text-primary">
                 <PieChart size={20} />
-                <h3 className="text-sm font-bold text-[#2B2B2B] m-0">Pupil Sex Demographic Ratio</h3>
+                <h3 className="text-sm font-bold text-ink m-0">Pupil Sex Demographic Ratio</h3>
               </div>
               
               <div className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-xs font-bold text-[#4A4A4A] mb-1.5">
+                  <div className="flex justify-between text-xs font-bold text-ink-soft mb-1.5">
                     <span>Male Pupils ({maleCount})</span>
                     <span>{enrolledPupils.length ? Math.round((maleCount / enrolledPupils.length) * 100) : 0}%</span>
                   </div>
-                  <div className="w-full h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-line-strong rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#3B82F6] rounded-full transition-all duration-500"
                       style={{ width: `${enrolledPupils.length ? (maleCount / enrolledPupils.length) * 100 : 0}%` }}
@@ -204,11 +197,11 @@ export default function OfficialView({
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-bold text-[#4A4A4A] mb-1.5">
+                  <div className="flex justify-between text-xs font-bold text-ink-soft mb-1.5">
                     <span>Female Pupils ({femaleCount})</span>
                     <span>{enrolledPupils.length ? Math.round((femaleCount / enrolledPupils.length) * 100) : 0}%</span>
                   </div>
-                  <div className="w-full h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
+                  <div className="w-full h-3 bg-line-strong rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#EC4899] rounded-full transition-all duration-500"
                       style={{ width: `${enrolledPupils.length ? (femaleCount / enrolledPupils.length) * 100 : 0}%` }}
@@ -219,43 +212,43 @@ export default function OfficialView({
             </div>
 
             <div className="card bg-white p-5">
-              <div className="flex items-center gap-2 mb-4 text-[#247571]">
+              <div className="flex items-center gap-2 mb-4 text-primary">
                 <BarChart3 size={20} />
-                <h3 className="text-sm font-bold text-[#2B2B2B] m-0">Attendance Status Ratio</h3>
+                <h3 className="text-sm font-bold text-ink m-0">Attendance Status Ratio</h3>
               </div>
 
               <div className="space-y-3.5 text-xs">
                 <div className="flex items-center gap-3">
-                  <span className="w-16 font-bold text-[#247571]">Present</span>
-                  <div className="flex-1 h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
+                  <span className="w-16 font-bold text-primary">Present</span>
+                  <div className="flex-1 h-3 bg-line-strong rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#247571] rounded-full transition-all duration-500"
+                      className="h-full bg-primary rounded-full transition-all duration-500"
                       style={{ width: `${totalAttRecords ? (presentCount / totalAttRecords) * 100 : 0}%` }}
                     ></div>
                   </div>
-                  <span className="font-extrabold text-[#2B2B2B] w-8 text-right">{presentCount}</span>
+                  <span className="font-extrabold text-ink w-8 text-right">{presentCount}</span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="w-16 font-bold text-[#8A5D00]">Late</span>
-                  <div className="flex-1 h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
+                  <span className="w-16 font-bold text-warn">Late</span>
+                  <div className="flex-1 h-3 bg-line-strong rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#F5B942] rounded-full transition-all duration-500"
+                      className="h-full bg-warn-fill rounded-full transition-all duration-500"
                       style={{ width: `${totalAttRecords ? (lateCount / totalAttRecords) * 100 : 0}%` }}
                     ></div>
                   </div>
-                  <span className="font-extrabold text-[#2B2B2B] w-8 text-right">{lateCount}</span>
+                  <span className="font-extrabold text-ink w-8 text-right">{lateCount}</span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="w-16 font-bold text-[#C62828]">Absent</span>
-                  <div className="flex-1 h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
+                  <span className="w-16 font-bold text-danger">Absent</span>
+                  <div className="flex-1 h-3 bg-line-strong rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#B84324] rounded-full transition-all duration-500"
+                      className="h-full bg-accent-coral-strong rounded-full transition-all duration-500"
                       style={{ width: `${totalAttRecords ? (absentCount / totalAttRecords) * 100 : 0}%` }}
                     ></div>
                   </div>
-                  <span className="font-extrabold text-[#2B2B2B] w-8 text-right">{absentCount}</span>
+                  <span className="font-extrabold text-ink w-8 text-right">{absentCount}</span>
                 </div>
               </div>
             </div>
@@ -266,8 +259,8 @@ export default function OfficialView({
           <div className="card bg-white p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-base font-bold text-[#2B2B2B] m-0">Enrolled Student Registry Summary</h3>
-                <span className="text-xs text-[#6B6B6B]">Read-only aggregate view for barangay council oversight</span>
+                <h3 className="text-base font-bold text-ink m-0">Enrolled Student Registry Summary</h3>
+                <span className="text-xs text-ink-muted">Read-only aggregate view for barangay council oversight</span>
               </div>
               <button onClick={onOpenDSWDReportModal} className="btn btn-secondary btn-sm" suppressHydrationWarning>
                 <FileText size={16} />
@@ -289,7 +282,7 @@ export default function OfficialView({
                 <tbody>
                   {enrolledPupils.map(p => (
                     <tr key={p.id}>
-                      <td className="font-bold text-[#2B2B2B]">{p.firstName} {p.lastName}</td>
+                      <td className="font-bold text-ink">{p.firstName} {p.lastName}</td>
                       <td>{p.sex}</td>
                       <td>{p.birthDate}</td>
                       <td>{p.guardian?.fullName}</td>
@@ -309,15 +302,15 @@ export default function OfficialView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <FileText size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <FileText size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Department of Social Welfare & Development
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Official DSWD Form 1 ECCD Report Center
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Generate and export official quarterly summary reports for DSWD Field Office VII submission.
               </p>
             </div>
@@ -332,22 +325,22 @@ export default function OfficialView({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="text-xs font-bold text-[#6B6B6B] uppercase">Total Enrolled Pupils</span>
-              <div className="text-2xl font-extrabold text-[#247571]">{enrolledPupils.length} Children</div>
-              <span className="text-[10px] text-[#707070]">Room A & Room B Daycare Center</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="text-xs font-bold text-ink-muted uppercase">Total Enrolled Pupils</span>
+              <div className="text-2xl font-extrabold text-primary">{enrolledPupils.length} Children</div>
+              <span className="text-[10px] text-ink-subtle">Room A & Room B Daycare Center</span>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="text-xs font-bold text-[#6B6B6B] uppercase">Council Resolution</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="text-xs font-bold text-ink-muted uppercase">Council Resolution</span>
               <div className="text-sm font-extrabold text-emerald-700">Resolution No. 2026-04 Approved</div>
-              <span className="text-[10px] text-[#707070]">Barangay Bacong Council Session</span>
+              <span className="text-[10px] text-ink-subtle">Barangay Bacong Council Session</span>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="text-xs font-bold text-[#6B6B6B] uppercase">Compliance Status</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="text-xs font-bold text-ink-muted uppercase">Compliance Status</span>
               <div className="text-sm font-extrabold text-[#2B6CB0]">DSWD Region 7 Compliant ✅</div>
-              <span className="text-[10px] text-[#707070]">7-Domain Checklist Complete</span>
+              <span className="text-[10px] text-ink-subtle">7-Domain Checklist Complete</span>
             </div>
           </div>
         </div>
@@ -359,15 +352,15 @@ export default function OfficialView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <BellRing size={18} className="text-[#C62828]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#C62828]">
+                <BellRing size={18} className="text-danger" />
+                <span className="text-xs font-bold uppercase tracking-wider text-danger">
                   Early Intervention Telemetry
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Consecutive Absences Telemetry & Risk Alerts
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Pupils accumulating 2 or more consecutive absences requiring barangay social worker outreach.
               </p>
             </div>
@@ -376,12 +369,12 @@ export default function OfficialView({
 
           <div className="space-y-3">
             {highRiskPupils.map((p) => (
-              <div key={p.id} className="p-4 rounded-3xl border border-[#FFCDD2] bg-[#FFEBEE] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+              <div key={p.id} className="p-4 rounded-3xl border border-danger-border bg-danger-light flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle size={22} className="text-[#C62828] shrink-0 mt-0.5" />
+                  <AlertTriangle size={22} className="text-danger shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-[#2B2B2B] text-sm">{p.firstName} {p.lastName} ({p.id})</div>
-                    <p className="text-[#4A4A4A] m-0 mt-0.5">
+                    <div className="font-bold text-ink text-sm">{p.firstName} {p.lastName} ({p.id})</div>
+                    <p className="text-ink-soft m-0 mt-0.5">
                       Guardian: <strong>{p.guardian?.fullName}</strong> • Follow-up is handled by the Daycare Worker.
                     </p>
                     <span className="badge badge-danger text-[10px] mt-1">
@@ -398,7 +391,7 @@ export default function OfficialView({
                   ) : (
                     <button
                       onClick={() => handleDispatchOutreach(p.id, `${p.firstName} ${p.lastName}`)}
-                      className="btn btn-sm bg-[#D32F2F] text-white hover:bg-[#B71C1C] font-bold shadow-md"
+                      className="btn btn-sm bg-danger text-white hover:bg-[#B71C1C] font-bold shadow-md"
                       suppressHydrationWarning
                     >
                       <PhoneCall size={14} />
@@ -418,51 +411,51 @@ export default function OfficialView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Utensils size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <Utensils size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Barangay Daycare Supplemental Feeding Program
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Nutritional Feeding Allocation & Council Notices
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Monitoring 120-day DSWD supplemental feeding menu allocations and council daycare announcements.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="font-bold text-[#247571]">Monday / Wednesday Menu</span>
-              <div className="font-extrabold text-[#2B2B2B]">Pork & Malunggay Monggo Soup</div>
-              <span className="text-[10px] text-[#707070]">Rich in iron & vitamins A/C</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="font-bold text-primary">Monday / Wednesday Menu</span>
+              <div className="font-extrabold text-ink">Pork & Malunggay Monggo Soup</div>
+              <span className="text-[10px] text-ink-subtle">Rich in iron & vitamins A/C</span>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
               <span className="font-bold text-[#2B6CB0]">Tuesday / Thursday Menu</span>
-              <div className="font-extrabold text-[#2B2B2B]">Chicken Lugaw with Hard-Boiled Egg</div>
-              <span className="text-[10px] text-[#707070]">High protein growth support</span>
+              <div className="font-extrabold text-ink">Chicken Lugaw with Hard-Boiled Egg</div>
+              <span className="text-[10px] text-ink-subtle">High protein growth support</span>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="font-bold text-[#8A5D00]">Friday Menu</span>
-              <div className="font-extrabold text-[#2B2B2B]">Champorado with Fortified Milk</div>
-              <span className="text-[10px] text-[#707070]">Calcium & energy boost</span>
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
+              <span className="font-bold text-warn">Friday Menu</span>
+              <div className="font-extrabold text-ink">Champorado with Fortified Milk</div>
+              <span className="text-[10px] text-ink-subtle">Calcium & energy boost</span>
             </div>
           </div>
 
-          <div className="space-y-3 pt-3 border-t border-[#E6E4DF]">
-            <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Barangay Council Daycare Notices Feed</h4>
+          <div className="space-y-3 pt-3 border-t border-line">
+            <h4 className="text-sm font-bold text-ink m-0">Barangay Council Daycare Notices Feed</h4>
             {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#247571]">{notice.title}</span>
-                  <span className="text-[11px] text-[#707070]">{notice.date}</span>
+                  <span className="font-bold text-primary">{notice.title}</span>
+                  <span className="text-[11px] text-ink-subtle">{notice.date}</span>
                 </div>
-                <p className="text-xs text-[#4A4A4A] m-0">{notice.content}</p>
+                <p className="text-xs text-ink-soft m-0">{notice.content}</p>
                 {notice.authorName && (
-                  <div className="text-[10px] text-[#707070] font-semibold">Posted by {notice.authorName}</div>
+                  <div className="text-[10px] text-ink-subtle font-semibold">Posted by {notice.authorName}</div>
                 )}
               </div>
             ))}

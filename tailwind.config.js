@@ -8,21 +8,49 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // These mirror the custom properties in globals.css. Components used to
+      // hard-code the hex values directly, so the AA palette fix meant editing
+      // 254 call sites instead of one line. Every recurring colour now has a
+      // name that says what it is for.
       colors: {
         primary: {
-          DEFAULT: '#2F8F8A',
-          hover: '#247571',
+          DEFAULT: '#247571',       // AA as text and behind white text
+          hover: '#1D605C',
           light: '#EBF5F4',
           border: '#B2DDD9',
+          display: '#2F8F8A',       // large text / gradients only (3:1 floor)
+        },
+        ink: {
+          DEFAULT: '#2B2B2B',
+          soft: '#4A4A4A',
+          muted: '#6B6B6B',
+          subtle: '#707070',
+        },
+        line: {
+          DEFAULT: '#E6E4DF',
+          strong: '#EAE6DF',
+        },
+        danger: {
+          DEFAULT: '#C62828',
+          light: '#FFEBEE',
+          border: '#FFCDD2',
+        },
+        warn: {
+          DEFAULT: '#8A5D00',
+          light: '#FEF8EC',
+          border: '#F5DAA0',
+          fill: '#F5B942',
         },
         accent: {
           yellow: '#F5B942',
           'yellow-light': '#FEF7E6',
           coral: '#F2896B',
+          'coral-strong': '#B84324',
           'coral-light': '#FDF0EC',
           blue: '#3B82F6',
           'blue-light': '#EFF6FF',
         },
+        canvas: '#FAF8F5',
         bgApp: '#FAF8F5',
         surface: '#FFFFFF',
       },

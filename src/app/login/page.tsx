@@ -289,11 +289,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-6" suppressHydrationWarning>
-      <div className={`w-full bg-white rounded-3xl border border-[#E6E4DF] shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 ${mode === 'create' ? 'max-w-5xl' : 'max-w-4xl'}`}>
+    <div className="min-h-screen bg-canvas flex items-center justify-center p-6" suppressHydrationWarning>
+      <div className={`w-full bg-white rounded-3xl border border-line shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 ${mode === 'create' ? 'max-w-5xl' : 'max-w-4xl'}`}>
 
         {/* Left Side: Branding */}
-        <div className="bg-gradient-to-br from-[#2F8F8A] to-[#1D605D] p-10 color-white flex flex-col justify-between text-white">
+        <div className="bg-gradient-to-br from-primary-display to-primary-hover p-10 color-white flex flex-col justify-between text-white">
           <div>
             <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6">
               <School size={32} color="white" />
@@ -311,15 +311,15 @@ export default function AuthPage() {
 
           <div className="space-y-3 pt-8 border-t border-white/20 text-xs text-white/85">
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-[#F5B942]" />
+              <CheckCircle2 size={16} className="text-warn-fill" />
               <span>Data Privacy Act (RA 10173) Compliant</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-[#F5B942]" />
+              <CheckCircle2 size={16} className="text-warn-fill" />
               <span>4 DSWD ECCD Developmental Domains</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-[#F5B942]" />
+              <CheckCircle2 size={16} className="text-warn-fill" />
               <span>Supabase Authentication & Row-Level Security</span>
             </div>
           </div>
@@ -328,12 +328,12 @@ export default function AuthPage() {
         {/* Right Side: Unified Auth */}
         <div className="p-8 md:p-10 flex flex-col space-y-6">
           {/* Mode Tabs */}
-          <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-[#FAF8F5] border border-[#E6E4DF] rounded-2xl">
+          <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-canvas border border-line rounded-2xl">
             <button
               type="button"
               onClick={() => switchMode('signin')}
               className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none ${
-                mode === 'signin' ? 'bg-white text-[#247571] shadow-sm' : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                mode === 'signin' ? 'bg-white text-primary shadow-sm' : 'text-ink-muted hover:text-ink'
               }`}
               suppressHydrationWarning
             >
@@ -343,7 +343,7 @@ export default function AuthPage() {
               type="button"
               onClick={() => switchMode('create')}
               className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none ${
-                mode === 'create' ? 'bg-white text-[#247571] shadow-sm' : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                mode === 'create' ? 'bg-white text-primary shadow-sm' : 'text-ink-muted hover:text-ink'
               }`}
               suppressHydrationWarning
             >
@@ -354,8 +354,8 @@ export default function AuthPage() {
           {mode === 'signin' ? (
             <div className="flex flex-col flex-1">
               <div>
-                <h2 className="text-xl font-bold text-[#2B2B2B] m-0">Sign In to Your Account</h2>
-                <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+                <h2 className="text-xl font-bold text-ink m-0">Sign In to Your Account</h2>
+                <p className="text-xs text-ink-muted mt-1 m-0">
                   Your role is detected from your account — the right portal loads automatically.
                 </p>
               </div>
@@ -369,32 +369,32 @@ export default function AuthPage() {
 
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Email Address</label>
-                  <input
+                  <label htmlFor="srcapploginpage-email-address-1" className="block text-xs font-bold text-ink mb-1.5">Email Address</label>
+                  <input id="srcapploginpage-email-address-1"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@bacong.gov.ph"
-                    className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                    className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary-display"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Password</label>
+                  <label htmlFor="srcapploginpage-password-2" className="block text-xs font-bold text-ink mb-1.5">Password</label>
                   <div className="relative">
-                    <input
+                    <input id="srcapploginpage-password-2"
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full px-4 py-3 pr-12 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                      className="w-full px-4 py-3 pr-12 rounded-2xl border border-line bg-white text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary-display"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink cursor-pointer border-none bg-transparent"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                       suppressHydrationWarning
                     >
@@ -403,7 +403,7 @@ export default function AuthPage() {
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
                     {resetSent ? (
-                      <span className="text-[11px] font-bold text-[#247571] flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-primary flex items-center gap-1">
                         <CheckCircle2 size={12} />
                         Reset link sent to your email.
                       </span>
@@ -412,7 +412,7 @@ export default function AuthPage() {
                         type="button"
                         onClick={handleForgotPassword}
                         disabled={loading}
-                        className="text-[11px] font-bold text-[#247571] hover:underline cursor-pointer border-none bg-transparent disabled:opacity-50"
+                        className="text-[11px] font-bold text-primary hover:underline cursor-pointer border-none bg-transparent disabled:opacity-50"
                         suppressHydrationWarning
                       >
                         Forgot password?
@@ -424,7 +424,7 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 px-6 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
                 >
                   <span>{loading ? 'Authenticating with Supabase...' : 'Sign In to Portal'}</span>
                   {!loading && <ArrowRight size={16} />}
@@ -434,8 +434,8 @@ export default function AuthPage() {
           ) : (
             <div className="flex flex-col flex-1">
               <div>
-                <h2 className="text-xl font-bold text-[#2B2B2B] m-0">Create an Account</h2>
-                <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+                <h2 className="text-xl font-bold text-ink m-0">Create an Account</h2>
+                <p className="text-xs text-ink-muted mt-1 m-0">
                   Choose your role to see the correct registration form.
                 </p>
               </div>
@@ -446,13 +446,13 @@ export default function AuthPage() {
                     <CheckCircle2 size={32} />
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">Account created!</h3>
-                    <p className="text-xs text-[#6B6B6B] mt-2 leading-relaxed m-0">{createSuccess.message}</p>
+                    <h3 className="text-base font-extrabold text-ink m-0">Account created!</h3>
+                    <p className="text-xs text-ink-muted mt-2 leading-relaxed m-0">{createSuccess.message}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => switchMode('signin')}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all cursor-pointer border-none"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all cursor-pointer border-none"
                     suppressHydrationWarning
                   >
                     Go to Sign In <ArrowRight size={15} />
@@ -468,25 +468,30 @@ export default function AuthPage() {
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Select Role *</label>
-                    <div className="grid grid-cols-1 gap-1.5">
+                    {/* A choice built from buttons is still a radio group: without
+                        these roles a screen reader announces four unrelated buttons
+                        and never says which one is chosen. */}
+                    <label id="signup-role-label" className="block text-xs font-bold text-ink mb-1.5">Select Role *</label>
+                    <div className="grid grid-cols-1 gap-1.5" role="radiogroup" aria-labelledby="signup-role-label">
                       {ROLE_OPTIONS.map((role) => (
                         <button
                           key={role.id}
                           type="button"
+                          role="radio"
+                          aria-checked={createRole === role.id}
                           onClick={() => {
                             setCreateRole(role.id);
                             setCreateError(null);
                           }}
                           className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
                             createRole === role.id
-                              ? 'border-[#2F8F8A] bg-[#EBF5F4]'
-                              : 'border-[#E6E4DF] bg-white hover:border-[#9B9B9B]'
+                              ? 'border-primary-display bg-primary-light'
+                              : 'border-line bg-white hover:border-ink-subtle'
                           }`}
                           suppressHydrationWarning
                         >
-                          <span className="block text-xs font-bold text-[#2B2B2B]">{role.label}</span>
-                          <span className="block text-[10px] text-[#6B6B6B] mt-0.5">{role.hint}</span>
+                          <span className="block text-xs font-bold text-ink">{role.label}</span>
+                          <span className="block text-[10px] text-ink-muted mt-0.5">{role.hint}</span>
                         </button>
                       ))}
                     </div>
@@ -495,55 +500,55 @@ export default function AuthPage() {
                   {selectedRole.isPublic ? (
                     <>
                       <div>
-                        <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Guardian Full Name *</label>
-                        <input
+                        <label htmlFor="srcapploginpage-guardian-full-name-3" className="block text-xs font-bold text-ink mb-1.5">Guardian Full Name *</label>
+                        <input id="srcapploginpage-guardian-full-name-3"
                           type="text"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="e.g. Maria Santos"
-                          className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                          className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Guardian Contact Phone *</label>
-                        <input
+                        <label htmlFor="srcapploginpage-guardian-contact-phone-4" className="block text-xs font-bold text-ink mb-1.5">Guardian Contact Phone *</label>
+                        <input id="srcapploginpage-guardian-contact-phone-4"
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="e.g. 0917-123-4567"
-                          className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                          className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                         />
-                        <p className="text-[10px] text-[#707070] font-semibold mt-1">
+                        <p className="text-[10px] text-ink-subtle font-semibold mt-1">
                           Used for your guardian record and daycare contact.
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Email Address *</label>
-                        <input
+                        <label htmlFor="srcapploginpage-email-address-5" className="block text-xs font-bold text-ink mb-1.5">Email Address *</label>
+                        <input id="srcapploginpage-email-address-5"
                           type="email"
                           value={createEmail}
                           onChange={(e) => setCreateEmail(e.target.value)}
                           placeholder="e.g. maria.santos@gmail.com"
-                          className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                          className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-[#2B2B2B] mb-1.5">Password *</label>
+                        <label htmlFor="srcapploginpage-password-6" className="block text-xs font-bold text-ink mb-1.5">Password *</label>
                         <div className="relative">
-                          <input
+                          <input id="srcapploginpage-password-6"
                             type={showCreatePassword ? 'text' : 'password'}
                             value={createPassword}
                             onChange={(e) => setCreatePassword(e.target.value)}
                             placeholder="Min 8 chars, with upper, lower & number"
-                            className="w-full px-4 py-3 pr-12 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                            className="w-full px-4 py-3 pr-12 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                           />
                           <button
                             type="button"
                             onClick={() => setShowCreatePassword(v => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink cursor-pointer border-none bg-transparent"
                             aria-label={showCreatePassword ? 'Hide password' : 'Show password'}
                             suppressHydrationWarning
                           >
@@ -553,16 +558,16 @@ export default function AuthPage() {
                       </div>
 
                       {/* Sociodemographic Profile (ECCD Form Section 1) */}
-                      <div className="pt-2 border-t border-[#E6E4DF]">
+                      <div className="pt-2 border-t border-line">
                         <div className="flex items-center justify-between gap-2">
                           <div>
-                            <h3 className="text-sm font-extrabold text-[#2B2B2B] m-0">Child&apos;s Sociodemographic Profile</h3>
-                            <p className="text-[10px] text-[#6B6B6B] m-0 mt-0.5">
+                            <h3 className="text-sm font-extrabold text-ink m-0">Child&apos;s Sociodemographic Profile</h3>
+                            <p className="text-[10px] text-ink-muted m-0 mt-0.5">
                               ECCD Form Section 1 — a Daycare Worker verifies this before enrollment.
                             </p>
                           </div>
                           {children.length > 1 && (
-                            <span className="text-[10px] font-bold text-[#247571] shrink-0">
+                            <span className="text-[10px] font-bold text-primary shrink-0">
                               {children.length} of 5 children
                             </span>
                           )}
@@ -571,17 +576,17 @@ export default function AuthPage() {
                         {children.map((child, index) => (
                           <div
                             key={index}
-                            className="mt-3 p-4 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3"
+                            className="mt-3 p-4 rounded-2xl border border-line bg-canvas space-y-3"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571]">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
                                 Child #{index + 1}
                               </span>
                               {children.length > 1 && (
                                 <button
                                   type="button"
                                   onClick={() => removeChild(index)}
-                                  className="text-[10px] font-bold text-[#C62828] hover:underline cursor-pointer border-none bg-transparent"
+                                  className="text-[10px] font-bold text-danger hover:underline cursor-pointer border-none bg-transparent"
                                   suppressHydrationWarning
                                 >
                                   Remove child
@@ -591,58 +596,58 @@ export default function AuthPage() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">First Name *</label>
-                                <input
+                                <label htmlFor="srcapploginpage-first-name-7" className="block text-[10px] font-bold text-ink mb-1">First Name *</label>
+                                <input id="srcapploginpage-first-name-7"
                                   type="text"
                                   value={child.firstName}
                                   onChange={(e) => updateChild(index, { firstName: e.target.value })}
                                   placeholder="Child&apos;s first name"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Last Name *</label>
-                                <input
+                                <label htmlFor="srcapploginpage-last-name-8" className="block text-[10px] font-bold text-ink mb-1">Last Name *</label>
+                                <input id="srcapploginpage-last-name-8"
                                   type="text"
                                   value={child.lastName}
                                   onChange={(e) => updateChild(index, { lastName: e.target.value })}
                                   placeholder="Child&apos;s last name"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                               </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Date of Birth *</label>
-                                <input
+                                <label htmlFor="srcapploginpage-date-of-birth-9" className="block text-[10px] font-bold text-ink mb-1">Date of Birth *</label>
+                                <input id="srcapploginpage-date-of-birth-9"
                                   type="date"
                                   value={child.birthDate}
                                   onChange={(e) => updateChild(index, { birthDate: e.target.value })}
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Sex *</label>
-                                <select
+                                <label htmlFor="srcapploginpage-sex-10" className="block text-[10px] font-bold text-ink mb-1">Sex *</label>
+                                <select id="srcapploginpage-sex-10"
                                   value={child.sex}
                                   onChange={(e) => updateChild(index, { sex: e.target.value as 'Male' | 'Female' })}
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 >
                                   <option value="Male">Male</option>
                                   <option value="Female">Female</option>
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Relationship *</label>
-                                <select
+                                <label htmlFor="srcapploginpage-relationship-11" className="block text-[10px] font-bold text-ink mb-1">Relationship *</label>
+                                <select id="srcapploginpage-relationship-11"
                                   value={child.relationship}
                                   onChange={(e) =>
                                     updateChild(index, {
                                       relationship: e.target.value as ChildProfileForm['relationship'],
                                     })
                                   }
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 >
                                   <option value="Mother">Mother</option>
                                   <option value="Father">Father</option>
@@ -654,51 +659,53 @@ export default function AuthPage() {
                             </div>
 
                             <div>
-                              <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Address *</label>
+                              <label htmlFor="srcapploginpage-address-12" className="block text-[10px] font-bold text-ink mb-1">Address *</label>
                               <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                <input
+                                <input id="srcapploginpage-address-12"
                                   type="text"
                                   value={child.barangay}
                                   onChange={(e) => updateChild(index, { barangay: e.target.value })}
                                   placeholder="Barangay"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                                 <input
                                   type="text"
                                   value={child.municipality}
                                   onChange={(e) => updateChild(index, { municipality: e.target.value })}
                                   placeholder="Municipality / City"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                                 <input
                                   type="text"
                                   value={child.province}
                                   onChange={(e) => updateChild(index, { province: e.target.value })}
                                   placeholder="Province"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                                 <input
                                   type="text"
                                   value={child.region}
                                   onChange={(e) => updateChild(index, { region: e.target.value })}
                                   placeholder="Region"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                               </div>
                             </div>
 
                             <div>
-                              <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">Handedness *</label>
-                              <div className="flex flex-wrap gap-2">
+                              <label id={`child-${index}-handedness-label`} className="block text-[10px] font-bold text-ink mb-1">Handedness *</label>
+                              <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={`child-${index}-handedness-label`}>
                                 {HANDEDNESS_OPTIONS.map((option) => (
                                   <button
                                     key={option.value}
                                     type="button"
+                                    role="radio"
+                                    aria-checked={child.handedness === option.value}
                                     onClick={() => updateChild(index, { handedness: option.value })}
                                     className={`px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
                                       child.handedness === option.value
-                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#247571]'
-                                        : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
+                                        ? 'border-primary-display bg-primary-light text-primary'
+                                        : 'border-line bg-white text-ink-muted hover:border-ink-subtle'
                                     }`}
                                     suppressHydrationWarning
                                   >
@@ -710,17 +717,19 @@ export default function AuthPage() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">
+                                <label id={`child-${index}-studying-label`} className="block text-[10px] font-bold text-ink mb-1">
                                   Is the child presently studying? *
                                 </label>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2" role="radiogroup" aria-labelledby={`child-${index}-studying-label`}>
                                   <button
                                     type="button"
+                                    role="radio"
+                                    aria-checked={child.currentlyStudying}
                                     onClick={() => updateChild(index, { currentlyStudying: true })}
                                     className={`flex-1 px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
                                       child.currentlyStudying
-                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#247571]'
-                                        : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
+                                        ? 'border-primary-display bg-primary-light text-primary'
+                                        : 'border-line bg-white text-ink-muted hover:border-ink-subtle'
                                     }`}
                                     suppressHydrationWarning
                                   >
@@ -728,11 +737,13 @@ export default function AuthPage() {
                                   </button>
                                   <button
                                     type="button"
+                                    role="radio"
+                                    aria-checked={!child.currentlyStudying}
                                     onClick={() => updateChild(index, { currentlyStudying: false, schoolName: '' })}
                                     className={`flex-1 px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
                                       !child.currentlyStudying
-                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#247571]'
-                                        : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
+                                        ? 'border-primary-display bg-primary-light text-primary'
+                                        : 'border-line bg-white text-ink-muted hover:border-ink-subtle'
                                     }`}
                                     suppressHydrationWarning
                                   >
@@ -742,15 +753,15 @@ export default function AuthPage() {
                               </div>
                               {child.currentlyStudying && (
                                 <div>
-                                  <label className="block text-[10px] font-bold text-[#2B2B2B] mb-1">
+                                  <label htmlFor="srcapploginpage-name-of-school-learning-13" className="block text-[10px] font-bold text-ink mb-1">
                                     Name of school / learning center *
                                   </label>
-                                  <input
+                                  <input id="srcapploginpage-name-of-school-learning-13"
                                     type="text"
                                     value={child.schoolName}
                                     onChange={(e) => updateChild(index, { schoolName: e.target.value })}
                                     placeholder="e.g. Bacong Daycare Center"
-                                    className="w-full px-3 py-2.5 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                 </div>
                               )}
@@ -758,7 +769,7 @@ export default function AuthPage() {
 
                             {/* Optional parent + sibling details */}
                             <details className="text-[11px]">
-                              <summary className="cursor-pointer font-bold text-[#247571]">
+                              <summary className="cursor-pointer font-bold text-primary">
                                 Parent &amp; sibling details (optional)
                               </summary>
                               <div className="mt-3 space-y-3">
@@ -768,7 +779,7 @@ export default function AuthPage() {
                                     value={child.fatherName}
                                     onChange={(e) => updateChild(index, { fatherName: e.target.value })}
                                     placeholder="Father&apos;s name"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="number"
@@ -777,21 +788,21 @@ export default function AuthPage() {
                                     value={child.fatherAge}
                                     onChange={(e) => updateChild(index, { fatherAge: e.target.value })}
                                     placeholder="Father&apos;s age"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="text"
                                     value={child.fatherOccupation}
                                     onChange={(e) => updateChild(index, { fatherOccupation: e.target.value })}
                                     placeholder="Father&apos;s occupation"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="text"
                                     value={child.fatherEducation}
                                     onChange={(e) => updateChild(index, { fatherEducation: e.target.value })}
                                     placeholder="Father&apos;s educational attainment"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -800,7 +811,7 @@ export default function AuthPage() {
                                     value={child.motherName}
                                     onChange={(e) => updateChild(index, { motherName: e.target.value })}
                                     placeholder="Mother&apos;s name"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="number"
@@ -809,21 +820,21 @@ export default function AuthPage() {
                                     value={child.motherAge}
                                     onChange={(e) => updateChild(index, { motherAge: e.target.value })}
                                     placeholder="Mother&apos;s age"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="text"
                                     value={child.motherOccupation}
                                     onChange={(e) => updateChild(index, { motherOccupation: e.target.value })}
                                     placeholder="Mother&apos;s occupation"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="text"
                                     value={child.motherEducation}
                                     onChange={(e) => updateChild(index, { motherEducation: e.target.value })}
                                     placeholder="Mother&apos;s educational attainment"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -834,14 +845,14 @@ export default function AuthPage() {
                                     value={child.siblingsCount}
                                     onChange={(e) => updateChild(index, { siblingsCount: e.target.value })}
                                     placeholder="Number of siblings"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                   <input
                                     type="text"
                                     value={child.birthOrder}
                                     onChange={(e) => updateChild(index, { birthOrder: e.target.value })}
                                     placeholder="Birth order (1st, 2nd, 3rd...)"
-                                    className="w-full px-3 py-2 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
+                                    className="w-full px-3 py-2 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                   />
                                 </div>
                               </div>
@@ -853,7 +864,7 @@ export default function AuthPage() {
                           <button
                             type="button"
                             onClick={addChild}
-                            className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-[#2F8F8A]/40 text-[11px] font-bold text-[#247571] bg-[#EBF5F4]/50 hover:bg-[#EBF5F4] transition-all cursor-pointer"
+                            className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-primary-display/40 text-[11px] font-bold text-primary bg-primary-light/50 hover:bg-primary-light transition-all cursor-pointer"
                             suppressHydrationWarning
                           >
                             + Add another child (max 5)
@@ -864,19 +875,19 @@ export default function AuthPage() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
+                        className="w-full py-3.5 px-6 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
                       >
                         <span>{loading ? 'Creating your account...' : 'Submit for Verification'}</span>
                         {!loading && <ArrowRight size={16} />}
                       </button>
                     </>
                   ) : (
-                    <div className="p-4 rounded-2xl bg-[#FEF8EC] border border-[#F5DAA0] text-xs space-y-2">
-                      <div className="flex items-center gap-2 font-bold text-[#8A5D00]">
+                    <div className="p-4 rounded-2xl bg-warn-light border border-warn-border text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-warn">
                         <AlertCircle size={16} className="shrink-0" />
                         <span>This account type is created by the Barangay Admin</span>
                       </div>
-                      <p className="text-[11px] text-[#8A5D00] leading-relaxed m-0">
+                      <p className="text-[11px] text-warn leading-relaxed m-0">
                         {selectedRole.label} accounts are provisioned by the Barangay Admin to protect
                         system access. Please contact the Barangay IT Administration to have your
                         account created.
@@ -884,7 +895,7 @@ export default function AuthPage() {
                       <button
                         type="button"
                         onClick={() => setCreateRole('parent')}
-                        className="text-[11px] font-bold text-[#247571] hover:underline cursor-pointer border-none bg-transparent"
+                        className="text-[11px] font-bold text-primary hover:underline cursor-pointer border-none bg-transparent"
                         suppressHydrationWarning
                       >
                         ← Register as a Parent instead
@@ -896,9 +907,9 @@ export default function AuthPage() {
             </div>
           )}
 
-          <div className="text-center pt-4 border-t border-[#E6E4DF]">
-            <p className="text-[11px] text-[#707070] m-0">
-              Need account assistance? Contact <strong className="text-[#2B2B2B]">Barangay Bacong IT Administration</strong>.
+          <div className="text-center pt-4 border-t border-line">
+            <p className="text-[11px] text-ink-subtle m-0">
+              Need account assistance? Contact <strong className="text-ink">Barangay Bacong IT Administration</strong>.
             </p>
           </div>
         </div>

@@ -277,16 +277,16 @@ export default function ParentView({
     <div className="space-y-6 pb-12" suppressHydrationWarning>
       
       {/* Top Linked Child Selection Rail */}
-      <div className="bg-white p-4 rounded-3xl border border-[#E6E4DF] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-3xl border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#FFEBEE] text-[#F2896B] flex items-center justify-center font-bold shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-danger-light text-accent-coral flex items-center justify-center font-bold shrink-0">
             <Heart size={20} />
           </div>
           <div>
-            <div className="text-[10px] font-bold text-[#707070] uppercase tracking-wider">
+            <div className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider">
               Data Privacy Act (RA 10173) Linked Children
             </div>
-            <h3 className="text-sm font-extrabold text-[#2B2B2B] m-0">Family Portal Child Switcher</h3>
+            <h3 className="text-sm font-extrabold text-ink m-0">Family Portal Child Switcher</h3>
           </div>
         </div>
 
@@ -299,20 +299,20 @@ export default function ParentView({
                 onClick={() => setSelectedChildId(p.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#B84324] text-white border-[#F2896B] shadow-sm'
-                    : 'bg-[#FAF8F5] text-[#2B2B2B] border-[#E6E4DF] hover:border-[#F2896B]'
+                    ? 'bg-accent-coral-strong text-white border-accent-coral shadow-sm'
+                    : 'bg-canvas text-ink border-line hover:border-accent-coral'
                 }`}
               >
                 <Image src={p.avatar || DEFAULT_AVATAR} alt={p.firstName} width={24} height={24} className="w-6 h-6 rounded-full object-cover shrink-0" />
                 <span>{p.firstName} {p.lastName}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#EAE6DF] text-[#6B6B6B]'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-line-strong text-ink-muted'}`}>
                   {p.id}
                 </span>
                 {p.enrollmentStatus !== 'enrolled' && (
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
                     p.enrollmentStatus === 'pending'
-                      ? (isSelected ? 'bg-[#F5B942]/30 text-white' : 'bg-[#FEF8EC] text-[#B98A00]')
-                      : (isSelected ? 'bg-white/20 text-white' : 'bg-[#FFEBEE] text-[#C62828]')
+                      ? (isSelected ? 'bg-warn-fill/30 text-white' : 'bg-warn-light text-warn')
+                      : (isSelected ? 'bg-white/20 text-white' : 'bg-danger-light text-danger')
                   }`}>
                     {p.enrollmentStatus}
                   </span>
@@ -327,7 +327,7 @@ export default function ParentView({
       {activeTab === 'child' && (
         <>
           {/* Top Child Hero Card */}
-          <div className="card bg-gradient-to-br from-[#F2896B] via-[#E87556] to-[#D96B4D] text-white p-6 rounded-3xl shadow-lg">
+          <div className="card bg-gradient-to-br from-accent-coral via-[#E87556] to-[#D96B4D] text-white p-6 rounded-3xl shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
               <div className="flex items-center gap-4">
                 <Image
@@ -338,12 +338,6 @@ export default function ParentView({
                   className="w-16 h-16 rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"
                 />
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Heart size={16} className="text-white" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white/90">
-                      Parent Portal • Active Linked Child
-                    </span>
-                  </div>
                   <h2 className="text-xl md:text-2xl font-extrabold text-white m-0 tracking-tight">
                     {child?.firstName} {child?.lastName}
                   </h2>
@@ -359,7 +353,7 @@ export default function ParentView({
               <div className="flex items-center gap-2.5 shrink-0">
                 <button
                   onClick={() => setIsReportModalOpen(true)}
-                  className="btn btn-secondary btn-sm bg-white text-[#D96B4D] font-bold border-none shadow-md"
+                  className="btn btn-secondary btn-sm bg-white text-danger font-bold border-none shadow-md"
                   suppressHydrationWarning
                 >
                   <Download size={16} />
@@ -375,32 +369,32 @@ export default function ParentView({
 
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-            <div className="card bg-[#EBF5F4] border border-[#2F8F8A]/20 p-4">
-              <div className="text-2xl font-extrabold text-[#247571]">{rate}%</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Attendance Rate</div>
+            <div className="card bg-primary-light border border-primary-display/20 p-4">
+              <div className="text-2xl font-extrabold text-primary">{rate}%</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Attendance Rate</div>
             </div>
             <div className="card bg-[#EBF8FF] border border-[#2B6CB0]/20 p-4">
               <div className="text-2xl font-extrabold text-[#2B6CB0]">{presentCount}</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Days Present</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Days Present</div>
             </div>
-            <div className="card bg-[#FEF8EC] border border-[#F5B942]/30 p-4">
-              <div className="text-2xl font-extrabold text-[#8A5D00]">{lateCount}</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Days Late</div>
+            <div className="card bg-warn-light border border-warn-fill/30 p-4">
+              <div className="text-2xl font-extrabold text-warn">{lateCount}</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Days Late</div>
             </div>
-            <div className="card bg-[#FFEBEE] border border-[#FFCDD2] p-4">
-              <div className="text-2xl font-extrabold text-[#C62828]">{absentCount}</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Days Absent</div>
+            <div className="card bg-danger-light border border-danger-border p-4">
+              <div className="text-2xl font-extrabold text-danger">{absentCount}</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Days Absent</div>
             </div>
           </div>
 
           {/* Child & Family Background (ECCD Form Section 2) */}
-          <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF]">
+          <div className="card bg-white p-5 space-y-4 border border-line">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-[#247571]">
+              <div className="flex items-center gap-2 text-primary">
                 <BookOpen size={20} />
                 <div>
-                  <h3 className="text-base font-bold text-[#2B2B2B] m-0">Child & Family Background</h3>
-                  <p className="text-[11px] text-[#6B6B6B] m-0">
+                  <h3 className="text-base font-bold text-ink m-0">Child & Family Background</h3>
+                  <p className="text-[11px] text-ink-muted m-0">
                     ECCD Form Section 2 — helps the teacher understand {child?.firstName}&apos;s development context before assessments.
                   </p>
                 </div>
@@ -418,21 +412,21 @@ export default function ParentView({
             {hasBackground ? (
               <div className="space-y-3">
                 {backgroundRows.filter((r) => r.value?.trim()).map((row) => (
-                  <div key={row.label} className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF]">
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571] mb-1">{row.label}</div>
-                    <p className="text-xs text-[#4A4A4A] leading-relaxed m-0 whitespace-pre-wrap">{row.value}</p>
+                  <div key={row.label} className="p-3 rounded-2xl bg-canvas border border-line">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary mb-1">{row.label}</div>
+                    <p className="text-xs text-ink-soft leading-relaxed m-0 whitespace-pre-wrap">{row.value}</p>
                   </div>
                 ))}
                 {childBackground?.updated_at && (
-                  <p className="text-[10px] text-[#707070] m-0">
+                  <p className="text-[10px] text-ink-subtle m-0">
                     Last updated {new Date(childBackground.updated_at).toLocaleString()}
                   </p>
                 )}
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-[#EBF5F4] border border-dashed border-[#2F8F8A]/30 text-center">
-                <p className="text-xs font-bold text-[#247571] m-0">No background info shared yet</p>
-                <p className="text-[11px] text-[#6B6B6B] m-0 mt-1">
+              <div className="p-4 rounded-2xl bg-primary-light border border-dashed border-primary-display/30 text-center">
+                <p className="text-xs font-bold text-primary m-0">No background info shared yet</p>
+                <p className="text-[11px] text-ink-muted m-0 mt-1">
                   Add your child&apos;s background, family environment, and home details so the teacher can
                   personalize the ECCD assessment.
                 </p>
@@ -442,19 +436,19 @@ export default function ParentView({
 
           {/* Interactive Consecutive Absence Alert Warning */}
           {absentCount >= 2 && !acknowledgedAlerts['ABS-001'] && (
-            <div className="p-4 rounded-3xl bg-[#FFEBEE] border border-[#FFCDD2] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
+            <div className="p-4 rounded-3xl bg-danger-light border border-danger-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertTriangle size={22} className="text-[#C62828] shrink-0 mt-0.5" />
+                <AlertTriangle size={22} className="text-danger shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-[#C62828] text-sm">Attendance Advisory Alert</div>
-                  <p className="text-[#4A4A4A] m-0 mt-0.5 leading-relaxed">
+                  <div className="font-bold text-danger text-sm">Attendance Advisory Alert</div>
+                  <p className="text-ink-soft m-0 mt-0.5 leading-relaxed">
                     {child?.firstName} has accumulated absences. Automated SMS alert telemetry sent to primary guardian ({child?.guardian?.phone || '0917-888-9900'}).
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => handleAcknowledgeAlert('ABS-001')}
-                className="btn btn-sm text-white bg-[#D32F2F] hover:bg-[#B71C1C] font-bold shrink-0 shadow-sm"
+                className="btn btn-sm text-white bg-danger hover:bg-[#B71C1C] font-bold shrink-0 shadow-sm"
                 suppressHydrationWarning
               >
                 Acknowledge Alert
@@ -463,44 +457,44 @@ export default function ParentView({
           )}
 
           {/* Daycare Daily Schedule Timeline */}
-          <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF]">
+          <div className="card bg-white p-5 space-y-4 border border-line">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#247571]">
+              <div className="flex items-center gap-2 text-primary">
                 <Clock size={20} />
-                <h3 className="text-base font-bold text-[#2B2B2B] m-0">Daycare Center Daily Schedule Routine</h3>
+                <h3 className="text-base font-bold text-ink m-0">Daycare Center Daily Schedule Routine</h3>
               </div>
               <span className="badge badge-primary">Barangay Bacong Daycare</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
-              <div className="p-3 rounded-2xl bg-[#EBF5F4] border border-[#2F8F8A]/20 space-y-1">
-                <span className="font-extrabold text-[#247571] block">08:00 AM - 08:30 AM</span>
-                <div className="font-bold text-[#2B2B2B]">Circle Time</div>
-                <p className="text-[11px] text-[#6B6B6B] m-0">Arrival, flag ceremony, national anthem & greeting.</p>
+              <div className="p-3 rounded-2xl bg-primary-light border border-primary-display/20 space-y-1">
+                <span className="font-extrabold text-primary block">08:00 AM - 08:30 AM</span>
+                <div className="font-bold text-ink">Circle Time</div>
+                <p className="text-[11px] text-ink-muted m-0">Arrival, flag ceremony, national anthem & greeting.</p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-[#FEF8EC] border border-[#F5B942]/30 space-y-1">
-                <span className="font-extrabold text-[#8A5D00] block">08:30 AM - 09:30 AM</span>
-                <div className="font-bold text-[#2B2B2B]">ECCD Stations</div>
-                <p className="text-[11px] text-[#6B6B6B] m-0">4-Domain learning stations (fine motor & language).</p>
+              <div className="p-3 rounded-2xl bg-warn-light border border-warn-fill/30 space-y-1">
+                <span className="font-extrabold text-warn block">08:30 AM - 09:30 AM</span>
+                <div className="font-bold text-ink">ECCD Stations</div>
+                <p className="text-[11px] text-ink-muted m-0">4-Domain learning stations (fine motor & language).</p>
               </div>
 
               <div className="p-3 rounded-2xl bg-[#EBF8FF] border border-[#2B6CB0]/20 space-y-1">
                 <span className="font-extrabold text-[#2B6CB0] block">09:30 AM - 10:00 AM</span>
-                <div className="font-bold text-[#2B2B2B]">Healthy Snack</div>
-                <p className="text-[11px] text-[#6B6B6B] m-0">Supervised handwashing & nutritional table manners.</p>
+                <div className="font-bold text-ink">Healthy Snack</div>
+                <p className="text-[11px] text-ink-muted m-0">Supervised handwashing & nutritional table manners.</p>
               </div>
 
               <div className="p-3 rounded-2xl bg-[#F3E8FF] border border-[#8B5CF6]/20 space-y-1">
                 <span className="font-extrabold text-[#8B5CF6] block">10:00 AM - 11:15 AM</span>
-                <div className="font-bold text-[#2B2B2B]">Storytelling & Play</div>
-                <p className="text-[11px] text-[#6B6B6B] m-0">Outdoor gross motor movement & Tagalog stories.</p>
+                <div className="font-bold text-ink">Storytelling & Play</div>
+                <p className="text-[11px] text-ink-muted m-0">Outdoor gross motor movement & Tagalog stories.</p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-[#FFEBEE] border border-[#FFCDD2] space-y-1">
-                <span className="font-extrabold text-[#C62828] block">11:15 AM - 11:30 AM</span>
-                <div className="font-bold text-[#2B2B2B]">Dismissal</div>
-                <p className="text-[11px] text-[#6B6B6B] m-0">Pack-up, prayer, and authorized guardian pick-up.</p>
+              <div className="p-3 rounded-2xl bg-danger-light border border-danger-border space-y-1">
+                <span className="font-extrabold text-danger block">11:15 AM - 11:30 AM</span>
+                <div className="font-bold text-ink">Dismissal</div>
+                <p className="text-[11px] text-ink-muted m-0">Pack-up, prayer, and authorized guardian pick-up.</p>
               </div>
             </div>
           </div>
@@ -511,9 +505,9 @@ export default function ParentView({
             {/* 4-Domain Progress Overview */}
             <div className="card bg-white p-5 lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[#247571]">
+                <div className="flex items-center gap-2 text-primary">
                   <TrendingUp size={20} />
-                  <h3 className="text-base font-bold text-[#2B2B2B] m-0">
+                  <h3 className="text-base font-bold text-ink m-0">
                     {child?.firstName}&rsquo;s 4-Domain Progress Summary
                   </h3>
                 </div>
@@ -524,25 +518,25 @@ export default function ParentView({
                 {childProgress.map((item) => {
                   const percent = getRatingProgressPercent(item.rating);
                   return (
-                    <div key={item.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+                    <div key={item.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#2B2B2B] text-sm">{item.domain}</span>
-                          <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#EBF5F4] text-[#247571] text-[10px]">
+                          <span className="font-bold text-ink text-sm">{item.domain}</span>
+                          <span className="px-2.5 py-0.5 rounded-full font-bold bg-primary-light text-primary text-[10px]">
                             {item.rating}
                           </span>
                         </div>
-                        <span className="text-[11px] text-[#707070] font-semibold">{item.date}</span>
+                        <span className="text-[11px] text-ink-subtle font-semibold">{item.date}</span>
                       </div>
 
-                      <div className="w-full h-2.5 bg-[#EAE6DF] rounded-full overflow-hidden">
+                      <div className="w-full h-2.5 bg-line-strong rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-[#2F8F8A] to-[#1D605D] rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-primary-display to-primary-hover rounded-full transition-all duration-500"
                           style={{ width: `${percent}%` }}
                         ></div>
                       </div>
 
-                      <p className="text-xs text-[#4A4A4A] leading-relaxed m-0 pt-1">{item.notes}</p>
+                      <p className="text-xs text-ink-soft leading-relaxed m-0 pt-1">{item.notes}</p>
                     </div>
                   );
                 })}
@@ -552,31 +546,31 @@ export default function ParentView({
             {/* Sidebar: Teacher Contact & Attendance History */}
             <div className="space-y-6">
               
-              <div className="card bg-white p-5 space-y-3 border border-[#E6E4DF]">
-                <div className="flex items-center gap-2 text-[#247571]">
+              <div className="card bg-white p-5 space-y-3 border border-line">
+                <div className="flex items-center gap-2 text-primary">
                   <PhoneCall size={18} />
-                  <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Lead Teacher Contact</h4>
+                  <h4 className="text-sm font-bold text-ink m-0">Lead Teacher Contact</h4>
                 </div>
-                <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF] text-xs space-y-1.5">
-                  <div className="font-bold text-[#2B2B2B]">Teacher Teresa Cruz</div>
-                  <div className="text-[#6B6B6B]">Lead Daycare Worker • Barangay Bacong</div>
-                  <div className="text-[#247571] font-semibold flex items-center gap-1">
+                <div className="p-3 rounded-2xl bg-canvas border border-line text-xs space-y-1.5">
+                  <div className="font-bold text-ink">Teacher Teresa Cruz</div>
+                  <div className="text-ink-muted">Lead Daycare Worker • Barangay Bacong</div>
+                  <div className="text-primary font-semibold flex items-center gap-1">
                     <PhoneCall size={12} /> 0917-000-1122
                   </div>
                 </div>
               </div>
 
-              <div className="card bg-white p-5 space-y-3 border border-[#E6E4DF]">
+              <div className="card bg-white p-5 space-y-3 border border-line">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Recent Attendance Log</h4>
-                  <span className="text-[10px] text-[#707070]">Daily register</span>
+                  <h4 className="text-sm font-bold text-ink m-0">Recent Attendance Log</h4>
+                  <span className="text-[10px] text-ink-subtle">Daily register</span>
                 </div>
 
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {childAttendance.length > 0 ? (
                     childAttendance.map((a, idx) => (
-                      <div key={idx} className="p-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] flex items-center justify-between text-xs">
-                        <span className="font-bold text-[#2B2B2B]">{a.date}</span>
+                      <div key={idx} className="p-2.5 rounded-2xl border border-line bg-canvas flex items-center justify-between text-xs">
+                        <span className="font-bold text-ink">{a.date}</span>
                         <span className={`badge ${
                           a.status === 'present' ? 'badge-primary' : a.status === 'late' ? 'badge-warning' : 'badge-danger'
                         }`}>
@@ -585,7 +579,7 @@ export default function ParentView({
                       </div>
                     ))
                   ) : (
-                    <div className="text-center text-xs text-[#707070] p-4 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
+                    <div className="text-center text-xs text-ink-subtle p-4 bg-canvas rounded-2xl border border-line">
                       Attendance logged via daily register.
                     </div>
                   )}
@@ -597,20 +591,20 @@ export default function ParentView({
           </div>
             </>
           ) : (
-            <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm">
+            <div className="p-6 rounded-3xl bg-white border border-line shadow-sm">
               <div className="flex items-start gap-3">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                  child?.enrollmentStatus === 'rejected' ? 'bg-[#FFEBEE] text-[#C62828]' : 'bg-[#FEF8EC] text-[#B98A00]'
+                  child?.enrollmentStatus === 'rejected' ? 'bg-danger-light text-danger' : 'bg-warn-light text-warn'
                 }`}>
                   {child?.enrollmentStatus === 'rejected' ? <AlertCircle size={22} /> : <Clock size={22} />}
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-base font-extrabold text-[#2B2B2B] m-0">
+                  <h4 className="text-base font-extrabold text-ink m-0">
                     {child?.enrollmentStatus === 'rejected'
                       ? 'Enrollment needs attention'
                       : 'Enrollment pending verification'}
                   </h4>
-                  <p className="text-xs text-[#6B6B6B] leading-relaxed m-0">
+                  <p className="text-xs text-ink-muted leading-relaxed m-0">
                     {child?.enrollmentStatus === 'rejected' ? (
                       <>The Daycare Worker could not approve this enrollment. Please contact the
                       daycare center to resolve the following: <strong>{child?.rejectionReason || 'No reason provided.'}</strong></>
@@ -633,10 +627,10 @@ export default function ParentView({
       {/* TAB 2: ECCD DepEd Domain Checklist Viewer */}
       {activeTab === 'eccd_checklist' && (
         child?.enrollmentStatus !== 'enrolled' ? (
-          <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm text-center">
-            <Clock size={28} className="text-[#B98A00] mx-auto mb-2" />
-            <p className="text-sm font-bold text-[#2B2B2B] m-0">ECCD checklist unavailable</p>
-            <p className="text-xs text-[#6B6B6B] m-0 mt-1">
+          <div className="p-6 rounded-3xl bg-white border border-line shadow-sm text-center">
+            <Clock size={28} className="text-warn mx-auto mb-2" />
+            <p className="text-sm font-bold text-ink m-0">ECCD checklist unavailable</p>
+            <p className="text-xs text-ink-muted m-0 mt-1">
               This tool unlocks once the Daycare Worker approves this child&apos;s enrollment.
             </p>
           </div>
@@ -645,21 +639,21 @@ export default function ParentView({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <BookOpen size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <BookOpen size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   DepEd / DSWD Early Childhood Development Standard
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 {ECCD_TOTAL_ITEMS}-Item Official ECCD Domain Checklist Viewer
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Official DepEd checklist for <strong>{child?.firstName} {child?.lastName}</strong> —
                 check (✓) means the skill was demonstrated.
               </p>
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 p-1.5 bg-[#FAF8F5] border border-[#E6E4DF] rounded-2xl">
+              <div className="flex items-center gap-1.5 p-1.5 bg-canvas border border-line rounded-2xl">
                 {([1, 2, 3] as EccdRound[]).map((round) => (
                   <button
                     key={round}
@@ -667,8 +661,8 @@ export default function ParentView({
                     onClick={() => setEccdRound(round)}
                     className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
                       eccdRound === round
-                        ? 'bg-[#247571] text-white shadow-sm'
-                        : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-ink-muted hover:text-ink'
                     }`}
                     suppressHydrationWarning
                   >
@@ -690,13 +684,13 @@ export default function ParentView({
                   onClick={() => setSelectedDomainId(dom.id)}
                   className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none shrink-0 flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-[#247571] text-white shadow-md'
-                      : 'bg-[#FAF8F5] text-[#6B6B6B] hover:bg-[#EAE6DF]'
+                      ? 'bg-primary text-white shadow-md'
+                      : 'bg-canvas text-ink-muted hover:bg-line-strong'
                   }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dom.color }}></span>
                   <span>{dom.shortLabel}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#EAE6DF] text-[#6B6B6B]'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-line-strong text-ink-muted'}`}>
                     {dom.items.length}
                   </span>
                 </button>
@@ -705,30 +699,30 @@ export default function ParentView({
           </div>
 
           {/* Active Domain Hero Card */}
-          <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-4 rounded-3xl border border-line bg-canvas flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: activeDomain.color }}></span>
-                <h4 className="text-base font-extrabold text-[#2B2B2B] m-0">{activeDomain.label}</h4>
+                <h4 className="text-base font-extrabold text-ink m-0">{activeDomain.label}</h4>
               </div>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Assessing {activeDomain.items.length} DepEd competency metrics for age 4 early childhood milestones.
               </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
               <div className="text-right">
-                <span className="text-xs font-extrabold text-[#247571]">
+                <span className="text-xs font-extrabold text-primary">
                   {domainMasteryPct}% Present
                 </span>
-                <span className="text-[10px] text-[#707070] block">
+                <span className="text-[10px] text-ink-subtle block">
                   Raw Score: {domainPresentCount} of {activeDomain.items.length}
                   {childScores[activeDomain.id]?.scaled != null && (
                     <> • Scaled: {childScores[activeDomain.id].scaled}</>
                   )}
                 </span>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold text-sm">
+              <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center font-bold text-sm">
                 {domainMasteryPct}
               </div>
             </div>
@@ -740,14 +734,14 @@ export default function ParentView({
               const present = !!childRatings[item.id];
 
               return (
-                <div key={item.id} className="p-3.5 rounded-2xl border border-[#E6E4DF] bg-white hover:border-[#2F8F8A] transition-all flex items-start justify-between gap-3 text-xs">
+                <div key={item.id} className="p-3.5 rounded-2xl border border-line bg-white hover:border-primary-display transition-all flex items-start justify-between gap-3 text-xs">
                   <div className="flex items-start gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-[#FAF8F5] border border-[#E6E4DF] text-[#247571] font-extrabold flex items-center justify-center shrink-0">
+                    <span className="w-7 h-7 rounded-xl bg-canvas border border-line text-primary font-extrabold flex items-center justify-center shrink-0">
                       {item.number}
                     </span>
                     <div>
-                      <div className="font-bold text-[#2B2B2B] leading-snug">{item.description}</div>
-                      <span className="text-[10px] text-[#707070]">Item Code: {item.id}</span>
+                      <div className="font-bold text-ink leading-snug">{item.description}</div>
+                      <span className="text-[10px] text-ink-subtle">Item Code: {item.id}</span>
                     </div>
                   </div>
 
@@ -771,22 +765,22 @@ export default function ParentView({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Form Side */}
-          <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF] lg:col-span-1">
-            <div className="flex items-center gap-2 text-[#247571]">
+          <div className="card bg-white p-5 space-y-4 border border-line lg:col-span-1">
+            <div className="flex items-center gap-2 text-primary">
               <MessageSquare size={20} />
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">Submit Absence Notice</h3>
+              <h3 className="text-base font-bold text-ink m-0">Submit Absence Notice</h3>
             </div>
-            <p className="text-xs text-[#6B6B6B] m-0 leading-relaxed">
+            <p className="text-xs text-ink-muted m-0 leading-relaxed">
               Send an absence excusal note or medical advisory directly to Teacher Teresa for <strong>{child?.firstName}</strong>.
             </p>
 
             <form onSubmit={handleSendAbsenceNote} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#2B2B2B] mb-1">Reason for Absence</label>
-                <select
+                <label htmlFor="srcviewsparentview-reason-for-absence-1" className="block text-xs font-bold text-ink mb-1">Reason for Absence</label>
+                <select id="srcviewsparentview-reason-for-absence-1"
                   value={absenceReason}
                   onChange={(e) => setAbsenceReason(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:border-[#2F8F8A]"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-line bg-canvas text-xs font-semibold focus:outline-none focus:border-primary-display"
                 >
                   <option value="Illness / Fever">Illness / Fever</option>
                   <option value="Doctor Visit / Checkup">Doctor Visit / Checkup</option>
@@ -797,39 +791,39 @@ export default function ParentView({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#2B2B2B] mb-1">Date of Absence</label>
-                <input
+                <label htmlFor="srcviewsparentview-date-of-absence-2" className="block text-xs font-bold text-ink mb-1">Date of Absence</label>
+                <input id="srcviewsparentview-date-of-absence-2"
                   type="date"
                   value={absenceDate}
                   onChange={(e) => setAbsenceDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:border-[#2F8F8A]"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-line bg-canvas text-xs font-semibold focus:outline-none focus:border-primary-display"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#2B2B2B] mb-1">Guardian Contact Phone</label>
-                <input
+                <label htmlFor="srcviewsparentview-guardian-contact-phone-3" className="block text-xs font-bold text-ink mb-1">Guardian Contact Phone</label>
+                <input id="srcviewsparentview-guardian-contact-phone-3"
                   type="text"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:border-[#2F8F8A]"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-line bg-canvas text-xs font-semibold focus:outline-none focus:border-primary-display"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#2B2B2B] mb-1">Detailed Explanation Note</label>
-                <textarea
+                <label htmlFor="srcviewsparentview-detailed-explanation-note-4" className="block text-xs font-bold text-ink mb-1">Detailed Explanation Note</label>
+                <textarea id="srcviewsparentview-detailed-explanation-note-4"
                   rows={3}
                   value={guardianNotes}
                   onChange={(e) => setGuardianNotes(e.target.value)}
                   placeholder="Explain symptoms, doctor recommendations, or pickup instructions..."
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] text-xs font-semibold focus:outline-none focus:border-[#2F8F8A]"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-line bg-canvas text-xs font-semibold focus:outline-none focus:border-primary-display"
                 ></textarea>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 border-none cursor-pointer"
+                className="w-full py-3 px-4 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all flex items-center justify-center gap-2 border-none cursor-pointer"
               >
                 <Send size={16} />
                 <span>Submit Notice to Teacher</span>
@@ -838,21 +832,21 @@ export default function ParentView({
           </div>
 
           {/* History Log Side */}
-          <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF] lg:col-span-2">
+          <div className="card bg-white p-5 space-y-4 border border-line lg:col-span-2">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-[#2B2B2B] m-0">Submitted Guardian Notices Log</h3>
-                <span className="text-xs text-[#6B6B6B]">History of absence notes and teacher responses</span>
+                <h3 className="text-base font-bold text-ink m-0">Submitted Guardian Notices Log</h3>
+                <span className="text-xs text-ink-muted">History of absence notes and teacher responses</span>
               </div>
               <span className="badge badge-primary">{submittedNotes.length} Submitted Notes</span>
             </div>
 
             <div className="space-y-3">
               {submittedNotes.map((note) => (
-                <div key={note.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+                <div key={note.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#247571] text-sm">{note.reason}</span>
+                      <span className="font-bold text-primary text-sm">{note.reason}</span>
                       <span className="badge badge-warning text-[10px]">{note.date}</span>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]">
@@ -860,18 +854,18 @@ export default function ParentView({
                     </span>
                   </div>
 
-                  <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{note.notes}</p>
+                  <p className="text-xs text-ink-soft leading-relaxed m-0">{note.notes}</p>
 
                   {note.teacherReply && (
-                    <div className="p-3 rounded-2xl bg-white border border-[#2F8F8A]/30 text-xs space-y-1 mt-2">
-                      <div className="font-bold text-[#247571] flex items-center gap-1.5">
+                    <div className="p-3 rounded-2xl bg-white border border-primary-display/30 text-xs space-y-1 mt-2">
+                      <div className="font-bold text-primary flex items-center gap-1.5">
                         <CheckCircle size={14} /> Teacher Teresa Cruz Replied:
                       </div>
-                      <p className="text-[#4A4A4A] m-0 italic">{note.teacherReply}</p>
+                      <p className="text-ink-soft m-0 italic">{note.teacherReply}</p>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px] text-[#707070]">
+                  <div className="flex items-center justify-between pt-2 border-t border-line text-[10px] text-ink-subtle">
                     <span>Submitted: {note.submittedAt}</span>
                     <span>Contact: {note.phone}</span>
                   </div>
@@ -886,10 +880,10 @@ export default function ParentView({
       {/* TAB 4: Nutritional & Growth Tracker */}
       {activeTab === 'health_tracker' && (
         child?.enrollmentStatus !== 'enrolled' ? (
-          <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm text-center">
-            <Activity size={28} className="text-[#B98A00] mx-auto mb-2" />
-            <p className="text-sm font-bold text-[#2B2B2B] m-0">Health tracking unavailable</p>
-            <p className="text-xs text-[#6B6B6B] m-0 mt-1">
+          <div className="p-6 rounded-3xl bg-white border border-line shadow-sm text-center">
+            <Activity size={28} className="text-warn mx-auto mb-2" />
+            <p className="text-sm font-bold text-ink m-0">Health tracking unavailable</p>
+            <p className="text-xs text-ink-muted m-0 mt-1">
               Nutritional and growth tracking unlocks once this child&apos;s enrollment is approved.
             </p>
           </div>
@@ -898,15 +892,15 @@ export default function ParentView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Activity size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <Activity size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Barangay Health Center Integration
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Nutritional Status & Growth Telemetry
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Height, Weight, and BMI metrics recorded by daycare staff and barangay health workers.
               </p>
             </div>
@@ -915,40 +909,40 @@ export default function ParentView({
 
           {/* Metric Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="card bg-[#EBF5F4] border border-[#2F8F8A]/20 p-4">
-              <div className="text-2xl font-extrabold text-[#247571]">14.5 kg</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Weight-for-Age (Normal)</div>
+            <div className="card bg-primary-light border border-primary-display/20 p-4">
+              <div className="text-2xl font-extrabold text-primary">14.5 kg</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Weight-for-Age (Normal)</div>
             </div>
 
             <div className="card bg-[#EBF8FF] border border-[#2B6CB0]/20 p-4">
               <div className="text-2xl font-extrabold text-[#2B6CB0]">98.5 cm</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Height-for-Age (Normal)</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Height-for-Age (Normal)</div>
             </div>
 
-            <div className="card bg-[#FEF8EC] border border-[#F5B942]/30 p-4">
-              <div className="text-2xl font-extrabold text-[#8A5D00]">14.9 BMI</div>
-              <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Weight-for-Height (Healthy)</div>
+            <div className="card bg-warn-light border border-warn-fill/30 p-4">
+              <div className="text-2xl font-extrabold text-warn">14.9 BMI</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Weight-for-Height (Healthy)</div>
             </div>
           </div>
 
           {/* Immunization Verification List */}
-          <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3">
-            <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Barangay Health Center Immunization Checklist</h4>
+          <div className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
+            <h4 className="text-sm font-bold text-ink m-0">Barangay Health Center Immunization Checklist</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
-                <span className="font-bold text-[#2B2B2B]">BCG Vaccine</span>
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
+                <span className="font-bold text-ink">BCG Vaccine</span>
                 <span className="badge badge-success">Verified ✅</span>
               </div>
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
-                <span className="font-bold text-[#2B2B2B]">DPT Booster</span>
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
+                <span className="font-bold text-ink">DPT Booster</span>
                 <span className="badge badge-success">Verified ✅</span>
               </div>
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
-                <span className="font-bold text-[#2B2B2B]">Oral Polio Vaccine</span>
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
+                <span className="font-bold text-ink">Oral Polio Vaccine</span>
                 <span className="badge badge-success">Verified ✅</span>
               </div>
-              <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] flex items-center justify-between">
-                <span className="font-bold text-[#2B2B2B]">Measles / MMR</span>
+              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
+                <span className="font-bold text-ink">Measles / MMR</span>
                 <span className="badge badge-success">Verified ✅</span>
               </div>
             </div>
@@ -963,15 +957,15 @@ export default function ParentView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <ImageIcon size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <ImageIcon size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Classroom Learning Activity Feed
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Classroom Moments & Learning Gallery
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Visual highlights of daily activities at Barangay Bacong Daycare Center.
               </p>
             </div>
@@ -981,7 +975,7 @@ export default function ParentView({
             {galleryPhotos.map((photo) => (
               <div
                 key={photo.id}
-                className="group rounded-3xl border border-[#E6E4DF] bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3"
+                className="group rounded-3xl border border-line bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3"
               >
                 <div className="h-44 overflow-hidden relative">
                   <Image
@@ -995,9 +989,9 @@ export default function ParentView({
                   </span>
                 </div>
                 <div className="p-4 space-y-1">
-                  <h4 className="text-sm font-bold text-[#2B2B2B] m-0">{photo.title}</h4>
-                  <span className="text-[10px] text-[#707070]">{photo.date}</span>
-                  <p className="text-xs text-[#6B6B6B] line-clamp-2 m-0 pt-1">{photo.caption}</p>
+                  <h4 className="text-sm font-bold text-ink m-0">{photo.title}</h4>
+                  <span className="text-[10px] text-ink-subtle">{photo.date}</span>
+                  <p className="text-xs text-ink-muted line-clamp-2 m-0 pt-1">{photo.caption}</p>
                 </div>
               </div>
             ))}
@@ -1011,15 +1005,15 @@ export default function ParentView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <FolderCheck size={18} className="text-[#247571]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
+                <FolderCheck size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
                   Barangay Daycare Compliance Records
                 </span>
               </div>
-              <h3 className="text-lg font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-lg font-extrabold text-ink m-0">
                 Enrollment Document & Requirements Center
               </h3>
-              <p className="text-xs text-[#6B6B6B] mt-1 m-0">
+              <p className="text-xs text-ink-muted mt-1 m-0">
                 Verification status for official DSWD and Barangay Bacong daycare enrollment requirements.
               </p>
             </div>
@@ -1034,36 +1028,36 @@ export default function ParentView({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
               <div className="flex items-center justify-between">
                 <span className="badge badge-success text-[10px]">Verified ✅</span>
               </div>
-              <h4 className="text-sm font-bold text-[#2B2B2B] m-0">PSA Birth Certificate</h4>
-              <p className="text-xs text-[#6B6B6B] m-0">Official PSA copy on file with Barangay Bacong office.</p>
+              <h4 className="text-sm font-bold text-ink m-0">PSA Birth Certificate</h4>
+              <p className="text-xs text-ink-muted m-0">Official PSA copy on file with Barangay Bacong office.</p>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
               <div className="flex items-center justify-between">
                 <span className="badge badge-success text-[10px]">Verified ✅</span>
               </div>
-              <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Barangay Health Card</h4>
-              <p className="text-xs text-[#6B6B6B] m-0">Immunization record signed by Barangay Nurse.</p>
+              <h4 className="text-sm font-bold text-ink m-0">Barangay Health Card</h4>
+              <p className="text-xs text-ink-muted m-0">Immunization record signed by Barangay Nurse.</p>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
               <div className="flex items-center justify-between">
                 <span className="badge badge-success text-[10px]">Verified ✅</span>
               </div>
-              <h4 className="text-sm font-bold text-[#2B2B2B] m-0">2x2 Pupil ID Photos</h4>
-              <p className="text-xs text-[#6B6B6B] m-0">Digital photo roster uploaded to pupil profile.</p>
+              <h4 className="text-sm font-bold text-ink m-0">2x2 Pupil ID Photos</h4>
+              <p className="text-xs text-ink-muted m-0">Digital photo roster uploaded to pupil profile.</p>
             </div>
 
-            <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
               <div className="flex items-center justify-between">
                 <span className="badge badge-success text-[10px]">Completed ✅</span>
               </div>
-              <h4 className="text-sm font-bold text-[#2B2B2B] m-0">DSWD Family Profile Record</h4>
-              <p className="text-xs text-[#6B6B6B] m-0">Socio-economic information verified for DSWD Form 1.</p>
+              <h4 className="text-sm font-bold text-ink m-0">DSWD Family Profile Record</h4>
+              <p className="text-xs text-ink-muted m-0">Socio-economic information verified for DSWD Form 1.</p>
             </div>
           </div>
         </div>
@@ -1074,23 +1068,23 @@ export default function ParentView({
         <div className="card bg-white p-5 space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-[#2B2B2B] m-0">Daycare Notices & Broadcast Feed</h3>
-              <span className="text-xs text-[#6B6B6B]">Official announcements broadcasted to Barangay Bacong parents</span>
+              <h3 className="text-base font-bold text-ink m-0">Daycare Notices & Broadcast Feed</h3>
+              <span className="text-xs text-ink-muted">Official announcements broadcasted to Barangay Bacong parents</span>
             </div>
             <span className="badge badge-primary">Data Privacy Protected</span>
           </div>
 
           <div className="space-y-3.5">
             {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
+              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#247571] text-sm">{notice.title}</span>
-                  <span className="text-[11px] text-[#707070] font-semibold">{notice.date}</span>
+                  <span className="font-bold text-primary text-sm">{notice.title}</span>
+                  <span className="text-[11px] text-ink-subtle font-semibold">{notice.date}</span>
                 </div>
-                <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
-                <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px]">
+                <p className="text-xs text-ink-soft leading-relaxed m-0">{notice.content}</p>
+                <div className="flex items-center justify-between pt-2 border-t border-line text-[10px]">
                   <span className="badge badge-warning">Broadcasted to Parent Portal</span>
-                  <span className="text-[#707070]">{notice.authorName ? 'Author: ' + notice.authorName : 'Author: Daycare Staff'}</span>
+                  <span className="text-ink-subtle">{notice.authorName ? 'Author: ' + notice.authorName : 'Author: Daycare Staff'}</span>
                 </div>
               </div>
             ))}

@@ -253,32 +253,32 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn print:static print:block print:bg-white print:backdrop-blur-0 print:p-0 print:overflow-visible"
       suppressHydrationWarning
     >
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-5xl p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:border-none print:p-0 print:overflow-visible print:block">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-5xl p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col print:max-w-none print:max-h-none print:rounded-none print:shadow-none print:border-none print:p-0 print:overflow-visible print:block">
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4 shrink-0 print:hidden">
+        <div className="flex items-center justify-between border-b border-line pb-4 shrink-0 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-primary-light text-primary flex items-center justify-center font-bold shrink-0">
               <FileText size={20} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">
+              <h3 className="text-base font-extrabold text-ink m-0">
                 ECCD Pupil Evaluation Report
               </h3>
-              <p className="text-xs text-[#6B6B6B] m-0">
+              <p className="text-xs text-ink-muted m-0">
                 {pupil.firstName} {pupil.lastName} ({pupil.id}) &bull; Official Child&apos;s Record 2
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-[#EBF5F4] text-[#247571] text-xs font-bold">
+            <span className="px-3 py-1.5 rounded-full bg-primary-light text-primary text-xs font-bold">
               1st &ndash; 3rd Assessment
             </span>
             <select
               value={schoolYear}
               onChange={(e) => setSchoolYear(e.target.value)}
-              className="px-3 py-1.5 rounded-full border border-[#E6E4DF] text-xs font-semibold bg-[#FAF8F5] focus:outline-none"
+              className="px-3 py-1.5 rounded-full border border-line text-xs font-semibold bg-canvas focus:outline-none"
               suppressHydrationWarning
             >
               <option value="SY 2026-2027">SY 2026-2027</option>
@@ -288,7 +288,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+              className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
               suppressHydrationWarning
             >
               <X size={20} />
@@ -299,25 +299,25 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
         {/* Report Preview Body */}
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 print:overflow-visible print:pr-0 print:flex-none">
           {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-[#247571]">
+            <div className="flex items-center justify-center gap-2 py-20 text-primary">
               <Loader2 size={22} className="animate-spin" />
               <span className="text-xs font-bold">Loading evaluation records...</span>
             </div>
           ) : (
-            <div ref={reportRef} className="bg-white p-6 rounded-2xl border border-[#E6E4DF] space-y-8 text-[#2B2B2B] font-sans print:p-0 print:border-0 print:rounded-none">
+            <div ref={reportRef} className="bg-white p-6 rounded-2xl border border-line space-y-8 text-ink font-sans print:p-0 print:border-0 print:rounded-none">
 
               {/* Government Header */}
-              <div className="text-center border-b-2 border-[#2F8F8A] pb-4 space-y-1">
-                <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider">
+              <div className="text-center border-b-2 border-primary-display pb-4 space-y-1">
+                <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
                   Republic of the Philippines &bull; Region V &bull; Province of Albay
                 </div>
-                <h2 className="text-lg font-black text-[#1D605D] uppercase tracking-tight m-0">
+                <h2 className="text-lg font-black text-primary-hover uppercase tracking-tight m-0">
                   BARANGAY BACONG DAYCARE CENTER
                 </h2>
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   ECCD Checklist, Child&apos;s Record 2
                 </h4>
-                <div className="text-[11px] text-[#6B6B6B]">
+                <div className="text-[11px] text-ink-muted">
                   Pupil Evaluation Report &bull; School Year: <strong>{schoolYear}</strong> &bull; Report Date:{' '}
                   <strong>{fmtDate(today)}</strong>
                 </div>
@@ -325,7 +325,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 1 — Sociodemographic Profile */}
               <section className="space-y-3">
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   Section 1: Sociodemographic Profile
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs">
@@ -354,51 +354,51 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 2 — Computation of the Child's Age */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   Section 2: Computation of the Child&apos;s Age
                 </h4>
-                <p className="text-[10px] text-[#707070] m-0">
+                <p className="text-[10px] text-ink-subtle m-0">
                   It is recommended that the Checklist be administered to the child once a year.
                   Each month is composed of 30 days. Do not round off the months or years.
                 </p>
                 <table className="w-full text-xs border-collapse">
                   <thead>
-                    <tr className="bg-[#EBF5F4] text-[#1D605D]">
-                      <th className="p-2 border border-[#E6E4DF] text-left w-1/3"></th>
-                      <th className="p-2 border border-[#E6E4DF] text-center">Year</th>
-                      <th className="p-2 border border-[#E6E4DF] text-center">Month</th>
-                      <th className="p-2 border border-[#E6E4DF] text-center">Day</th>
-                      <th className="p-2 border border-[#E6E4DF] text-center">Examiner&apos;s Name</th>
+                    <tr className="bg-primary-light text-primary-hover">
+                      <th className="p-2 border border-line text-left w-1/3"></th>
+                      <th className="p-2 border border-line text-center">Year</th>
+                      <th className="p-2 border border-line text-center">Month</th>
+                      <th className="p-2 border border-line text-center">Day</th>
+                      <th className="p-2 border border-line text-center">Examiner&apos;s Name</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ROUNDS.map((r) => (
                       <React.Fragment key={r}>
-                        <tr className="bg-[#FAF8F5]">
-                          <td colSpan={5} className="p-1.5 border border-[#E6E4DF] font-extrabold text-[#247571] text-[11px]">
+                        <tr className="bg-canvas">
+                          <td colSpan={5} className="p-1.5 border border-line font-extrabold text-primary text-[11px]">
                             {roundLabel(r)}
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-2 border border-[#E6E4DF] font-semibold">Date Tested</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center">{td.y}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center">{td.m}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center">{td.d}</td>
-                          <td className="p-2 border border-[#E6E4DF]"></td>
+                          <td className="p-2 border border-line font-semibold">Date Tested</td>
+                          <td className="p-2 border border-line text-center">{td.y}</td>
+                          <td className="p-2 border border-line text-center">{td.m}</td>
+                          <td className="p-2 border border-line text-center">{td.d}</td>
+                          <td className="p-2 border border-line"></td>
                         </tr>
                         <tr>
-                          <td className="p-2 border border-[#E6E4DF] font-semibold">Child&apos;s Date of Birth</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center">{dob.y}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center">{dob.m}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center">{dob.d}</td>
-                          <td className="p-2 border border-[#E6E4DF]"></td>
+                          <td className="p-2 border border-line font-semibold">Child&apos;s Date of Birth</td>
+                          <td className="p-2 border border-line text-center">{dob.y}</td>
+                          <td className="p-2 border border-line text-center">{dob.m}</td>
+                          <td className="p-2 border border-line text-center">{dob.d}</td>
+                          <td className="p-2 border border-line"></td>
                         </tr>
                         <tr>
-                          <td className="p-2 border border-[#E6E4DF] font-semibold">Child&apos;s Age</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">{age.y}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">{age.m}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">{age.d}</td>
-                          <td className="p-2 border border-[#E6E4DF]"></td>
+                          <td className="p-2 border border-line font-semibold">Child&apos;s Age</td>
+                          <td className="p-2 border border-line text-center font-bold text-primary">{age.y}</td>
+                          <td className="p-2 border border-line text-center font-bold text-primary">{age.m}</td>
+                          <td className="p-2 border border-line text-center font-bold text-primary">{age.d}</td>
+                          <td className="p-2 border border-line"></td>
                         </tr>
                       </React.Fragment>
                     ))}
@@ -409,7 +409,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
               {/* Sections 3–9 — Checklist per domain */}
               {ECCD_DOMAINS.map((dom, i) => (
                 <section key={dom.id} className="space-y-3 print:break-before-page">
-                  <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                  <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                     Section {3 + i}: {dom.label} ({dom.items.length} items)
                   </h4>
                   <table className="w-full text-[11px] border-collapse">
@@ -423,24 +423,24 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                       <col className="w-[14%]" />
                     </colgroup>
                     <thead>
-                      <tr className="bg-[#EBF5F4] text-[#1D605D]">
-                        <th className="p-2 border border-[#E6E4DF] text-left">#</th>
-                        <th className="p-2 border border-[#E6E4DF] text-left">Item / Milestone</th>
-                        <th className="p-2 border border-[#E6E4DF] text-left">Material / Procedure</th>
-                        <th className="p-2 border border-[#E6E4DF] text-center">1st Eval</th>
-                        <th className="p-2 border border-[#E6E4DF] text-center">2nd Eval</th>
-                        <th className="p-2 border border-[#E6E4DF] text-center">3rd Eval</th>
-                        <th className="p-2 border border-[#E6E4DF] text-left">Comments</th>
+                      <tr className="bg-primary-light text-primary-hover">
+                        <th className="p-2 border border-line text-left">#</th>
+                        <th className="p-2 border border-line text-left">Item / Milestone</th>
+                        <th className="p-2 border border-line text-left">Material / Procedure</th>
+                        <th className="p-2 border border-line text-center">1st Eval</th>
+                        <th className="p-2 border border-line text-center">2nd Eval</th>
+                        <th className="p-2 border border-line text-center">3rd Eval</th>
+                        <th className="p-2 border border-line text-left">Comments</th>
                       </tr>
                     </thead>
                     <tbody>
                       {dom.items.map((item) => (
                         <tr key={item.id} className="print:break-inside-avoid">
-                          <td className="p-2 border border-[#E6E4DF] font-bold text-[#707070]">{item.number}</td>
-                          <td className="p-2 border border-[#E6E4DF] font-medium">{item.description}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-[#6B6B6B]">{item.procedure || ''}</td>
+                          <td className="p-2 border border-line font-bold text-ink-subtle">{item.number}</td>
+                          <td className="p-2 border border-line font-medium">{item.description}</td>
+                          <td className="p-2 border border-line text-ink-muted">{item.procedure || ''}</td>
                           {ROUNDS.map((r) => (
-                            <td key={r} className="p-2 border border-[#E6E4DF] text-center">
+                            <td key={r} className="p-2 border border-line text-center">
                               <span
                                 className={`inline-flex w-5 h-5 rounded items-center justify-center text-[10px] font-extrabold ${
                                   ratingsByRound[r]?.[item.id]
@@ -452,7 +452,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                               </span>
                             </td>
                           ))}
-                          <td className="p-2 border border-[#E6E4DF]"></td>
+                          <td className="p-2 border border-line"></td>
                         </tr>
                       ))}
                     </tbody>
@@ -462,7 +462,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 10 — Examiner & Background Notes */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   Section 10: Examiner &amp; Background Notes
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs">
@@ -470,24 +470,24 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                   <Field label="Date Administered" value={fmtDate(today)} />
                   <Field label="Place" value="Barangay Bacong Daycare Center, Barangay Bacong, Albay" />
                 </div>
-                <div className="text-xs font-bold text-[#2B2B2B] pt-1">
+                <div className="text-xs font-bold text-ink pt-1">
                   Notes, descriptions and observations:
                 </div>
                 {hasBackground ? (
                   <div className="space-y-2">
                     {backgroundRows.filter((r) => r.value?.trim()).map((row) => (
-                      <div key={row.label} className="p-2.5 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF]">
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571] mb-0.5">
+                      <div key={row.label} className="p-2.5 rounded-2xl bg-canvas border border-line">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-primary mb-0.5">
                           {row.label}
                         </div>
-                        <p className="text-[11px] text-[#4A4A4A] leading-relaxed m-0 whitespace-pre-wrap">
+                        <p className="text-[11px] text-ink-soft leading-relaxed m-0 whitespace-pre-wrap">
                           {row.value}
                         </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#707070] italic m-0">
+                  <p className="text-[11px] text-ink-subtle italic m-0">
                     No background information recorded.
                   </p>
                 )}
@@ -495,38 +495,38 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 11 — Raw & Scaled Scores */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   Section 11: Raw &amp; Scaled Scores
                 </h4>
-                <p className="text-[10px] text-[#707070] m-0">
+                <p className="text-[10px] text-ink-subtle m-0">
                   Raw Score = number of ✓ items per domain. Scaled Scores are entered from the
                   official raw-to-scaled conversion tables (age-based).
                 </p>
                 <table className="w-full text-xs border-collapse">
                   <thead>
-                    <tr className="bg-[#EBF5F4] text-[#1D605D]">
-                      <th className="p-2 border border-[#E6E4DF] text-left">Domain</th>
+                    <tr className="bg-primary-light text-primary-hover">
+                      <th className="p-2 border border-line text-left">Domain</th>
                       {ROUNDS.map((r) => (
                         <React.Fragment key={r}>
-                          <th className="p-2 border border-[#E6E4DF] text-center">{roundLabel(r)} Raw</th>
-                          <th className="p-2 border border-[#E6E4DF] text-center">{roundLabel(r)} Scaled</th>
+                          <th className="p-2 border border-line text-center">{roundLabel(r)} Raw</th>
+                          <th className="p-2 border border-line text-center">{roundLabel(r)} Scaled</th>
                         </React.Fragment>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {ECCD_DOMAINS.map((dom) => (
-                      <tr key={dom.id} className="border-b border-[#E6E4DF]">
-                        <td className="p-2 font-bold border border-[#E6E4DF]">{dom.label}</td>
+                      <tr key={dom.id} className="border-b border-line">
+                        <td className="p-2 font-bold border border-line">{dom.label}</td>
                         {ROUNDS.map((r) => {
                           const raw = rawFor(dom.id, r, ratingsByRound[r], scoresByRound[r]);
                           const scaled = scaledValue(scoresByRound[r]?.[dom.id]?.scaled);
                           return (
                             <React.Fragment key={r}>
-                              <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">
+                              <td className="p-2 border border-line text-center font-bold text-primary">
                                 {raw}
                               </td>
-                              <td className="p-2 border border-[#E6E4DF] text-center font-bold">
+                              <td className="p-2 border border-line text-center font-bold">
                                 {scaled ?? '—'}
                               </td>
                             </React.Fragment>
@@ -535,15 +535,15 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                       </tr>
                     ))}
                     <tr className="bg-[#F0F9F8]">
-                      <td className="p-2 border border-[#E6E4DF] font-extrabold text-[#1D605D]">
+                      <td className="p-2 border border-line font-extrabold text-primary-hover">
                         Sum of Scaled Scores
                       </td>
                       {ROUNDS.map((r) => {
                         const sum = sumScaled(r, scoresByRound);
                         return (
                           <React.Fragment key={r}>
-                            <td className="p-2 border border-[#E6E4DF]"></td>
-                            <td className="p-2 border border-[#E6E4DF] text-center font-extrabold text-[#1D605D]">
+                            <td className="p-2 border border-line"></td>
+                            <td className="p-2 border border-line text-center font-extrabold text-primary-hover">
                               {sum ?? '—'}
                             </td>
                           </React.Fragment>
@@ -551,8 +551,8 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                       })}
                     </tr>
                     <tr>
-                      <td className="p-2 border border-[#E6E4DF] font-extrabold">Standard Score</td>
-                      <td colSpan={6} className="p-2 border border-[#E6E4DF] text-[#707070] text-[10px]">
+                      <td className="p-2 border border-line font-extrabold">Standard Score</td>
+                      <td colSpan={6} className="p-2 border border-line text-ink-subtle text-[10px]">
                         Leave blank &mdash; computed from the official Sum-of-Scaled-Scores
                         conversion table (hand-written on the printed form).
                       </td>
@@ -560,13 +560,13 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                   </tbody>
                 </table>
 
-                <div className="p-4 rounded-2xl bg-[#FEF8EC] border border-[#F5DAA0] text-[11px] space-y-2">
-                  <div className="font-bold text-[#8A5D00]">Official Interpretation of Scaled Scores</div>
+                <div className="p-4 rounded-2xl bg-warn-light border border-warn-border text-[11px] space-y-2">
+                  <div className="font-bold text-warn">Official Interpretation of Scaled Scores</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {INTERPRETATIONS.map((r) => (
-                      <div key={r.min} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-[#F5DAA0] px-3 py-1.5">
-                        <span className="font-extrabold text-[#8A5D00]">{r.min}&ndash;{r.max}</span>
-                        <span className="text-[#6B6B6B]">{r.meaning}</span>
+                      <div key={r.min} className="flex items-center justify-between gap-2 rounded-xl bg-white border border-warn-border px-3 py-1.5">
+                        <span className="font-extrabold text-warn">{r.min}&ndash;{r.max}</span>
+                        <span className="text-ink-muted">{r.meaning}</span>
                       </div>
                     ))}
                   </div>
@@ -575,21 +575,21 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 12 — Scaled Scores Profile */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   Section 12: Scaled Scores Profile
                 </h4>
-                <p className="text-[10px] text-[#707070] m-0">
+                <p className="text-[10px] text-ink-subtle m-0">
                   Scaled score per domain for each assessment (X marks, connected per round).
                 </p>
-                <div className="rounded-2xl border border-[#E6E4DF] p-4">
+                <div className="rounded-2xl border border-line p-4">
                   <div className="flex items-end gap-2 h-32">
                     {ECCD_DOMAINS.map((dom) => (
                       <div key={dom.id} className="flex-1 flex flex-col items-center gap-1.5 h-full">
-                        <div className="flex items-end gap-1 h-24 w-full justify-center border-b border-[#E6E4DF]">
+                        <div className="flex items-end gap-1 h-24 w-full justify-center border-b border-line">
                           {ROUNDS.map((r) => {
                             const s = scaledNumber(scoresByRound[r]?.[dom.id]?.scaled);
                             const pct = s !== null ? Math.max(4, Math.round((s / 19) * 100)) : 2;
-                            const colors = ['bg-[#247571]', 'bg-[#2B6CB0]', 'bg-[#F5B942]'];
+                            const colors = ['bg-primary', 'bg-[#2B6CB0]', 'bg-warn-fill'];
                             return (
                               <div
                                 key={r}
@@ -600,16 +600,16 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                             );
                           })}
                         </div>
-                        <span className="text-[9px] text-center text-[#6B6B6B] font-semibold leading-tight">
+                        <span className="text-[9px] text-center text-ink-muted font-semibold leading-tight">
                           {dom.shortLabel}
                         </span>
                       </div>
                     ))}
                   </div>
-                  <div className="flex items-center gap-4 pt-2 text-[10px] text-[#6B6B6B] font-semibold">
+                  <div className="flex items-center gap-4 pt-2 text-[10px] text-ink-muted font-semibold">
                     {ROUNDS.map((r) => (
                       <span key={r} className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-sm ${['bg-[#247571]', 'bg-[#2B6CB0]', 'bg-[#F5B942]'][r - 1]}`} />
+                        <span className={`w-2.5 h-2.5 rounded-sm ${['bg-primary', 'bg-[#2B6CB0]', 'bg-warn-fill'][r - 1]}`} />
                         {roundLabel(r)}
                       </span>
                     ))}
@@ -619,57 +619,57 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 13 — Standard Scores chart */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">
                   Section 13: Standard Scores
                 </h4>
-                <p className="text-[10px] text-[#707070] m-0">
+                <p className="text-[10px] text-ink-subtle m-0">
                   Mark an x on the corresponding standard score for each test administration and
                   connect the x&apos;s. Write the date for each test administration.
                 </p>
-                <div className="rounded-2xl border border-[#E6E4DF] overflow-hidden text-[10px]">
-                  <div className="grid grid-cols-12 bg-[#EBF5F4] text-[#1D605D] font-bold text-center">
-                    <div className="col-span-3 p-2 border-r border-[#E6E4DF] text-left">AGES</div>
+                <div className="rounded-2xl border border-line overflow-hidden text-[10px]">
+                  <div className="grid grid-cols-12 bg-primary-light text-primary-hover font-bold text-center">
+                    <div className="col-span-3 p-2 border-r border-line text-left">AGES</div>
                     {[160, 150, 140, 130, 120, 110, 100, 90, 80, 70, 60, 50].map((s) => (
-                      <div key={s} className="p-1.5 border-r border-[#E6E4DF] last:border-r-0">{s}</div>
+                      <div key={s} className="p-1.5 border-r border-line last:border-r-0">{s}</div>
                     ))}
                   </div>
                   {['3 years & 1 month', '4 years', '5 years'].map((age) => (
-                    <div key={age} className="grid grid-cols-12 border-t border-[#E6E4DF]">
-                      <div className="col-span-3 p-2 border-r border-[#E6E4DF] font-semibold">{age}</div>
+                    <div key={age} className="grid grid-cols-12 border-t border-line">
+                      <div className="col-span-3 p-2 border-r border-line font-semibold">{age}</div>
                       {Array.from({ length: 12 }).map((_, i) => (
-                        <div key={i} className="border-r border-[#E6E4DF] last:border-r-0 h-8"></div>
+                        <div key={i} className="border-r border-line last:border-r-0 h-8"></div>
                       ))}
                     </div>
                   ))}
-                  <div className="grid grid-cols-2 border-t border-[#E6E4DF] text-[#6B6B6B]">
+                  <div className="grid grid-cols-2 border-t border-line text-ink-muted">
                     {STANDARD_BANDS.map((b) => (
-                      <div key={b.min} className="p-1.5 border-b border-r border-[#E6E4DF] last:border-r-0">
-                        <strong className="text-[#8A5D00]">&ge; {b.min}</strong> &mdash; {b.label}
+                      <div key={b.min} className="p-1.5 border-b border-r border-line last:border-r-0">
+                        <strong className="text-warn">&ge; {b.min}</strong> &mdash; {b.label}
                       </div>
                     ))}
                   </div>
                 </div>
-                <p className="text-[10px] text-[#707070] m-0">
+                <p className="text-[10px] text-ink-subtle m-0">
                   Standard Score is computed from the official conversion table; X marks are
                   hand-written on the printed form.
                 </p>
               </section>
 
               {/* Signatory Block */}
-              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-[#E6E4DF] text-xs print:break-before-page">
+              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-line text-xs print:break-before-page">
                 <div className="text-center space-y-6">
-                  <div className="text-[10px] text-[#6B6B6B]">Prepared &amp; Certified By:</div>
-                  <div className="border-b border-[#2B2B2B] font-bold pb-1 text-[#2B2B2B]">
+                  <div className="text-[10px] text-ink-muted">Prepared &amp; Certified By:</div>
+                  <div className="border-b border-ink font-bold pb-1 text-ink">
                     TEACHER TERESA CRUZ
                   </div>
-                  <div className="text-[10px] text-[#6B6B6B]">Lead Daycare Worker &bull; Barangay Bacong</div>
+                  <div className="text-[10px] text-ink-muted">Lead Daycare Worker &bull; Barangay Bacong</div>
                 </div>
                 <div className="text-center space-y-6">
-                  <div className="text-[10px] text-[#6B6B6B]">Approved &amp; Noted By:</div>
-                  <div className="border-b border-[#2B2B2B] font-bold pb-1 text-[#2B2B2B]">
+                  <div className="text-[10px] text-ink-muted">Approved &amp; Noted By:</div>
+                  <div className="border-b border-ink font-bold pb-1 text-ink">
                     HON. RAMON SANTOS
                   </div>
-                  <div className="text-[10px] text-[#6B6B6B]">Barangay Captain / Official Oversight</div>
+                  <div className="text-[10px] text-ink-muted">Barangay Captain / Official Oversight</div>
                 </div>
               </div>
 
@@ -678,22 +678,22 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
         </div>
 
         {/* Modal Footer */}
-        <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-between shrink-0 print:hidden">
-          <span className="text-xs text-[#6B6B6B] font-semibold flex items-center gap-1">
-            <ShieldCheck size={16} className="text-[#247571]" /> Official ECCD Record 2 &mdash; PDF / Print Ready
+        <div className="pt-4 border-t border-line flex items-center justify-between shrink-0 print:hidden">
+          <span className="text-xs text-ink-muted font-semibold flex items-center gap-1">
+            <ShieldCheck size={16} className="text-primary" /> Official ECCD Record 2 &mdash; PDF / Print Ready
           </span>
 
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#6B6B6B] hover:bg-[#FAF8F5] transition-all cursor-pointer border-none bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-ink-muted hover:bg-canvas transition-all cursor-pointer border-none bg-transparent"
               suppressHydrationWarning
             >
               Cancel
             </button>
             <button
               onClick={() => window.print()}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#247571] border border-[#2F8F8A]/30 hover:bg-[#EBF5F4] transition-all flex items-center gap-2 cursor-pointer bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-primary border border-primary-display/30 hover:bg-primary-light transition-all flex items-center gap-2 cursor-pointer bg-transparent"
               suppressHydrationWarning
             >
               <Printer size={16} />
@@ -702,7 +702,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
             <button
               onClick={handleExportPDF}
               disabled={isExporting || isLoading}
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
               suppressHydrationWarning
             >
               <Download size={16} />
@@ -720,10 +720,10 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[9px] font-extrabold uppercase tracking-wider text-[#247571] mb-0.5">
+      <div className="text-[9px] font-extrabold uppercase tracking-wider text-primary mb-0.5">
         {label}
       </div>
-      <div className="border-b border-dotted border-[#B9B4AA] text-[#2B2B2B] min-h-[1.3em]">
+      <div className="border-b border-dotted border-[#B9B4AA] text-ink min-h-[1.3em]">
         {value || '\u00A0'}
       </div>
     </div>

@@ -97,24 +97,24 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#E6E4DF] w-full max-w-lg p-6 space-y-5 animate-scaleUp">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+        <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-primary-light text-primary flex items-center justify-center font-bold shrink-0">
               <UserCheck size={20} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2B2B2B] m-0">Provision User Account</h3>
-              <p className="text-xs text-[#6B6B6B] m-0">
+              <h3 className="text-base font-extrabold text-ink m-0">Provision User Account</h3>
+              <p className="text-xs text-ink-muted m-0">
                 Barangay Admin User Management & RBAC Access Provisioning
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
@@ -122,7 +122,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
         </div>
 
         {error && (
-          <div className="bg-[#FFEBEE] border border-[#FFCDD2] text-[#C62828] p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
+          <div className="bg-danger-light border border-danger-border text-danger p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
             <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -131,10 +131,10 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Full Name *</label>
-            <input
+            <label htmlFor="srccomponentsusermodal-full-name-1" className="text-xs font-bold text-ink-soft">Full Name *</label>
+            <input id="srccomponentsusermodal-full-name-1"
               type="text"
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               placeholder="e.g. Admin Josephine Mercado"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -143,10 +143,10 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Email Address *</label>
-            <input
+            <label htmlFor="srccomponentsusermodal-email-address-2" className="text-xs font-bold text-ink-soft">Email Address *</label>
+            <input id="srccomponentsusermodal-email-address-2"
               type="email"
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               placeholder="e.g. admin.bacong@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -155,9 +155,9 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Assign Role *</label>
-            <select
-              className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+            <label htmlFor="srccomponentsusermodal-assign-role-3" className="text-xs font-bold text-ink-soft">Assign Role *</label>
+            <select id="srccomponentsusermodal-assign-role-3"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
               suppressHydrationWarning
@@ -170,11 +170,11 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#4A4A4A]">Temporary Password *</label>
+            <label htmlFor="srccomponentsusermodal-temporary-password-4" className="text-xs font-bold text-ink-soft">Temporary Password *</label>
             <div className="flex gap-2">
-              <input
+              <input id="srccomponentsusermodal-temporary-password-4"
                 type="text"
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#E6E4DF] text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]/30 focus:border-[#2F8F8A] bg-[#FAF8F5] focus:bg-white"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 placeholder="Min 8 chars, with upper, lower & number"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -183,29 +183,29 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
               <button
                 type="button"
                 onClick={generatePassword}
-                className="shrink-0 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-[#247571] border border-[#2F8F8A]/30 hover:bg-[#EBF5F4] transition-all cursor-pointer bg-transparent"
+                className="shrink-0 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-primary border border-primary-display/30 hover:bg-primary-light transition-all cursor-pointer bg-transparent"
                 suppressHydrationWarning
               >
                 Generate
               </button>
             </div>
-            <p className="text-[10px] text-[#707070] font-semibold">
+            <p className="text-[10px] text-ink-subtle font-semibold">
               The user will be prompted to change this on first login. Share it with them securely.
             </p>
           </div>
 
-          <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-line flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#6B6B6B] border border-[#E6E4DF] hover:bg-[#FAF8F5] transition-all cursor-pointer border-none bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-ink-muted border border-line hover:bg-canvas transition-all cursor-pointer border-none bg-transparent"
               suppressHydrationWarning
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
               suppressHydrationWarning
             >
               <Save size={16} />
