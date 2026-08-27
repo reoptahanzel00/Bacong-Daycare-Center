@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { resolveEnrollmentStatus } from '@/lib/enrollment';
 
 const PupilSchema = z.object({
   // Only an id this API previously issued may be supplied (edit path).
@@ -92,9 +93,6 @@ export async function POST(request: Request) {
         .eq('id', pupilId)
         .maybeSingle();
 
-      const isUnverified =
-        existing?.enrollment_status === 'pending' || existing?.enrollment_status === 'rejected';
-
       const dbRecord = {
         id: pupilId,
         first_name: parsed.firstName,
@@ -102,7 +100,7 @@ export async function POST(request: Request) {
         birth_date: parsed.birthDate,
         sex: parsed.sex,
         address: parsed.address,
-        enrollment_status: isUnverified ? existing.enrollment_status : parsed.enrollmentStatus,
+        enrollment_status: resolveEnrollmentStatus(existing?.enrollment_status, parsed.enrollmentStatus),
         enrollment_date: existing?.enrollment_date || new Date().toISOString().split('T')[0],
         // Never reset a live absence streak on a demographic edit.
         consecutive_absences: existing?.consecutive_absences ?? 0,

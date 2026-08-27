@@ -6,7 +6,11 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body.status).toBe('healthy');
-    expect(body.service).toContain('Bacong Daycare');
+    expect(body.timestamp).toBeTruthy();
+    // The probe deliberately withholds environment and version details from
+    // anonymous callers; assert they stay withheld.
+    expect(body.environment).toBeUndefined();
+    expect(body.version).toBeUndefined();
   });
 
   test('POST /api/auth/signup should reject a weak password with 400', async ({ request }) => {
