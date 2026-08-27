@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Heart, 
   TrendingUp, 
@@ -87,9 +87,15 @@ export default function ParentView({
   ]);
 
   // Active Linked Child Record
-  const child = pupils.find(p => p.id === selectedChildId) || pupils[0];
+  const child = useMemo(
+    () => pupils.find(p => p.id === selectedChildId) || pupils[0],
+    [pupils, selectedChildId]
+  );
 
-  const childAttendance = attendance.filter(a => a.pupil_id === child?.id);
+  const childAttendance = useMemo(
+    () => attendance.filter(a => a.pupil_id === child?.id),
+    [attendance, child?.id]
+  );
 
   // Load the child's real ECCD checklist ratings + scores for the selected round.
   useEffect(() => {
@@ -159,7 +165,10 @@ export default function ParentView({
   const totalAtt = childAttendance.length;
 
   const rate = totalAtt ? Math.round(((presentCount + lateCount) / totalAtt) * 100) : 100;
-  const childProgress = progress.filter(p => p.pupil_id === child?.id);
+  const childProgress = useMemo(
+    () => progress.filter(p => p.pupil_id === child?.id),
+    [progress, child?.id]
+  );
 
   const handleAcknowledgeAlert = (alertId: string) => {
     setAcknowledgedAlerts(prev => ({ ...prev, [alertId]: true }));

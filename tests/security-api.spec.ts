@@ -1,5 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * The signup and login routes are rate limited per client IP. These tests
+ * assert validation and authorization behaviour, which is orthogonal to that,
+ * so each request presents its own X-Forwarded-For — the header the limiter
+ * keys on. Without it the suite exhausts the shared budget and later runs (or
+ * CI's automatic retries) see 429 instead of the status under test.
+ */
+let ipCounter = 0;
+function freshIpHeaders(): Record<string, string> {
+  ipCounter += 1;
+  return { 'x-forwarded-for': `203.0.113.${ipCounter % 250}` };
+}
+
 test.describe('API Security & Health Check Automated Tests', () => {
   test('GET /api/health should return 200 OK with healthy status', async ({ request }) => {
     const response = await request.get('/api/health');
@@ -15,6 +28,7 @@ test.describe('API Security & Health Check Automated Tests', () => {
 
   test('POST /api/auth/signup should reject a weak password with 400', async ({ request }) => {
     const response = await request.post('/api/auth/signup', {
+      headers: freshIpHeaders(),
       data: { fullName: 'Test Parent', email: 'weak@example.com', password: 'weak' },
     });
     expect(response.status()).toBe(400);
@@ -22,6 +36,7 @@ test.describe('API Security & Health Check Automated Tests', () => {
 
   test('POST /api/auth/signup should reject self-assigned privileged roles with 403', async ({ request }) => {
     const response = await request.post('/api/auth/signup', {
+      headers: freshIpHeaders(),
       data: {
         role: 'barangay_admin',
         fullName: 'Sneaky Admin',
@@ -34,6 +49,7 @@ test.describe('API Security & Health Check Automated Tests', () => {
 
   test('POST /api/auth/signup for a parent without child profiles should be rejected with 400', async ({ request }) => {
     const response = await request.post('/api/auth/signup', {
+      headers: freshIpHeaders(),
       data: {
         role: 'parent',
         fullName: 'No Child Parent',
@@ -43,6 +59,26 @@ test.describe('API Security & Health Check Automated Tests', () => {
       },
     });
     expect(response.status()).toBe(400);
+  });
+
+  test('repeated sign-in attempts from one IP are rate limited with 429', async ({ request }) => {
+    const headers = freshIpHeaders();
+    const attempt = () =>
+      request.post('/api/auth/login', {
+        headers,
+        data: { email: 'nobody@example.com', password: 'WrongPass1' },
+      });
+
+    // The login window allows 10 per IP; the 11th must be refused.
+    let sawRateLimit = false;
+    for (let i = 0; i < 12; i++) {
+      const res = await attempt();
+      if (res.status() === 429) {
+        sawRateLimit = true;
+        break;
+      }
+    }
+    expect(sawRateLimit, 'expected a 429 once the per-IP login budget was spent').toBe(true);
   });
 
   test('unauthenticated POST /api/pupils/verify should be rejected with 401', async ({ request }) => {

@@ -1,193 +1,32 @@
-'use client';
-
-import React from 'react';
-import { DaycareProvider, useDaycare } from '@/contexts/DaycareContext';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
-import MobileNav from '@/components/MobileNav';
-import Toast from '@/components/Toast';
-import OfflineIndicator from '@/components/OfflineIndicator';
-import PupilModal from '@/components/PupilModal';
-import ProgressModal from '@/components/ProgressModal';
-import AnnouncementModal from '@/components/AnnouncementModal';
-import UserModal from '@/components/UserModal';
-import LinkParentModal from '@/components/LinkParentModal';
-import DSWDReportModal from '@/components/DSWDReportModal';
-
-import WorkerView from '@/views/WorkerView';
-import OfficialView from '@/views/OfficialView';
-import AdminView from '@/views/AdminView';
-import ParentView from '@/views/ParentView';
+import { redirect } from 'next/navigation';
+import AppShell from './AppShell';
+import { loadInitialAppData } from '@/lib/initialData';
 
 /**
- * AppContent — consumes DaycareContext and renders the role-based view.
- * All state is managed by DaycareProvider — this component is purely presentational.
+ * Root page — a server component.
+ *
+ * Resolves the session and the first screen's data before any HTML is sent, so
+ * the browser paints the real roster instead of booting an empty client shell
+ * and then issuing a waterfall of requests from an effect. Every query runs
+ * through the RLS-bound session client, so each role still receives exactly
+ * the rows its policies allow.
  */
-function AppContent() {
-  const {
-    currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
-    pupils, attendance, progress, announcements, users, auditLogs,
-    handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
-    handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
-    toast, setToast,
-    isMobileNavOpen, setIsMobileNavOpen,
-    isPupilModalOpen, setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
-    isProgressModalOpen, setIsProgressModalOpen,
-    isAnnouncementModalOpen, setIsAnnouncementModalOpen,
-    isUserModalOpen, setIsUserModalOpen,
-    isLinkParentModalOpen, setIsLinkParentModalOpen,
-    linkParentOpenCount, setLinkParentOpenCount,
-    isDSWDReportModalOpen, setIsDSWDReportModalOpen,
-  } = useDaycare();
-
-  return (
-    <div className="min-h-screen flex flex-col bg-[#FAF8F5]" suppressHydrationWarning>
-
-      {/* Full-width sticky header */}
-      <Header
-        currentRole={currentRole}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onOpenMobileNav={() => setIsMobileNavOpen(true)}
-      />
-
-      {/* Mobile navigation drawer overlay */}
-      <MobileNav
-        isOpen={isMobileNavOpen}
-        onClose={() => setIsMobileNavOpen(false)}
-        currentRole={currentRole}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-
-      {/* Main body flex rail: sidebar + scrollable content */}
-      <div className="flex flex-1 min-h-0">
-        <Sidebar
-          currentRole={currentRole}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-
-        <main className="flex-1 min-w-0 p-6 overflow-y-auto">
-          {/* ErrorBoundary prevents full-app crash if a view throws */}
-          <ErrorBoundary>
-            {currentRole === 'worker' && (
-              <WorkerView
-                activeTab={activeTab}
-                pupils={pupils}
-                attendance={attendance}
-                progress={progress}
-                announcements={announcements}
-                searchQuery={searchQuery}
-                onOpenPupilModal={() => { setPupilToEdit(null); setIsPupilModalOpen(true); }}
-                onOpenProgressModal={() => setIsProgressModalOpen(true)}
-                onOpenAnnouncementModal={() => setIsAnnouncementModalOpen(true)}
-                onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
-                onSaveAttendance={handleSaveAttendance}
-                onArchivePupil={handleArchivePupil}
-                onEditPupil={handleEditPupil}
-              />
-            )}
-
-            {currentRole === 'official' && (
-              <OfficialView
-                pupils={pupils}
-                attendance={attendance}
-                progress={progress}
-                activeTab={activeTab}
-                announcements={announcements}
-                onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
-              />
-            )}
-
-            {currentRole === 'barangay_admin' && (
-              <AdminView
-                users={users}
-                auditLogs={auditLogs}
-                activeTab={activeTab}
-                announcements={announcements}
-                onOpenUserModal={() => setIsUserModalOpen(true)}
-                onLinkParent={() => {
-                  setIsLinkParentModalOpen(true);
-                  setLinkParentOpenCount(c => c + 1);
-                }}
-                onToggleUserStatus={handleToggleUserStatus}
-              />
-            )}
-
-            {currentRole === 'parent' && (
-              <ParentView
-                pupils={pupils}
-                attendance={attendance}
-                progress={progress}
-                announcements={announcements}
-                activeTab={activeTab}
-              />
-            )}
-          </ErrorBoundary>
-        </main>
-      </div>
-
-      {/* Global toast notification */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
-
-      {/* Offline indicator */}
-      <OfflineIndicator />
-
-      {/* All modals — mounted once at root level, opened via context state */}
-      <PupilModal
-        key={`${pupilToEdit?.id ?? 'new'}::${isPupilModalOpen}`}
-        isOpen={isPupilModalOpen}
-        onClose={() => { setIsPupilModalOpen(false); setPupilToEdit(null); }}
-        onSave={handleSavePupil}
-        pupilToEdit={pupilToEdit}
-      />
-
-      <ProgressModal
-        isOpen={isProgressModalOpen}
-        onClose={() => setIsProgressModalOpen(false)}
-        onSave={handleSaveProgress}
-        pupils={pupils.filter(p => p.enrollmentStatus === 'enrolled')}
-      />
-
-      <AnnouncementModal
-        isOpen={isAnnouncementModalOpen}
-        onClose={() => setIsAnnouncementModalOpen(false)}
-        onSave={handleSaveAnnouncement}
-      />
-
-      <UserModal
-        isOpen={isUserModalOpen}
-        onClose={() => setIsUserModalOpen(false)}
-        onSave={handleSaveUser}
-      />
-
-      <LinkParentModal
-        key={linkParentOpenCount}
-        isOpen={isLinkParentModalOpen}
-        onClose={() => setIsLinkParentModalOpen(false)}
-      />
-
-      <DSWDReportModal
-        isOpen={isDSWDReportModalOpen}
-        onClose={() => setIsDSWDReportModalOpen(false)}
-        pupils={pupils}
-        attendance={attendance}
-        progress={progress}
-      />
-    </div>
+export default async function Home() {
+  // Offline/demo mode: with no Supabase project configured there is no session
+  // to resolve, and the client hydrates a role from local storage instead.
+  // Redirecting here would make the app unreachable without a backend, which
+  // is the mode the E2E suite and local demos run in.
+  const isConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
-}
 
-/**
- * Home — root page entry point.
- * Wraps AppContent in DaycareProvider so all state is available application-wide.
- */
-export default function Home() {
-  return (
-    <DaycareProvider>
-      <AppContent />
-    </DaycareProvider>
-  );
+  const initial = isConfigured
+    ? await loadInitialAppData()
+    : { role: null, userName: null, pupils: [], attendance: [], progress: [], announcements: [] };
+
+  // The middleware already redirects unauthenticated visitors; this is the
+  // server-side backstop for a session that resolves to no provisioned role.
+  if (isConfigured && !initial.role) redirect('/login');
+
+  return <AppShell initial={initial} />;
 }

@@ -37,6 +37,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    // Flipping the profile row stops every API call (getServerSession rejects a
+    // disabled account), but it leaves the existing JWT valid, so the person
+    // keeps a rendered shell until they happen to sign out. Ban the auth user
+    // as well: that revokes their refresh tokens and blocks re-authentication
+    // at the auth layer, so the session ends now rather than whenever the token
+    // expires. Doing it here costs one call per status change, instead of a
+    // status lookup on every request in the middleware.
+    const { error: banError } = await admin.auth.admin.updateUserById(id, {
+      ban_duration: parsed.status === 'disabled' ? '876000h' : 'none',
+    });
+    if (banError) {
+      // The profile is already updated and authorization already fails closed,
+      // so this is a degraded success rather than a failure: report it instead
+      // of pretending the session was ended.
+      console.error('[Users API] Could not revoke sessions for', id, banError.message);
+      return NextResponse.json({
+        success: true,
+        user: data,
+        warning:
+          parsed.status === 'disabled'
+            ? 'Account disabled, but its active session could not be revoked. It will end when the token expires.'
+            : 'Account re-enabled, but the sign-in block could not be lifted. The user may still be unable to sign in.',
+      });
+    }
+
     return NextResponse.json({ success: true, user: data });
   } catch (error) {
     if (error instanceof z.ZodError) {

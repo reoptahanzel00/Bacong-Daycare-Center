@@ -47,15 +47,20 @@ export async function notifyUsers(targets: NotifyTarget[], payload: NotifyPayloa
         .from('users')
         .select('id, email')
         .in('id', targets.map((t) => t.user_id));
-      for (const p of profiles || []) {
-        if (p.email) {
-          await sendEmail({
-            to: p.email,
-            subject: payload.title,
-            text: `${payload.message}\n\n— Barangay Bacong Daycare Center`,
-          });
-        }
-      }
+      // Dispatch in parallel: a class-wide alert is a handful of addresses, and
+      // awaiting each in turn made the total wait the sum of every round trip.
+      // allSettled so one bad address cannot stop the rest.
+      await Promise.allSettled(
+        (profiles || [])
+          .filter((p) => p.email)
+          .map((p) =>
+            sendEmail({
+              to: p.email as string,
+              subject: payload.title,
+              text: `${payload.message}\n\n— Barangay Bacong Daycare Center`,
+            })
+          )
+      );
     }
   } catch (e) {
     console.warn('[Notify] skipped:', e);

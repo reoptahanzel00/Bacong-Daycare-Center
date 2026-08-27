@@ -3,31 +3,11 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 
-// The UI works in 4 human-readable domains while the DB stores compact ids.
-// Keep both sides in sync so FK constraints and the client contract line up.
-const DOMAIN_LABEL_TO_ID: Record<string, string> = {
-  'Motor Skills': 'motor',
-  'Language & Communication': 'language',
-  'Socio-Emotional': 'socio-emotional',
-  'Self-Help & Cognitive': 'self-help',
-};
-const DOMAIN_ID_TO_LABEL: Record<string, string> = Object.fromEntries(
-  Object.entries(DOMAIN_LABEL_TO_ID).map(([label, id]) => [id, label])
-);
-
-// Client ratings map onto the DB status_rating enum.
-const RATING_TO_STATUS: Record<string, string> = {
-  'Demonstrates Mastery': 'Present',
-  'Developing': 'In_Progress',
-  'Developing / Progressing': 'In_Progress',
-  'Needs Practice': 'Not_Yet_Observed',
-  'Needs Practice / Assistance': 'Not_Yet_Observed',
-};
-const STATUS_TO_RATING: Record<string, string> = {
-  Present: 'Demonstrates Mastery',
-  In_Progress: 'Developing',
-  Not_Yet_Observed: 'Needs Practice',
-};
+import {
+  DOMAIN_LABEL_TO_ID,
+  RATING_TO_STATUS,
+  toClientObservation,
+} from '@/lib/progressMapping';
 
 const ProgressSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -69,12 +49,7 @@ export async function GET(request: Request) {
 
     // Map DB columns back to the client contract (domain/date/rating) so the
     // UI shape stays stable regardless of storage layout.
-    const observations = (data || []).map(({ domain_id, observation_date, status_rating, ...rest }) => ({
-      ...rest,
-      domain: DOMAIN_ID_TO_LABEL[domain_id] || domain_id,
-      date: observation_date,
-      rating: status_rating ? STATUS_TO_RATING[status_rating] || status_rating : undefined,
-    }));
+    const observations = (data || []).map(toClientObservation);
 
     return NextResponse.json({ observations });
   } catch {

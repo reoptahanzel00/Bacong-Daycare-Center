@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { z } from 'zod';
 
 const BulkAttendanceSchema = z.object({
@@ -55,19 +56,26 @@ export async function POST(request: Request) {
       }
 
       // Notify linked guardians when a pupil reaches 3+ consecutive absences.
-      // Best-effort: failures never affect the register save response.
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/admin');
-        const { notifyUsers, guardianUserIdsForPupils } = await import('@/lib/notify');
-        const admin = createAdminClient();
+      // Deferred with after(): the worker marking a register should not wait on
+      // guardian lookups and email delivery, which are slow and unrelated to
+      // whether the register saved. after() still runs the work to completion on
+      // the server, unlike a bare floating promise, which a serverless instance
+      // may kill once the response is sent.
+      const pupilIds = records.map((r) => r.pupil_id);
+      after(async () => {
+        try {
+          const { createAdminClient } = await import('@/lib/supabase/admin');
+          const { notifyUsers, guardianUserIdsForPupils } = await import('@/lib/notify');
+          const admin = createAdminClient();
 
-        const { data: affected } = await admin
-          .from('pupils')
-          .select('id, first_name, consecutive_absences')
-          .in('id', records.map((r) => r.pupil_id));
+          const { data: affected } = await admin
+            .from('pupils')
+            .select('id, first_name, consecutive_absences')
+            .in('id', pupilIds);
 
-        const alertPupils = (affected || []).filter((p) => p.consecutive_absences >= 3);
-        if (alertPupils.length > 0) {
+          const alertPupils = (affected || []).filter((p) => p.consecutive_absences >= 3);
+          if (alertPupils.length === 0) return;
+
           const targets = await guardianUserIdsForPupils(admin, alertPupils.map((p) => p.id));
           await notifyUsers(targets, {
             type: 'consecutive_absences',
@@ -78,10 +86,10 @@ export async function POST(request: Request) {
             channel: 'EMAIL',
             severity: 'high',
           });
+        } catch (alertError) {
+          console.warn('[Attendance API] Absence alert skipped:', alertError);
         }
-      } catch (alertError) {
-        console.warn('[Attendance API] Absence alert skipped:', alertError);
-      }
+      });
     } catch {
       // Database not configured yet — graceful degradation
       console.warn('[Attendance API] Database not available, using local state fallback.');

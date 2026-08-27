@@ -6,17 +6,8 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   });
 
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   const isRegisterPage = request.nextUrl.pathname.startsWith('/register');
-  const isStaticAsset =
-    request.nextUrl.pathname.startsWith('/_next') ||
-    request.nextUrl.pathname.startsWith('/sw.js') ||
-    request.nextUrl.pathname.startsWith('/manifest.json');
-
-  // API routes perform their own session verification per handler — resolve
-  // them here without an extra Supabase round-trip in the middleware.
-  if (isApiRoute) return response;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -45,10 +36,13 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // This call also refreshes the session cookie, which is why it stays on the
+  // page path even though the root page verifies the session again server-side:
+  // without it a signed-in user is quietly logged out when the token expires.
   const { data: { user } } = await supabase.auth.getUser();
 
   // Enforce authentication in BOTH development and production — no NODE_ENV bypass
-  if (!user && !isLoginPage && !isRegisterPage && !isApiRoute && !isStaticAsset) {
+  if (!user && !isLoginPage && !isRegisterPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -56,7 +50,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // API routes verify the session inside each handler and never rely on a
+  // cookie refreshed here, so they are excluded from the matcher entirely
+  // rather than entering the middleware and returning early - that removes a
+  // middleware invocation from every API call the app makes.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

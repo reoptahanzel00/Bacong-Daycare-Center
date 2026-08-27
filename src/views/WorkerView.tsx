@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useEffect } from 'react';
 import { 
@@ -185,12 +185,22 @@ export default function WorkerView({
     return () => { cancelled = true; };
   }, [pupils]);
 
-  const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
+  const enrolledPupils = useMemo(
+    () => pupils.filter(p => p.enrollmentStatus === 'enrolled'),
+    [pupils]
+  );
 
-  const filteredEnrolledPupils = enrolledPupils.filter(p => {
-    const full = `${p.firstName} ${p.lastName} ${p.id} ${p.guardian?.fullName}`.toLowerCase();
-    return full.includes(searchQuery.toLowerCase());
-  });
+  // Re-runs on every keystroke in the header search, so it builds the haystack
+  // once per pupil per query rather than per pupil per render.
+  const filteredEnrolledPupils = useMemo(() => {
+    const needle = searchQuery.toLowerCase();
+    if (!needle) return enrolledPupils;
+    return enrolledPupils.filter(p =>
+      `${p.firstName} ${p.lastName} ${p.id} ${p.guardian?.fullName}`
+        .toLowerCase()
+        .includes(needle)
+    );
+  }, [enrolledPupils, searchQuery]);
 
   const getAttendanceStatus = (pupilId: string) => {
     const record = attendance.find(a => a.pupil_id === pupilId && a.date === selectedDate);
@@ -345,8 +355,14 @@ export default function WorkerView({
     setBackgroundPupil(null);
   };
 
-  const pendingPupils = pupils.filter(p => p.enrollmentStatus === 'pending');
-  const rejectedPupils = pupils.filter(p => p.enrollmentStatus === 'rejected');
+  const pendingPupils = useMemo(
+    () => pupils.filter(p => p.enrollmentStatus === 'pending'),
+    [pupils]
+  );
+  const rejectedPupils = useMemo(
+    () => pupils.filter(p => p.enrollmentStatus === 'rejected'),
+    [pupils]
+  );
 
   const openVerifyModal = (pupil: MockPupil, action: 'approve' | 'reject') => {
     setVerifyPupilRecord(pupil);

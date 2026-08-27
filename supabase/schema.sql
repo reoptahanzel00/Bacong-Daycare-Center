@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS sociodemographic_profiles (
 -- ==========================================================================
 CREATE INDEX IF NOT EXISTS idx_pupils_school_year ON pupils(school_year_id);
 CREATE INDEX IF NOT EXISTS idx_pupils_enrollment_status ON pupils(enrollment_status, created_at);
-CREATE INDEX IF NOT EXISTS idx_attendance_pupil_date ON attendance(pupil_id, date);
+CREATE INDEX IF NOT EXISTS idx_attendance_pupil_date ON attendance(pupil_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_attendance_date_status ON attendance(date, status);
 CREATE INDEX IF NOT EXISTS idx_guardians_user_id ON guardians(user_id);
 CREATE INDEX IF NOT EXISTS idx_progress_pupil_domain ON progress_observations(pupil_id, domain_id);
@@ -436,20 +436,23 @@ CREATE OR REPLACE FUNCTION calculate_consecutive_absences()
 RETURNS TRIGGER AS $$
 DECLARE
   streak INT := 0;
-  rec RECORD;
 BEGIN
-  -- Count consecutive absences backwards from most recent entry for the pupil
-  FOR rec IN 
-    SELECT status FROM attendance 
-    WHERE pupil_id = NEW.pupil_id 
-    ORDER BY date DESC 
-  LOOP
-    IF rec.status = 'absent' THEN
-      streak := streak + 1;
-    ELSE
-      EXIT;
-    END IF;
-  END LOOP;
+  -- Count the unbroken run of 'absent' days ending at the pupil's most recent
+  -- record. Set-based rather than a row-by-row loop, and bounded to the last
+  -- 120 days: a streak longer than that is not a streak, it is a pupil who
+  -- should have been archived, and an unbounded scan grows with every register
+  -- saved for the rest of the school year. The trigger fires once per row of a
+  -- bulk register, so this runs ~40 times on a normal morning.
+  SELECT COUNT(*) INTO streak
+  FROM (
+    SELECT status,
+           SUM(CASE WHEN status <> 'absent' THEN 1 ELSE 0 END)
+             OVER (ORDER BY date DESC ROWS UNBOUNDED PRECEDING) AS breaks
+    FROM attendance
+    WHERE pupil_id = NEW.pupil_id
+      AND date >= CURRENT_DATE - INTERVAL '120 days'
+  ) ranked
+  WHERE breaks = 0 AND status = 'absent';
 
   UPDATE pupils SET consecutive_absences = streak WHERE id = NEW.pupil_id;
   RETURN NEW;

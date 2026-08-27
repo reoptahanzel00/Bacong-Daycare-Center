@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, 
   CheckCircle2, 
@@ -58,22 +58,42 @@ export default function OfficialView({
     return () => { cancelled = true; };
   }, []);
 
-  const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
-  const archivedPupils = pupils.filter(p => p.enrollmentStatus === 'archived');
-  const maleCount = enrolledPupils.filter(p => p.sex === 'Male').length;
-  const femaleCount = enrolledPupils.filter(p => p.sex === 'Female').length;
+  const { enrolledPupils, archivedPupils, maleCount, femaleCount } = useMemo(() => {
+    const enrolled = pupils.filter(p => p.enrollmentStatus === 'enrolled');
+    return {
+      enrolledPupils: enrolled,
+      archivedPupils: pupils.filter(p => p.enrollmentStatus === 'archived'),
+      maleCount: enrolled.filter(p => p.sex === 'Male').length,
+      femaleCount: enrolled.filter(p => p.sex === 'Female').length,
+    };
+  }, [pupils]);
 
+  const { presentCount, lateCount, absentCount, attendanceRate } = useMemo(() => {
+    let present = 0, late = 0, absent = 0;
+    for (const a of attendance) {
+      if (a.status === 'present') present++;
+      else if (a.status === 'late') late++;
+      else if (a.status === 'absent') absent++;
+    }
+    return {
+      presentCount: present,
+      lateCount: late,
+      absentCount: absent,
+      attendanceRate: attendance.length
+        ? Math.round(((present + late) / attendance.length) * 100)
+        : 100,
+    };
+  }, [attendance]);
+
+  // Pupils on an active absence streak. The threshold is the only criterion:
+  // this previously also pinned a specific demo pupil id into the alert list,
+  // which surfaced a fabricated alert against real data.
   const totalAttRecords = attendance.length;
-  const presentCount = attendance.filter(a => a.status === 'present').length;
-  const lateCount = attendance.filter(a => a.status === 'late').length;
-  const absentCount = attendance.filter(a => a.status === 'absent').length;
 
-  const attendanceRate = totalAttRecords 
-    ? Math.round(((presentCount + lateCount) / totalAttRecords) * 100) 
-    : 100;
-
-  // Pupils with consecutive absences
-  const highRiskPupils = enrolledPupils.filter(p => (p.consecutiveAbsences || 0) >= 2 || p.id === 'PUP-2026-003');
+  const highRiskPupils = useMemo(
+    () => enrolledPupils.filter(p => (p.consecutiveAbsences || 0) >= 2),
+    [enrolledPupils]
+  );
 
   const handleDispatchOutreach = (pupilId: string, pupilName: string) => {
     setDispatchedOutreach(prev => ({ ...prev, [pupilId]: true }));

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Key, 
@@ -45,16 +45,22 @@ export default function AdminView({
   const [resetSent, setResetSent] = useState<Record<string, boolean>>({});
   const [resetLinks, setResetLinks] = useState<Record<string, string>>({});
 
-  const filteredUsers = users.filter(u => {
-    const matchesRole = filterRole === 'all' || u.role === filterRole;
-    const matchesSearch = userSearch === '' ||
-      (u.name || u.fullName || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-      (u.email || '').toLowerCase().includes(userSearch.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
+  const filteredUsers = useMemo(() => {
+    const needle = userSearch.toLowerCase();
+    return users.filter(u => {
+      const matchesRole = filterRole === 'all' || u.role === filterRole;
+      const matchesSearch = needle === '' ||
+        (u.name || u.fullName || '').toLowerCase().includes(needle) ||
+        (u.email || '').toLowerCase().includes(needle);
+      return matchesRole && matchesSearch;
+    });
+  }, [users, filterRole, userSearch]);
 
   const totalAuditPages = Math.ceil(auditLogs.length / AUDIT_PAGE_SIZE);
-  const paginatedAuditLogs = auditLogs.slice((auditPage - 1) * AUDIT_PAGE_SIZE, auditPage * AUDIT_PAGE_SIZE);
+  const paginatedAuditLogs = useMemo(
+    () => auditLogs.slice((auditPage - 1) * AUDIT_PAGE_SIZE, auditPage * AUDIT_PAGE_SIZE),
+    [auditLogs, auditPage]
+  );
 
   const handleResetPassword = async (userId: string, userEmail: string, userName: string) => {
     const res = await resetUserPassword(userId);

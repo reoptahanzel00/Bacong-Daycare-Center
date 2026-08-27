@@ -22,10 +22,10 @@ import {
   type SociodemographicProfileRow,
 } from '@/services/pupilService';
 import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceService';
-import { fetchProgress, recordObservation, type ProgressPayload } from '@/services/progressService';
+import { fetchProgress, recordObservation, type ProgressPayload, type ProgressRow } from '@/services/progressService';
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
 import { logAuditEntry, fetchAuditLogs } from '@/services/auditService';
-import { fetchAnnouncements, publishAnnouncement } from '@/services/announcementsService';
+import { fetchAnnouncements, publishAnnouncement, type AnnouncementRow } from '@/services/announcementsService';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -164,61 +164,9 @@ interface DaycareContextValue {
   isHydrated: boolean;
 }
 
-const DaycareContext = createContext<DaycareContextValue | null>(null);
-
-export function DaycareProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  // The active role is resolved from the verified server profile only. There
-  // is deliberately no client-facing setter: a role must never be switchable
-  // from the browser, even though every API call re-verifies it server-side.
-  const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('bacong_auth_role');
-      if (saved && ['worker', 'official', 'barangay_admin', 'parent'].includes(saved)) {
-        return saved as UserRole;
-      }
-    }
-    return 'worker';
-  });
-
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('bacong_auth_role');
-      if (saved === 'official') return 'overview';
-      if (saved === 'barangay_admin') return 'users';
-      if (saved === 'parent') return 'child';
-    }
-    return 'dashboard';
-  });
-
-  // Display name of the signed-in user, resolved from the authoritative
-  // users table. Used so audit entries name the real actor.
-  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [toast, setToast] = useState<ToastState | null>(null);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
-  const [isPupilModalOpen, setIsPupilModalOpen] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  const [pupils, setPupils] = useState<MockPupil[]>(INITIAL_PUPILS);
-  const [attendance, setAttendance] = useState<MockAttendance[]>(INITIAL_ATTENDANCE);
-  const [progress, setProgress] = useState<MockProgress[]>(INITIAL_PROGRESS);
-  const [announcements, setAnnouncements] = useState<MockAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
-  const [users, setUsers] = useState<MockUser[]>(INITIAL_USERS);
-  const [auditLogs, setAuditLogs] = useState<MockAuditLog[]>(INITIAL_AUDIT_LOGS);
-
-  const [pupilToEdit, setPupilToEdit] = useState<MockPupil | null>(null);
-  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
-  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [isLinkParentModalOpen, setIsLinkParentModalOpen] = useState(false);
-  const [linkParentOpenCount, setLinkParentOpenCount] = useState(0);
-  const [isDSWDReportModalOpen, setIsDSWDReportModalOpen] = useState(false);
-
-  // ---- Real-data helpers -------------------------------------------------
-
-  /** Maps a snake_case API pupil row to the client MockPupil shape. */
-  const mapPupilRow = useCallback((row: PupilRow): MockPupil => ({
+/** Maps a snake_case API/DB pupil row to the client MockPupil shape. */
+function mapPupilRowStatic(row: PupilRow): MockPupil {
+  return {
     id: row.id,
     firstName: row.first_name,
     lastName: row.last_name,
@@ -244,7 +192,138 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     sociodemographic: Array.isArray(row.sociodemographic)
       ? (row.sociodemographic[0] || null)
       : (row.sociodemographic || null),
-  }), []);
+  };
+}
+
+/** Maps a progress observation (already domain/date/rating-mapped) to MockProgress. */
+function mapProgressRowStatic(r: ProgressRow): MockProgress {
+  return {
+    id: r.id,
+    pupil_id: r.pupil_id,
+    domain: r.domain,
+    title: r.title,
+    rating: r.rating,
+    note: r.note,
+    date: r.date,
+    recordedBy: r.recorded_by || undefined,
+  } as MockProgress;
+}
+
+/** Maps an announcement row to the client MockAnnouncement shape. */
+function mapAnnouncementRowStatic(a: AnnouncementRow): MockAnnouncement {
+  return {
+    id: a.id,
+    title: a.title,
+    content: a.body,
+    date: (a.created_at || '').slice(0, 10),
+    postedBy: a.posted_by || undefined,
+    authorName: a.author_name || null,
+  } as MockAnnouncement;
+}
+
+/** The tab each role lands on. Kept in one place so the server-seeded first
+ *  paint and the client's post-sign-in routing cannot disagree. */
+function defaultTabFor(role: UserRole): string {
+  if (role === 'official') return 'overview';
+  if (role === 'barangay_admin') return 'users';
+  if (role === 'parent') return 'child';
+  return 'dashboard';
+}
+
+const DaycareContext = createContext<DaycareContextValue | null>(null);
+
+/**
+ * Data resolved on the server for first paint. When present the provider seeds
+ * its state from it and skips the mount-time session + roster round trips.
+ */
+export interface InitialAppState {
+  role: UserRole | null;
+  userName: string | null;
+  pupils?: PupilRow[];
+  attendance?: Array<{ pupil_id: string; date: string; status: string; notes?: string }>;
+  progress?: ProgressRow[];
+  announcements?: AnnouncementRow[];
+}
+
+export function DaycareProvider({
+  children,
+  initial,
+}: {
+  children: React.ReactNode;
+  initial?: InitialAppState;
+}) {
+  const router = useRouter();
+  // The active role is resolved from the verified server profile only. There
+  // is deliberately no client-facing setter: a role must never be switchable
+  // from the browser, even though every API call re-verifies it server-side.
+  const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
+    // The server-resolved role is authoritative and available before first
+    // paint, so there is no flash of the wrong role's shell.
+    if (initial?.role) return initial.role;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bacong_auth_role');
+      if (saved && ['worker', 'official', 'barangay_admin', 'parent'].includes(saved)) {
+        return saved as UserRole;
+      }
+    }
+    return 'worker';
+  });
+
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (initial?.role) return defaultTabFor(initial.role);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bacong_auth_role');
+      if (saved === 'official') return 'overview';
+      if (saved === 'barangay_admin') return 'users';
+      if (saved === 'parent') return 'child';
+    }
+    return 'dashboard';
+  });
+
+  // Display name of the signed-in user, resolved from the authoritative
+  // users table. Used so audit entries name the real actor.
+  const [currentUserName, setCurrentUserName] = useState<string | null>(initial?.userName ?? null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [isPupilModalOpen, setIsPupilModalOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  const [pupils, setPupils] = useState<MockPupil[]>(
+    () => (initial?.pupils ? initial.pupils.map(mapPupilRowStatic) : INITIAL_PUPILS)
+  );
+  const [attendance, setAttendance] = useState<MockAttendance[]>(
+    () => (initial?.attendance
+      ? initial.attendance.map(r => ({
+          pupil_id: r.pupil_id,
+          date: r.date,
+          status: r.status,
+          notes: r.notes,
+        }) as MockAttendance)
+      : INITIAL_ATTENDANCE)
+  );
+  const [progress, setProgress] = useState<MockProgress[]>(
+    () => (initial?.progress
+      ? initial.progress.map(r => mapProgressRowStatic(r))
+      : INITIAL_PROGRESS)
+  );
+  const [announcements, setAnnouncements] = useState<MockAnnouncement[]>(
+    () => (initial?.announcements
+      ? initial.announcements.map(r => mapAnnouncementRowStatic(r))
+      : INITIAL_ANNOUNCEMENTS)
+  );
+  const [users, setUsers] = useState<MockUser[]>(INITIAL_USERS);
+  const [auditLogs, setAuditLogs] = useState<MockAuditLog[]>(INITIAL_AUDIT_LOGS);
+
+  const [pupilToEdit, setPupilToEdit] = useState<MockPupil | null>(null);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isLinkParentModalOpen, setIsLinkParentModalOpen] = useState(false);
+  const [linkParentOpenCount, setLinkParentOpenCount] = useState(0);
+  const [isDSWDReportModalOpen, setIsDSWDReportModalOpen] = useState(false);
+
+  // ---- Real-data helpers -------------------------------------------------
 
   /** Builds the POST /api/pupils payload from a MockPupil. */
   const toEnrollPayload = useCallback((
@@ -284,7 +363,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       if (pupilRes.ok) {
-        setPupils(pupilRes.pupils.map(mapPupilRow));
+        setPupils(pupilRes.pupils.map(mapPupilRowStatic));
       }
       if (attendanceRes.ok) {
         setAttendance(attendanceRes.records.map(r => ({
@@ -342,7 +421,12 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('Server sync failed; continuing with local data.', e);
     }
-  }, [mapPupilRow]);
+  }, []);
+
+  // Whether this render was seeded by the server. Read once: `initial` is a
+  // prop object whose identity would otherwise re-trigger the effect.
+  const hasServerData = Boolean(initial?.role);
+  const initialRole = initial?.role ?? null;
 
   // Hydrate from localStorage & load Supabase session role on mount
   useEffect(() => {
@@ -353,18 +437,34 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
       // hydration from localStorage without triggering cascading renders.
       await Promise.resolve();
       if (cancelled) return;
-      setPupils(getStoredData('pupils', INITIAL_PUPILS));
-      setAttendance(getStoredData('attendance', INITIAL_ATTENDANCE));
-      setProgress(getStoredData('progress', INITIAL_PROGRESS));
-      setAnnouncements(getStoredData('announcements', INITIAL_ANNOUNCEMENTS));
-      setUsers(getStoredData('users', INITIAL_USERS));
-      setAuditLogs(getStoredData('audit_logs', INITIAL_AUDIT_LOGS));
+      // When the server already supplied the roster, the local cache is the
+      // older copy — restoring it here would overwrite fresh data with stale.
+      if (!hasServerData) {
+        setPupils(getStoredData('pupils', INITIAL_PUPILS));
+        setAttendance(getStoredData('attendance', INITIAL_ATTENDANCE));
+        setProgress(getStoredData('progress', INITIAL_PROGRESS));
+        setAnnouncements(getStoredData('announcements', INITIAL_ANNOUNCEMENTS));
+      }
+      // The staff directory and the audit trail are deliberately NOT restored
+      // from local storage: both are admin-only, neither is usable offline,
+      // and caching them puts staff emails and the audit record on the disk of
+      // every shared terminal an admin has ever signed in to. They come from
+      // the server each session or not at all.
       setIsHydrated(true);
     }
     hydrate();
 
     async function loadAuthUserRole() {
       try {
+        // The server already resolved the session, the role and the roster for
+        // this render, so skip the whole client round trip. Admin-only data is
+        // still fetched below for the one role that needs it.
+        if (hasServerData && initialRole) {
+          localStorage.setItem('bacong_auth_role', initialRole);
+          if (initialRole === 'barangay_admin') await syncFromServer(initialRole);
+          return;
+        }
+
         const savedRole = localStorage.getItem('bacong_auth_role') as UserRole | null;
         const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -407,10 +507,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           setCurrentRoleState(resolvedRole);
           localStorage.setItem('bacong_auth_role', resolvedRole);
 
-          if (resolvedRole === 'official') setActiveTab('overview');
-          else if (resolvedRole === 'barangay_admin') setActiveTab('users');
-          else if (resolvedRole === 'parent') setActiveTab('child');
-          else setActiveTab('dashboard');
+          setActiveTab(defaultTabFor(resolvedRole));
         } else {
           // Unauthenticated visitor -> Redirect to login page
           if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
@@ -427,15 +524,15 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router, syncFromServer]);
+  }, [router, syncFromServer, hasServerData, initialRole]);
 
   // Persist to localStorage whenever data changes
   useEffect(() => { if (isHydrated) saveStoredData('pupils', pupils); }, [pupils, isHydrated]);
   useEffect(() => { if (isHydrated) saveStoredData('attendance', attendance); }, [attendance, isHydrated]);
   useEffect(() => { if (isHydrated) saveStoredData('progress', progress); }, [progress, isHydrated]);
   useEffect(() => { if (isHydrated) saveStoredData('announcements', announcements); }, [announcements, isHydrated]);
-  useEffect(() => { if (isHydrated) saveStoredData('users', users); }, [users, isHydrated]);
-  useEffect(() => { if (isHydrated) saveStoredData('audit_logs', auditLogs); }, [auditLogs, isHydrated]);
+  // users and auditLogs are intentionally not persisted — see the hydration
+  // comment above.
 
   const showToast = useCallback((message: string, type = 'success') => {
     setToast({ message, type });
