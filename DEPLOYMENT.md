@@ -20,8 +20,8 @@ Copy `.env.example` to `.env.local` and fill in all values before running or dep
 | `SEMAPHORE_SENDER_NAME` | âš ï¸ Optional | Sender name for SMS (e.g. `BacongDaycare`) |
 | `RESEND_API_KEY` | ⚠️ Optional | Email dispatch for notifications. Get from https://resend.com |
 | `EMAIL_FROM` | ⚠️ Optional | Sender address for notification emails (e.g. `Bacong Daycare <noreply@yourdomain.com>`) |
-| `UPSTASH_REDIS_REST_URL` | ✅ Yes for production | Shared store for the sign-in rate limiter. Without it the limit is per-instance only — see below. |
-| `UPSTASH_REDIS_REST_TOKEN` | ✅ Yes for production | Paired token for the same store. |
+| `KV_REST_API_URL` | ✅ Yes for production | Shared Upstash Redis store for the sign-in rate limiter. Without it the limit is per-instance only — see below. |
+| `KV_REST_API_TOKEN` | ✅ Yes for production | Paired token for the same store. |
 | `NEXT_PUBLIC_APP_URL` | âš ï¸ Optional | Full URL of the deployed app (e.g. `https://bacong-daycare.vercel.app`) |
 
 > âš ï¸ **Security:** Never commit `.env.local` to git. It is already in `.gitignore`.  
@@ -32,9 +32,11 @@ Copy `.env.example` to `.env.local` and fill in all values before running or dep
 ## Rate Limiting (required before production)
 
 `/api/auth/login` and `/api/auth/signup` are rate limited per IP. The limiter
-uses a shared Redis store when `UPSTASH_REDIS_REST_URL` and
-`UPSTASH_REDIS_REST_TOKEN` are set, and falls back to an in-process counter
-when they are not.
+uses a shared Redis store when its REST credentials are set, and falls back to
+an in-process counter when they are not. The Vercel Marketplace injects
+`KV_REST_API_URL` / `KV_REST_API_TOKEN`; a store created directly on Upstash
+sets `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` instead. Either
+pair works.
 
 **The fallback is not a real limit on serverless.** Every function instance
 gets its own memory, so "10 sign-in attempts per 15 minutes" becomes 10 per
@@ -47,14 +49,15 @@ npx vercel link
 # 2. Provision Upstash Redis through the Vercel Marketplace.
 #    This creates a billable Marketplace resource and injects both
 #    UPSTASH_REDIS_* variables into the project automatically.
-npx vercel integration add upstash
+npx vercel integration add upstash/upstash-kv
 
 # 3. Pull the new variables down for local development
 npx vercel env pull .env.local --yes
 ```
 
 No code change is needed - the limiter switches to Redis as soon as both
-variables are present. If Redis is configured but unreachable at request time,
+variables are present. Accept the Upstash Marketplace terms in the browser when
+the CLI prompts; the install cannot finish until you do. If Redis is configured but unreachable at request time,
 it degrades to the in-process counter rather than locking every user out.
 
 ---

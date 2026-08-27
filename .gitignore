@@ -48,3 +48,6 @@ yarn-error.log*
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Marketplace agent skill content (restored from skills-lock.json)
+.agents/

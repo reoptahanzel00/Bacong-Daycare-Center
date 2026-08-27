@@ -4,27 +4,32 @@ import { Redis } from '@upstash/redis';
 /**
  * Rate limiter for public/auth surfaces (per IP + action).
  *
- * Backed by Upstash Redis when UPSTASH_REDIS_REST_URL and
- * UPSTASH_REDIS_REST_TOKEN are set, which is the only configuration where the
- * limit actually holds: every serverless instance gets its own memory, so an
- * in-process counter caps attempts per instance rather than per attacker.
+ * Backed by Upstash Redis when its REST credentials are present, which is the
+ * only configuration where the limit actually holds: every serverless instance
+ * gets its own memory, so an in-process counter caps attempts per instance
+ * rather than per attacker.
  *
- * Without those variables it falls back to a shared in-process bucket. That is
- * fine for local development and single-node hosting, and is NOT a real limit
- * on serverless — provision the Redis store before relying on it in production.
+ * The Vercel Marketplace provisions the store as KV_REST_API_URL /
+ * KV_REST_API_TOKEN, while a store created directly on Upstash uses
+ * UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN. Both are accepted so the
+ * limiter works either way.
+ *
+ * Without them it falls back to a shared in-process bucket. That is fine for
+ * local development and single-node hosting, and is NOT a real limit on
+ * serverless — provision the Redis store before relying on it in production.
  */
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
-function hasRedisConfig(): boolean {
-  return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  );
+function redisCredentials(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  return url && token ? { url, token } : null;
 }
 
 let redis: Redis | null = null;
-function getRedis(): Redis {
-  if (!redis) redis = Redis.fromEnv();
+function getRedis(credentials: { url: string; token: string }): Redis {
+  if (!redis) redis = new Redis(credentials);
   return redis;
 }
 
@@ -32,12 +37,17 @@ function getRedis(): Redis {
 // would discard the client's connection reuse and its ephemeral cache.
 const limiters = new Map<string, Ratelimit>();
 
-function getLimiter(action: string, limit: number, windowMs: number): Ratelimit {
+function getLimiter(
+  credentials: { url: string; token: string },
+  action: string,
+  limit: number,
+  windowMs: number
+): Ratelimit {
   const key = `${action}:${limit}:${windowMs}`;
   let limiter = limiters.get(key);
   if (!limiter) {
     limiter = new Ratelimit({
-      redis: getRedis(),
+      redis: getRedis(credentials),
       limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
       prefix: `rl:${action}`,
       analytics: false,
@@ -79,12 +89,13 @@ export async function rateLimited(
   limit: number,
   windowMs: number
 ): Promise<boolean> {
-  if (!hasRedisConfig()) {
+  const credentials = redisCredentials();
+  if (!credentials) {
     return localRateLimited(ip, action, limit, windowMs);
   }
 
   try {
-    const { success } = await getLimiter(action, limit, windowMs).limit(ip);
+    const { success } = await getLimiter(credentials, action, limit, windowMs).limit(ip);
     return !success;
   } catch (e) {
     console.warn('[RateLimit] Redis unavailable, falling back to in-process bucket:', e);
