@@ -6,8 +6,16 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   });
 
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
-  const isRegisterPage = request.nextUrl.pathname.startsWith('/register');
+  // Reachable without a session: sign-in and registration, the auth callback
+  // that exchanges a recovery code, the page that then sets the new password,
+  // and the privacy notice a prospective parent reads before consenting.
+  const { pathname } = request.nextUrl;
+  const isPublicPath =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/privacy');
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -42,7 +50,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Enforce authentication in BOTH development and production — no NODE_ENV bypass
-  if (!user && !isLoginPage && !isRegisterPage) {
+  if (!user && !isPublicPath) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

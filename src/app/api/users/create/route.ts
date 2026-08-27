@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { passwordSchema } from '@/lib/password';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -8,12 +9,7 @@ const CreateUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.enum(['worker', 'official', 'barangay_admin', 'parent']),
   phone: z.string().max(20).optional(),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
-    .regex(/[a-z]/, 'Password must contain a lowercase letter')
-    .regex(/[0-9]/, 'Password must contain a number'),
+  password: passwordSchema,
 });
 
 export async function POST(request: Request) {

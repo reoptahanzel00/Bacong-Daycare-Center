@@ -107,9 +107,18 @@ export default function AuthPage() {
   // Sync the deep link (/register → /login#create) once on the client; the URL
   // hash is an external system not visible during SSR hydration.
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#create') {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash === '#create') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMode('create');
+    }
+    // /auth/callback sends people here with a reason when a recovery link has
+    // expired or was already used. Without this it would redirect them to a
+    // blank sign-in form and leave them guessing why.
+    const reason = new URLSearchParams(window.location.search).get('error');
+    if (reason) {
+      setErrorMessage(reason);
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     }
   }, []);
 
@@ -143,7 +152,11 @@ export default function AuthPage() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      // Without redirectTo the link lands on the Supabase Site URL, where
+      // nothing consumes the PKCE code and the reset silently does nothing.
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      });
       if (error) {
         setErrorMessage(error.message);
         setLoading(false);

@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { passwordSchema } from '@/lib/password';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
 
 const SignupSchema = z.object({
   role: z.enum(['worker', 'official', 'barangay_admin', 'parent']).default('parent'),
   fullName: z.string().min(2, 'Full name is required').max(100),
   email: z.string().email('Invalid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain an uppercase letter')
-    .regex(/[a-z]/, 'Password must contain a lowercase letter')
-    .regex(/[0-9]/, 'Password must contain a number'),
+  password: passwordSchema,
   phone: z.string().max(20).optional(),
 });
 

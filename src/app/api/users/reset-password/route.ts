@@ -35,9 +35,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: userError?.message || 'User not found.' }, { status: 404 });
     }
 
+    // Same destination as the self-serve flow, so an admin-issued link behaves
+    // identically instead of dropping the recipient on a page that ignores it.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: 'recovery',
       email: user.user.email as string,
+      options: {
+        redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
+      },
     });
 
     if (linkError) {
