@@ -22,7 +22,11 @@ test.describe('DSWD Form 1 PDF Report Export', () => {
     ).toBeVisible();
 
     // Check dual signatories
-    await expect(page.getByText('TEACHER TERESA CRUZ')).toBeVisible();
-    await expect(page.getByText('HON. RAMON SANTOS')).toBeVisible();
+    // Signatories come from centre settings and the signed-in user, not from
+    // names baked into the component. In offline demo mode neither is set, so
+    // the form says so rather than inventing an official.
+    await expect(page.getByText(/prepared & certified by/i)).toBeVisible();
+    await expect(page.getByText(/approved & noted by/i)).toBeVisible();
+    await expect(page.getByText('Not recorded').first()).toBeVisible();
   });
 });

@@ -8,9 +8,14 @@ import { test, expect } from '@playwright/test';
  * CI's automatic retries) see 429 instead of the status under test.
  */
 let ipCounter = 0;
+// Unique per run, not just per test. The limiter's buckets live in the dev
+// server's memory, which Playwright reuses between local runs -- addresses that
+// only varied within a run were already spent the second time round.
+const IP_RUN_SEED = Math.floor(Math.random() * 250);
 function freshIpHeaders(): Record<string, string> {
   ipCounter += 1;
-  return { 'x-forwarded-for': `203.0.113.${ipCounter % 250}` };
+  // 198.51.100.0/24 and 203.0.113.0/24 are both reserved for documentation.
+  return { 'x-forwarded-for': `198.51.100.${(IP_RUN_SEED + ipCounter) % 250}` };
 }
 
 test.describe('API Security & Health Check Automated Tests', () => {
@@ -79,6 +84,42 @@ test.describe('API Security & Health Check Automated Tests', () => {
       }
     }
     expect(sawRateLimit, 'expected a 429 once the per-IP login budget was spent').toBe(true);
+  });
+
+  test('signup without privacy consent is rejected', async ({ request }) => {
+    // RA 10173: the client hides the submit button until consent is ticked,
+    // but the API is the boundary that actually counts.
+    const response = await request.post('/api/auth/signup', {
+      headers: freshIpHeaders(),
+      data: {
+        role: 'parent',
+        fullName: 'No Consent Parent',
+        email: 'noconsent@example.com',
+        password: 'Str0ng!Pass',
+        phone: '0917-000-0000',
+        children: [],
+      },
+    });
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(JSON.stringify(body)).toMatch(/consent/i);
+  });
+
+  test('unauthenticated centre settings are rejected with 401', async ({ request }) => {
+    expect((await request.get('/api/settings')).status()).toBe(401);
+    const patch = await request.patch('/api/settings', {
+      data: { center_name: 'Hijacked', daycare_worker_name: 'x', barangay_captain_name: 'y' },
+    });
+    expect(patch.status()).toBe(401);
+  });
+
+  test('the client error reporter accepts a report and never echoes it back', async ({ request }) => {
+    const res = await request.post('/api/client-error', {
+      headers: freshIpHeaders(),
+      data: { message: 'boom', path: '/' },
+    });
+    expect([204, 429]).toContain(res.status());
+    expect((await res.body()).length).toBe(0);
   });
 
   test('unauthenticated POST /api/pupils/verify should be rejected with 401', async ({ request }) => {

@@ -62,6 +62,92 @@ it degrades to the in-process counter rather than locking every user out.
 
 ---
 
+## Applying database changes
+
+`supabase/schema.sql` builds a project **from empty**. It is safe to re-run, but it is
+not how you change a database that already holds records.
+
+For a live project, apply the numbered files in `supabase/migrations/` in order, once
+each, through the Supabase SQL editor. Each is wrapped in a transaction and is safe to
+re-run. After applying, run the verification queries at the bottom of the migration --
+in particular this one, which confirms the absence-streak trigger is the current
+windowed version rather than the old row-by-row loop:
+
+```sql
+SELECT pg_get_functiondef('calculate_consecutive_absences()'::regprocedure)
+       LIKE '%ROWS UNBOUNDED PRECEDING%' AS trigger_is_current;
+```
+
+Keep the two in step: a change made in a migration belongs in `schema.sql` too, so a
+fresh project and a migrated one end up identical.
+
+---
+
+## Staging project and authenticated tests
+
+The offline E2E suite proves signed-out users are locked out. It cannot prove the RLS
+policies are right, because every authenticated route answers 401 before a policy is
+consulted. That needs a second Supabase project (the free tier allows two).
+
+```bash
+# 1. Create a second Supabase project, then apply schema.sql and seed.sql to it.
+
+# 2. Seed one account per role. Refuses to run against a URL that does not look
+#    like staging -- these accounts have known passwords.
+NEXT_PUBLIC_SUPABASE_URL=<staging-url> \
+SUPABASE_SERVICE_ROLE_KEY=<staging-service-key> \
+E2E_PASSWORD=<pick-a-strong-one> \
+npm run db:seed-test-users
+
+# 3. Run the authenticated suite locally
+E2E_SUPABASE_URL=<staging-url> \
+E2E_SUPABASE_ANON_KEY=<staging-anon-key> \
+E2E_PASSWORD=<same-password> \
+npm run test:e2e
+```
+
+For CI, add `E2E_SUPABASE_URL`, `E2E_SUPABASE_ANON_KEY`,
+`E2E_SUPABASE_SERVICE_ROLE_KEY` and `E2E_PASSWORD` as GitHub secrets. Without them the
+authenticated step is skipped and the pipeline still passes.
+
+---
+
+## Auth redirect URLs (required)
+
+Password recovery does not work until this is set. In Supabase -> Authentication ->
+URL Configuration -> Redirect URLs, add for **both** the production and staging projects:
+
+```
+https://<your-domain>/auth/callback
+```
+
+Without it the recovery link lands on the Site URL, where nothing exchanges its code, and
+a locked-out parent has no way back in.
+
+---
+
+## Error visibility
+
+Client crashes are posted to `/api/client-error` and written to the Vercel runtime logs as
+structured JSON with `"kind":"client-error"`. Find them under the project's Logs tab, or
+with `npx vercel logs <deployment>`. The payload carries a message, a component stack and a
+path only -- never pupil data. If the volume outgrows the dashboard, add a Vercel log drain
+rather than reintroducing a client-side reporting SDK.
+
+---
+
+## Before go-live
+
+- [ ] Replace the placeholder text at `/privacy` with wording approved by the Barangay's
+      Data Protection Officer, and bump `PRIVACY_NOTICE_VERSION` in `src/lib/privacyNotice.ts`.
+- [ ] Fill in the Centre &amp; Signatories panel (Admin portal -> Security) so DSWD Form 1
+      carries the real barangay captain rather than an empty field.
+- [ ] Provision the Upstash rate-limit store (see above) -- the in-process fallback is not
+      a real limit on serverless.
+- [ ] Run `UAT_CHECKLIST.md` against staging with an actual daycare worker on their phone.
+
+---
+
 ## Supabase Database Setup
 
 ### 1. Apply the canonical database schema

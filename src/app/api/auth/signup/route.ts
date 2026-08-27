@@ -9,6 +9,12 @@ const SignupSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: passwordSchema,
   phone: z.string().max(20).optional(),
+  // RA 10173: consent is a precondition, not a preference. The client hides the
+  // submit button until it is ticked, but the API is the boundary that counts.
+  consentAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'Consent to the Privacy Notice is required to create an account.' }),
+  }),
+  consentVersion: z.string().min(1).max(60),
 });
 
 /** Per-child sociodemographic profile (ECCD Form Section 1) at signup. */
@@ -65,14 +71,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+
+    // Checked before the body is validated. Public self-registration is for
+    // parents only; worker, official and admin accounts are provisioned by a
+    // Barangay Admin and are never self-assignable. An attempt to claim one is
+    // a refusal, not a validation problem — answering 400 because some other
+    // field was also malformed would report privilege escalation as a typo.
+    const requestedRole = (body as { role?: unknown })?.role;
+    if (typeof requestedRole === 'string' && requestedRole !== 'parent') {
+      return NextResponse.json(
+        { error: `${requestedRole} accounts are created by the Barangay Admin. Please contact the IT Administration.` },
+        { status: 403 }
+      );
+    }
+
     const parsed = SignupBodySchema.parse(body);
     const email = parsed.email.toLowerCase();
 
-    // Public self-registration is for parents only. Worker/Official/Admin
-    // accounts must be provisioned by a Barangay Admin — never self-assignable.
     if (parsed.role !== 'parent') {
       return NextResponse.json(
-        { error: `${parsed.role} accounts are created by the Barangay Admin. Please contact the IT Administration.` },
+        { error: 'Only parent accounts can be self-registered.' },
         { status: 403 }
       );
     }
@@ -114,6 +132,10 @@ export async function POST(request: Request) {
       role: 'parent',
       phone: parsed.phone || null,
       status: 'active',
+      // Stored with the version so a later revision of the notice can require
+      // re-consent instead of silently inheriting the old agreement.
+      privacy_consent_at: new Date().toISOString(),
+      privacy_consent_version: parsed.consentVersion,
     });
     if (profileError) {
       // The profile row is what makes an account usable: without it sign-in is

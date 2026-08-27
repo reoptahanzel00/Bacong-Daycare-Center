@@ -1,5 +1,6 @@
 'use client';
 
+import { useDaycare } from '@/contexts/DaycareContext';
 import React, { useState } from 'react';
 import { X, Megaphone, Send, AlertCircle } from 'lucide-react';
 import type { MockAnnouncement } from '@/contexts/DaycareContext';
@@ -11,6 +12,10 @@ interface AnnouncementModalProps {
 }
 
 export default function AnnouncementModal({ isOpen, onClose, onSave }: AnnouncementModalProps) {
+  // The server resolves the author from the verified session when it stores the
+  // notice; the optimistic local copy uses the same person rather than a name
+  // baked into the component.
+  const { currentUserName } = useDaycare();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -30,7 +35,7 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
       title,
       content,
       date,
-      author: 'Teacher Teresa Cruz'
+      author: currentUserName || 'Daycare Worker'
     };
 
     onSave(payload);

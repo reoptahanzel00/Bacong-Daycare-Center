@@ -4,11 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { School, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { checkPassword } from '@/lib/password';
+import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 
 type UserRole = 'worker' | 'official' | 'barangay_admin' | 'parent';
 type AuthMode = 'signin' | 'create';
 
-const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,}$/;
 
 type Handedness = 'right' | 'left' | 'both' | 'not_yet_established';
 
@@ -100,6 +101,7 @@ export default function AuthPage() {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<{ message: string; linked: boolean } | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [children, setChildren] = useState<ChildProfileForm[]>([{ ...EMPTY_CHILD }]);
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.id === createRole) || ROLE_OPTIONS[0];
@@ -127,6 +129,7 @@ export default function AuthPage() {
     setErrorMessage(null);
     setCreateError(null);
     setChildren([{ ...EMPTY_CHILD }]);
+    setConsentAccepted(false);
     if (typeof window !== 'undefined') {
       window.location.hash = next === 'create' ? 'create' : '';
     }
@@ -224,8 +227,13 @@ export default function AuthPage() {
       setCreateError('Please provide a guardian contact phone number.');
       return;
     }
-    if (!PASSWORD_RE.test(createPassword)) {
-      setCreateError('Password must be at least 8 characters with uppercase, lowercase, and a number.');
+    const passwordProblem = checkPassword(createPassword);
+    if (passwordProblem) {
+      setCreateError(passwordProblem);
+      return;
+    }
+    if (!consentAccepted) {
+      setCreateError('Please read the Privacy Notice and give your consent before creating an account.');
       return;
     }
     if (createRole === 'parent') {
@@ -260,6 +268,8 @@ export default function AuthPage() {
           phone: phone.trim(),
           email: createEmail.trim(),
           password: createPassword,
+          consentAccepted,
+          consentVersion: PRIVACY_NOTICE_VERSION,
           children: createRole === 'parent'
             ? children.map((child) => ({
                 firstName: child.firstName.trim(),
@@ -885,9 +895,39 @@ export default function AuthPage() {
                         )}
                       </div>
 
+                      {/* RA 10173 consent. This is sensitive personal information
+                          about a child, so consent is captured explicitly and the
+                          notice version is stored with it. */}
+                      <label
+                        htmlFor="signup-consent"
+                        className="flex items-start gap-3 p-3.5 rounded-2xl border border-line bg-canvas cursor-pointer"
+                      >
+                        <input
+                          id="signup-consent"
+                          type="checkbox"
+                          checked={consentAccepted}
+                          onChange={(e) => setConsentAccepted(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 shrink-0 cursor-pointer"
+                        />
+                        <span className="text-[11px] text-ink-muted leading-relaxed">
+                          I have read the{' '}
+                          <a
+                            href="/privacy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-primary hover:text-primary-hover"
+                          >
+                            Privacy Notice
+                          </a>{' '}
+                          and I consent to Barangay Bacong Daycare Center collecting and processing
+                          my child&rsquo;s personal information for enrolment, attendance, ECCD
+                          assessment and the reports required by the Barangay and the DSWD.
+                        </span>
+                      </label>
+
                       <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || !consentAccepted}
                         className="w-full py-3.5 px-6 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
                       >
                         <span>{loading ? 'Creating your account...' : 'Submit for Verification'}</span>

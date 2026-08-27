@@ -74,3 +74,8 @@ INSERT INTO attendance (pupil_id, date, status) VALUES
   ('PUP-2026-002', '2026-08-10', 'absent'),
   ('PUP-2026-002', '2026-08-11', 'absent')
 ON CONFLICT (pupil_id, date) DO NOTHING;
+
+-- 5. Centre settings (single row). Names are intentionally blank: an admin
+-- fills them in from the Admin portal, and DSWD Form 1 reads them from there
+-- rather than carrying hardcoded signatories.
+INSERT INTO center_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;

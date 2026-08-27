@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { X, FileText, Download, ShieldCheck } from 'lucide-react';
 import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
+import type { CenterSettingsRow } from '@/services/settingsService';
 import { buildDswdPdf, type DswdPupilRow } from '@/lib/dswdPdf';
 
 interface DSWDReportModalProps {
@@ -11,6 +12,10 @@ interface DSWDReportModalProps {
   pupils: MockPupil[];
   attendance: MockAttendance[];
   progress: MockProgress[];
+  /** Centre name and the barangay official who signs the form. */
+  settings: CenterSettingsRow;
+  /** The person generating this copy; they are the one certifying it. */
+  preparedBy: string | null;
 }
 
 export default function DSWDReportModal({
@@ -18,7 +23,9 @@ export default function DSWDReportModal({
   onClose,
   pupils,
   attendance,
-  progress
+  progress,
+  settings,
+  preparedBy,
 }: DSWDReportModalProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2026-2027');
@@ -68,8 +75,11 @@ export default function DSWDReportModal({
         avgAttendance,
         masteredPercent,
         pupils: rows,
-        preparedBy: 'Teacher Teresa Cruz',
-        notedBy: 'Hon. Ramon Santos',
+        centerName: settings.center_name,
+        // The preparer certifies the copy they generated; the noting official
+        // comes from centre settings, which an admin keeps current.
+        preparedBy: preparedBy || settings.daycare_worker_name || 'Not recorded',
+        notedBy: settings.barangay_captain_name || 'Not recorded',
       });
 
       doc.save(`DSWD_Form_1_Barangay_Bacong_${selectedSchoolYear.replace(' ', '_')}.pdf`);
@@ -197,12 +207,12 @@ export default function DSWDReportModal({
             <div className="grid grid-cols-2 gap-8 pt-6 border-t border-line text-xs">
               <div className="text-center space-y-6">
                 <div className="text-[10px] text-ink-muted">Prepared & Certified By:</div>
-                <div className="border-b border-ink font-bold pb-1 text-ink">TEACHER TERESA CRUZ</div>
+                <div className="border-b border-ink font-bold pb-1 text-ink uppercase">{preparedBy || settings.daycare_worker_name || 'Not recorded'}</div>
                 <div className="text-[10px] text-ink-muted">Lead Daycare Worker • Barangay Bacong</div>
               </div>
               <div className="text-center space-y-6">
                 <div className="text-[10px] text-ink-muted">Approved & Noted By:</div>
-                <div className="border-b border-ink font-bold pb-1 text-ink">HON. RAMON SANTOS</div>
+                <div className="border-b border-ink font-bold pb-1 text-ink uppercase">{settings.barangay_captain_name || 'Not recorded'}</div>
                 <div className="text-[10px] text-ink-muted">Barangay Captain / Official Oversight</div>
               </div>
             </div>

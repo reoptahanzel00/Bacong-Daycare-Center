@@ -42,7 +42,7 @@ export default function ParentView({
   announcements, 
   activeTab = 'child'
 }: ParentViewProps) {
-  const { showToast, logAuditAction } = useDaycare();
+  const { showToast, logAuditAction, settings } = useDaycare();
 
   // Multi-child selection state
   const [selectedChildId, setSelectedChildId] = useState<string>(pupils[0]?.id || 'PUP-2026-001');
@@ -172,7 +172,7 @@ export default function ParentView({
 
   const handleAcknowledgeAlert = (alertId: string) => {
     setAcknowledgedAlerts(prev => ({ ...prev, [alertId]: true }));
-    showToast('Absence alert acknowledgment registered for Teacher Teresa Cruz.', 'info');
+    showToast('Absence alert acknowledgment registered with the Daycare Worker.', 'info');
     logAuditAction('Acknowledged Attendance Advisory', child?.id || 'PUP-001', 'Parent acknowledged automated absence alert.');
   };
 
@@ -345,7 +345,7 @@ export default function ParentView({
                     ID: <strong>{child?.id}</strong> • Sex: <strong>{child?.sex}</strong> • DOB: <strong>{child?.birthDate}</strong> (4 yrs old)
                   </p>
                   <p className="text-xs text-white/85 mt-0.5 m-0">
-                    Assigned Daycare Class: <strong>Barangay Bacong Daycare Room A</strong> • Lead Teacher: <strong>Teacher Teresa Cruz</strong>
+                    Assigned Daycare Class: <strong>{settings.center_name}</strong>{settings.daycare_worker_name ? <> &bull; Lead Teacher: <strong>{settings.daycare_worker_name}</strong></> : null}
                   </p>
                 </div>
               </div>

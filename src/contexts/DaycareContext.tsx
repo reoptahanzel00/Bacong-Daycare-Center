@@ -26,6 +26,7 @@ import { fetchProgress, recordObservation, type ProgressPayload, type ProgressRo
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
 import { logAuditEntry, fetchAuditLogs } from '@/services/auditService';
 import { fetchAnnouncements, publishAnnouncement, type AnnouncementRow } from '@/services/announcementsService';
+import { fetchSettings, updateSettings, EMPTY_SETTINGS, type CenterSettingsRow } from '@/services/settingsService';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -161,6 +162,12 @@ interface DaycareContextValue {
   isDSWDReportModalOpen: boolean;
   setIsDSWDReportModalOpen: (v: boolean) => void;
 
+  /** Centre name and the officials who sign DSWD Form 1. */
+  settings: CenterSettingsRow;
+  saveSettings: (next: CenterSettingsRow) => Promise<{ success?: boolean; error?: string }>;
+  /** Display name of the signed-in user; used as the report's preparer. */
+  currentUserName: string | null;
+
   isHydrated: boolean;
 }
 
@@ -243,6 +250,7 @@ export interface InitialAppState {
   attendance?: Array<{ pupil_id: string; date: string; status: string; notes?: string }>;
   progress?: ProgressRow[];
   announcements?: AnnouncementRow[];
+  settings?: CenterSettingsRow;
 }
 
 export function DaycareProvider({
@@ -312,6 +320,9 @@ export function DaycareProvider({
       ? initial.announcements.map(r => mapAnnouncementRowStatic(r))
       : INITIAL_ANNOUNCEMENTS)
   );
+  const [settings, setSettings] = useState<CenterSettingsRow>(
+    () => initial?.settings ?? EMPTY_SETTINGS
+  );
   const [users, setUsers] = useState<MockUser[]>(INITIAL_USERS);
   const [auditLogs, setAuditLogs] = useState<MockAuditLog[]>(INITIAL_AUDIT_LOGS);
 
@@ -361,6 +372,9 @@ export function DaycareProvider({
         isAdmin ? fetchAuditLogs() : Promise.resolve({ ok: false, logs: [] }),
         fetchAnnouncements(),
       ]);
+
+      const settingsRes = await fetchSettings();
+      if (settingsRes.ok) setSettings(settingsRes.settings);
 
       if (pupilRes.ok) {
         setPupils(pupilRes.pupils.map(mapPupilRowStatic));
@@ -708,6 +722,19 @@ export function DaycareProvider({
     showToast(`User account created for ${userData.name}.`);
   }, [logAuditAction, showToast]);
 
+  const saveSettings = useCallback(async (next: CenterSettingsRow) => {
+    const res = await updateSettings(next);
+    if (res?.success) {
+      setSettings(res.settings ?? next);
+      logAuditAction('Updated Centre Settings', next.center_name,
+        'Changed the centre name or the officials named on DSWD Form 1.');
+      showToast('Centre settings saved.');
+    } else {
+      showToast(res?.error || 'Could not save centre settings.', 'danger');
+    }
+    return res;
+  }, [logAuditAction, showToast]);
+
   const handleToggleUserStatus = useCallback(async (userId: string) => {
     const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
@@ -731,6 +758,7 @@ export function DaycareProvider({
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
     logAuditAction,
+    settings, saveSettings, currentUserName,
     showToast,
     toast,
     setToast,
@@ -750,7 +778,7 @@ export function DaycareProvider({
     pupils, attendance, progress, announcements, users, auditLogs,
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil,
     handleSaveAttendance, handleSaveProgress, handleSaveAnnouncement, handleSaveUser,
-    handleToggleUserStatus, logAuditAction, showToast, toast,
+    handleToggleUserStatus, logAuditAction, settings, saveSettings, currentUserName, showToast, toast,
     isMobileNavOpen, isPupilModalOpen, pupilToEdit,
     isProgressModalOpen, isAnnouncementModalOpen, isUserModalOpen,
     isLinkParentModalOpen, linkParentOpenCount, isDSWDReportModalOpen,

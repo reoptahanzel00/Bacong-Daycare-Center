@@ -13,6 +13,7 @@ jobs:
 
     env:
       # Use placeholder values for CI — real values injected via GitHub Secrets in staging/prod
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -50,7 +51,20 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: End-to-end tests
+      - name: End-to-end tests (offline demo mode)
+        run: npm run test:e2e
+
+      # Authenticated coverage runs only when a staging project is configured.
+      # These are the tests that prove the RLS policies hold -- one parent
+      # cannot see another parent's child -- which the demo suite cannot reach.
+      # Secretless runs (forks, first-time clones) skip this and stay green.
+      - name: End-to-end tests (authenticated, staging)
+        if: ${{ env.E2E_SUPABASE_URL != '' }}
+        env:
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+          E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
         run: npm run test:e2e
 
       - name: Upload Playwright report on failure

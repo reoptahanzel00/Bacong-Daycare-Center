@@ -31,6 +31,7 @@ export interface DswdPupilRow {
 }
 
 export interface DswdReportData {
+  centerName: string;
   schoolYear: string;
   reportDate: string;
   totalEnrolled: number;
@@ -59,7 +60,7 @@ function drawHeader(doc: jsPDF, data: DswdReportData) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(INK[0], INK[1], INK[2]);
-  doc.text('BARANGAY BACONG DAYCARE CENTER', centre, 23, { align: 'center' });
+  doc.text(data.centerName.toUpperCase(), centre, 23, { align: 'center' });
 
   doc.setFontSize(9);
   doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
@@ -75,7 +76,7 @@ function drawHeader(doc: jsPDF, data: DswdReportData) {
   doc.line(MARGIN, 37, doc.internal.pageSize.getWidth() - MARGIN, 37);
 }
 
-function drawFooter(doc: jsPDF) {
+function drawFooter(doc: jsPDF, data: DswdReportData) {
   const pages = doc.getNumberOfPages();
   const width = doc.internal.pageSize.getWidth();
   const height = doc.internal.pageSize.getHeight();
@@ -84,7 +85,7 @@ function drawFooter(doc: jsPDF) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text('Barangay Bacong Daycare Center — DSWD Form 1', MARGIN, height - 8);
+    doc.text(`${data.centerName} — DSWD Form 1`, MARGIN, height - 8);
     doc.text(`Page ${i} of ${pages}`, width - MARGIN, height - 8, { align: 'right' });
   }
 }
@@ -176,8 +177,8 @@ export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdRepor
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-  doc.text('Lead Daycare Worker • Barangay Bacong', colLeft + lineW / 2, sigY + 19, { align: 'center' });
+  doc.text('Lead Daycare Worker', colLeft + lineW / 2, sigY + 19, { align: 'center' });
   doc.text('Barangay Captain / Official Oversight', colRight + lineW / 2, sigY + 19, { align: 'center' });
 
-  drawFooter(doc);
+  drawFooter(doc, data);
 }

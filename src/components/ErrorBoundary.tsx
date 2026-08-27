@@ -30,9 +30,27 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // In production, send this to an error monitoring service (e.g. Sentry)
     console.error('[ErrorBoundary] Uncaught component error:', error.message);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+
+    // Report to the server so the crash reaches Vercel's runtime logs. A
+    // browser console nobody is watching is not error monitoring. Sends the
+    // message and stack only -- never any record on screen at the time.
+    // Fire-and-forget: a failed report must not replace the error UI below.
+    try {
+      void fetch('/api/client-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          message: error.message,
+          componentStack: errorInfo.componentStack ?? undefined,
+          path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        }),
+      }).catch(() => {});
+    } catch {
+      // Reporting is best effort.
+    }
   }
 
   private handleRetry = () => {

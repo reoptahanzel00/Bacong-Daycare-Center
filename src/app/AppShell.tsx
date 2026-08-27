@@ -39,6 +39,7 @@ function AppContent() {
     isLinkParentModalOpen, setIsLinkParentModalOpen,
     linkParentOpenCount, setLinkParentOpenCount,
     isDSWDReportModalOpen, setIsDSWDReportModalOpen,
+    settings, currentUserName,
   } = useDaycare();
 
   return (
@@ -175,6 +176,8 @@ function AppContent() {
         pupils={pupils}
         attendance={attendance}
         progress={progress}
+        settings={settings}
+        preparedBy={currentUserName}
       />
     </div>
   );

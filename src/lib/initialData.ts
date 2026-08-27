@@ -8,6 +8,7 @@ import type { AttendanceRow } from '@/services/attendanceService';
 import type { ProgressRow } from '@/services/progressService';
 import type { AnnouncementRow } from '@/services/announcementsService';
 import { toClientObservation } from '@/lib/progressMapping';
+import { EMPTY_SETTINGS, type CenterSettingsRow } from '@/services/settingsService';
 
 /**
  * The payload the root page hands to the client provider.
@@ -23,6 +24,7 @@ export interface InitialAppData {
   attendance: AttendanceRow[];
   progress: ProgressRow[];
   announcements: AnnouncementRow[];
+  settings: CenterSettingsRow;
 }
 
 const EMPTY: InitialAppData = {
@@ -32,6 +34,7 @@ const EMPTY: InitialAppData = {
   attendance: [],
   progress: [],
   announcements: [],
+  settings: EMPTY_SETTINGS,
 };
 
 /**
@@ -50,7 +53,7 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
   try {
     const supabase = await createClient();
 
-    const [profileRes, pupilsRes, attendanceRes, progressRes, announcementsRes] =
+    const [profileRes, pupilsRes, attendanceRes, progressRes, settingsRes, announcementsRes] =
       await Promise.all([
         supabase.from('users').select('full_name').eq('id', session.userId).maybeSingle(),
         supabase
@@ -65,6 +68,10 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
           .select('*')
           .order('observation_date', { ascending: false })
           .limit(200),
+        supabase
+          .from('center_settings')
+          .select('center_name, daycare_worker_name, barangay_captain_name')
+          .maybeSingle(),
         supabase
           .from('announcements')
           .select('id, title, body, posted_by, created_at, author:posted_by(full_name)')
@@ -82,6 +89,7 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
       progress: ((progressRes.data as unknown[] | null) ?? []).map(
         (row) => toClientObservation(row as Record<string, unknown>) as ProgressRow
       ),
+      settings: (settingsRes.data as CenterSettingsRow | null) ?? EMPTY_SETTINGS,
       announcements: ((announcementsRes.data as unknown[] | null) ?? []).map((row) => {
         const a = row as Record<string, unknown>;
         const author = a.author as { full_name?: string } | null | undefined;

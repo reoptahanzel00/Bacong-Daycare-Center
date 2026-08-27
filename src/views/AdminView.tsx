@@ -36,7 +36,11 @@ export default function AdminView({
   onLinkParent,
   onToggleUserStatus 
 }: AdminViewProps) {
-  const { showToast, logAuditAction } = useDaycare();
+  const { showToast, logAuditAction, settings, saveSettings } = useDaycare();
+
+  // Local draft of the centre settings so typing does not write on every key.
+  const [settingsDraft, setSettingsDraft] = useState(settings);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const [filterRole, setFilterRole] = useState('all');
   const [userSearch, setUserSearch] = useState('');
@@ -273,6 +277,77 @@ export default function AdminView({
       )}
 
       {/* TAB 3: Data Privacy RA 10173 & RLS Security Audit Panel */}
+      {activeTab === 'security' && (
+        <div className="card bg-white p-5 space-y-5 mb-6">
+          <div>
+            <h3 className="text-lg font-extrabold text-ink m-0">Centre &amp; Signatories</h3>
+            <p className="text-xs text-ink-muted mt-1 m-0">
+              These names appear on DSWD Form 1, which is signed and submitted. Keep them current
+              &mdash; the barangay captain changes with elections.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="settings-center-name" className="block text-xs font-bold text-ink mb-1.5">
+                Daycare Centre Name
+              </label>
+              <input
+                id="settings-center-name"
+                type="text"
+                value={settingsDraft.center_name}
+                onChange={(e) => setSettingsDraft({ ...settingsDraft, center_name: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold bg-canvas focus:bg-white focus:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="settings-worker-name" className="block text-xs font-bold text-ink mb-1.5">
+                Lead Daycare Worker
+              </label>
+              <input
+                id="settings-worker-name"
+                type="text"
+                value={settingsDraft.daycare_worker_name}
+                onChange={(e) => setSettingsDraft({ ...settingsDraft, daycare_worker_name: e.target.value })}
+                placeholder="Full name as it should be signed"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold bg-canvas focus:bg-white focus:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="settings-captain-name" className="block text-xs font-bold text-ink mb-1.5">
+                Barangay Captain
+              </label>
+              <input
+                id="settings-captain-name"
+                type="text"
+                value={settingsDraft.barangay_captain_name}
+                onChange={(e) => setSettingsDraft({ ...settingsDraft, barangay_captain_name: e.target.value })}
+                placeholder="Noting official on DSWD Form 1"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold bg-canvas focus:bg-white focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={savingSettings}
+              onClick={async () => {
+                setSavingSettings(true);
+                await saveSettings(settingsDraft);
+                setSavingSettings(false);
+              }}
+              className="btn btn-primary text-xs font-bold disabled:opacity-50"
+            >
+              {savingSettings ? 'Saving…' : 'Save Centre Settings'}
+            </button>
+            <span className="text-[11px] text-ink-muted">
+              Reports generated after saving will carry these names.
+            </span>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'security' && (
         <div className="card bg-white p-5 space-y-5">
           <div className="flex items-center justify-between">
