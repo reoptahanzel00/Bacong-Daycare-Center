@@ -37,7 +37,8 @@ const nextConfig = {
           "img-src 'self' data: blob: https://images.unsplash.com",
           "font-src 'self' data:",
           "style-src 'self' 'unsafe-inline'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          // 'unsafe-eval' is only needed by the dev-mode React refresh runtime.
+          `script-src 'self' 'unsafe-inline'${isProduction ? '' : " 'unsafe-eval'"}`,
           "worker-src 'self' blob:",
           "frame-src 'self' blob: data:",
           "connect-src 'self' blob: data: https://*.supabase.co wss://*.supabase.co",

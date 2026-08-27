@@ -29,7 +29,6 @@ interface MobileNavProps {
   currentRole: UserRole;
   activeTab: string;
   onTabChange: (tab: string) => void;
-  onRoleChange?: (role: UserRole) => void;
 }
 
 export default function MobileNav({

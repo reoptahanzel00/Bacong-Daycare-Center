@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 
 const PupilSchema = z.object({
-  id: z.string().optional(),
+  // Only an id this API previously issued may be supplied (edit path).
+  // An arbitrary string must never be able to create a row via the upsert.
+  id: z.string().regex(/^PUP-\d{4}-[A-Z0-9]{4,12}$/, 'Invalid pupil ID').optional(),
   firstName: z.string().min(1, 'First name is required').max(100).trim(),
   lastName: z.string().min(1, 'Last name is required').max(100).trim(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be YYYY-MM-DD'),
@@ -70,10 +72,28 @@ export async function POST(request: Request) {
     // Use secure UUID-based IDs — never Math.random()
     const pupilId = parsed.id || `PUP-${new Date().getFullYear()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
 
+    // The status actually persisted — may differ from the request when the
+    // record is still awaiting worker verification (see below).
+    let resolvedStatus: string = parsed.enrollmentStatus;
+    let resolvedEnrollmentDate = new Date().toISOString().split('T')[0];
+    let resolvedAbsences = 0;
+
     // Attempt to persist to Supabase
     try {
       const { createClient } = await import('@/lib/supabase/server');
       const supabase = await createClient();
+
+      // Enrollment status transitions belong to /api/pupils/verify. Editing a
+      // pupil's demographics must never approve a parent-submitted enrollment,
+      // so a pending/rejected record keeps its status through this write.
+      const { data: existing } = await supabase
+        .from('pupils')
+        .select('enrollment_status, enrollment_date, consecutive_absences')
+        .eq('id', pupilId)
+        .maybeSingle();
+
+      const isUnverified =
+        existing?.enrollment_status === 'pending' || existing?.enrollment_status === 'rejected';
 
       const dbRecord = {
         id: pupilId,
@@ -82,10 +102,15 @@ export async function POST(request: Request) {
         birth_date: parsed.birthDate,
         sex: parsed.sex,
         address: parsed.address,
-        enrollment_status: parsed.enrollmentStatus,
-        enrollment_date: new Date().toISOString().split('T')[0],
-        consecutive_absences: 0,
+        enrollment_status: isUnverified ? existing.enrollment_status : parsed.enrollmentStatus,
+        enrollment_date: existing?.enrollment_date || new Date().toISOString().split('T')[0],
+        // Never reset a live absence streak on a demographic edit.
+        consecutive_absences: existing?.consecutive_absences ?? 0,
       };
+
+      resolvedStatus = dbRecord.enrollment_status;
+      resolvedEnrollmentDate = dbRecord.enrollment_date;
+      resolvedAbsences = dbRecord.consecutive_absences;
 
       const { error: pupilError } = await supabase.from('pupils').upsert([dbRecord]);
       if (pupilError) {
@@ -135,9 +160,9 @@ export async function POST(request: Request) {
         birthDate: parsed.birthDate,
         sex: parsed.sex,
         address: parsed.address,
-        enrollmentStatus: parsed.enrollmentStatus,
-        enrollmentDate: new Date().toISOString().split('T')[0],
-        consecutiveAbsences: 0,
+        enrollmentStatus: resolvedStatus,
+        enrollmentDate: resolvedEnrollmentDate,
+        consecutiveAbsences: resolvedAbsences,
         guardian: {
           fullName: parsed.guardianName,
           relationship: parsed.relationship,

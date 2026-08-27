@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   INITIAL_PUPILS,
@@ -112,7 +112,6 @@ interface ToastState {
 interface DaycareContextValue {
   // Navigation
   currentRole: UserRole;
-  setCurrentRole: (role: UserRole) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   searchQuery: string;
@@ -169,6 +168,9 @@ const DaycareContext = createContext<DaycareContextValue | null>(null);
 
 export function DaycareProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  // The active role is resolved from the verified server profile only. There
+  // is deliberately no client-facing setter: a role must never be switchable
+  // from the browser, even though every API call re-verifies it server-side.
   const [currentRole, setCurrentRoleState] = useState<UserRole>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bacong_auth_role');
@@ -189,6 +191,9 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     return 'dashboard';
   });
 
+  // Display name of the signed-in user, resolved from the authoritative
+  // users table. Used so audit entries name the real actor.
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<ToastState | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
@@ -374,13 +379,14 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
           // role lets the sync avoid admin-only endpoints for other roles.
           const { data: profile } = await supabase
             .from('users')
-            .select('role')
+            .select('role, full_name')
             .eq('id', session.user.id)
             .single();
 
           if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
             resolvedRole = profile.role as UserRole;
           }
+          if (profile?.full_name) setCurrentUserName(profile.full_name);
           await syncFromServer(resolvedRole);
         }
 
@@ -435,26 +441,15 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     setToast({ message, type });
   }, []);
 
-  const setCurrentRole = useCallback((newRole: UserRole) => {
-    setCurrentRoleState(newRole);
-    if (newRole === 'worker') setActiveTab('dashboard');
-    else if (newRole === 'official') setActiveTab('overview');
-    else if (newRole === 'barangay_admin') setActiveTab('users');
-    else if (newRole === 'parent') setActiveTab('child');
-    showToast(`Switched to ${newRole.replace('_', ' ').toUpperCase()} mode.`, 'info');
-  }, [showToast]);
-
   const logAuditAction = useCallback((action: string, target: string, details: string) => {
-    const actorNames: Record<string, string> = {
-      worker: 'Teacher Teresa Cruz (Daycare Worker)',
-      official: 'Hon. Ramon Santos (Barangay Official)',
-      barangay_admin: 'Admin Josephine Mercado (Barangay Admin)',
-      parent: 'Maria Santos (Parent)',
-    };
+    // The optimistic local entry must name the real signed-in user. The server
+    // resolves the actor from the verified session independently, so a wrong
+    // name here would make the admin's on-screen trail disagree with the
+    // immutable record it claims to show.
     const newLog: MockAuditLog = {
       id: `AUD-${Date.now().toString().slice(-6)}`,
       timestamp: new Date().toLocaleString('sv').replace('T', ' '),
-      userName: actorNames[currentRole] || 'System User',
+      userName: currentUserName || 'System User',
       role: currentRole.toUpperCase(),
       action,
       target,
@@ -464,7 +459,7 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     // Persist to the immutable server-side trail (fire-and-forget; the local
     // entry keeps the UI responsive even when the write is delayed/fails).
     logAuditEntry(action, target, details).catch(() => {});
-  }, [currentRole]);
+  }, [currentRole, currentUserName]);
 
   const handleSavePupil = useCallback(async (pupilData: MockPupil) => {
     const isEdit = !!pupilToEdit;
@@ -630,8 +625,11 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     showToast(`Account ${targetUser.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
   }, [users, logAuditAction, showToast]);
 
-  const value: DaycareContextValue = {
-    currentRole, setCurrentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
+  // Memoised so consumers only re-render when a value actually changes.
+  // Without this, the object identity changes on every provider render and
+  // every view (each 1000+ lines, unmemoised) re-renders on each keystroke.
+  const value: DaycareContextValue = useMemo(() => ({
+    currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
     pupils, attendance, progress, announcements, users, auditLogs,
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
@@ -650,7 +648,17 @@ export function DaycareProvider({ children }: { children: React.ReactNode }) {
     linkParentOpenCount, setLinkParentOpenCount,
     isDSWDReportModalOpen, setIsDSWDReportModalOpen,
     isHydrated,
-  };
+  }), [
+    currentRole, activeTab, searchQuery,
+    pupils, attendance, progress, announcements, users, auditLogs,
+    handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil,
+    handleSaveAttendance, handleSaveProgress, handleSaveAnnouncement, handleSaveUser,
+    handleToggleUserStatus, logAuditAction, showToast, toast,
+    isMobileNavOpen, isPupilModalOpen, pupilToEdit,
+    isProgressModalOpen, isAnnouncementModalOpen, isUserModalOpen,
+    isLinkParentModalOpen, linkParentOpenCount, isDSWDReportModalOpen,
+    isHydrated,
+  ]);
 
   return (
     <DaycareContext.Provider value={value}>

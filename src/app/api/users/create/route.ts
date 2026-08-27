@@ -60,7 +60,15 @@ export async function POST(request: Request) {
     });
 
     if (profileError) {
-      console.warn('[Create User API] Profile insert warning:', profileError.message);
+      // Without the profile row the account cannot sign in ("not provisioned")
+      // and its email is already taken, so it can never be re-provisioned.
+      // Roll the auth account back rather than report a success that isn't one.
+      console.error('[Create User API] Profile insert failed, rolling back auth user:', profileError.message);
+      await adminSupabase.auth.admin.deleteUser(authData.user.id).catch(() => {});
+      return NextResponse.json(
+        { error: 'Account could not be provisioned. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

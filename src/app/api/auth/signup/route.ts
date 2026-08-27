@@ -120,7 +120,17 @@ export async function POST(request: Request) {
       status: 'active',
     });
     if (profileError) {
-      console.warn('[Signup API] Profile insert warning:', profileError.message);
+      // The profile row is what makes an account usable: without it sign-in is
+      // rejected as "not provisioned" AND the email is taken, so the parent can
+      // neither log in nor register again. Roll the auth account back instead
+      // of leaving an unrecoverable orphan. Everything below also depends on
+      // this row through the guardians.user_id foreign key.
+      console.error('[Signup API] Profile insert failed, rolling back auth user:', profileError.message);
+      await admin.auth.admin.deleteUser(authData.user.id).catch(() => {});
+      return NextResponse.json(
+        { error: 'Unable to create the account. Please try again or contact the Barangay Admin.' },
+        { status: 500 }
+      );
     }
 
     // 3. Create a pending pupil + guardian + sociodemographic profile for each
@@ -139,6 +149,9 @@ export async function POST(request: Request) {
         .filter((part) => part.length > 0)
         .join(', ');
 
+      // Tracks whether the pupil row landed, so a failure in the guardian or
+      // profile insert below can be unwound instead of leaving a half-built
+      // child record that the worker can neither verify nor reject.
       const { error: pupilError } = await admin.from('pupils').insert({
         id: pupilId,
         first_name: child.firstName,
@@ -156,6 +169,11 @@ export async function POST(request: Request) {
         break;
       }
 
+      const rollbackPupil = async () => {
+        // ON DELETE CASCADE removes the guardian and sociodemographic rows.
+        await admin.from('pupils').delete().eq('id', pupilId);
+      };
+
       const { error: guardianError } = await admin.from('guardians').insert({
         pupil_id: pupilId,
         user_id: authData.user.id,
@@ -166,6 +184,7 @@ export async function POST(request: Request) {
       });
       if (guardianError) {
         pupilCreateError = guardianError.message;
+        await rollbackPupil();
         break;
       }
 
@@ -192,6 +211,7 @@ export async function POST(request: Request) {
       });
       if (profileError) {
         pupilCreateError = profileError.message;
+        await rollbackPupil();
         break;
       }
       createdPupilIds.push(pupilId);

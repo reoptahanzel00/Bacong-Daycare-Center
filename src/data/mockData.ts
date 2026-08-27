@@ -311,3 +311,24 @@ export function saveStoredData<T>(key: string, value: T): void {
     console.error('LocalStorage write error:', e);
   }
 }
+
+/**
+ * Wipes every cached dataset this app writes to localStorage.
+ *
+ * The offline/demo cache holds pupil PII (names, birth dates, addresses,
+ * guardian phone numbers), the user directory and the audit trail. Daycare
+ * terminals are shared devices, so signing out MUST leave nothing readable
+ * behind for the next person at the keyboard (RA 10173 data minimisation).
+ */
+export function clearStoredData(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('bacong_daycare_') || key === 'bacong_auth_role') {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch (e) {
+    console.error('LocalStorage clear error:', e);
+  }
+}

@@ -4,13 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Search, Bell, School, LogOut, Menu } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import type { Notification } from '@/services/notificationService';
-import type { UserRole } from '@/contexts/DaycareContext';
 import { createClient } from '@/lib/supabase/client';
+import { clearStoredData } from '@/data/mockData';
 import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
   currentRole: string;
-  onRoleChange: (role: UserRole) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   notificationsCount?: number;
@@ -146,7 +145,7 @@ export default function Header({
           onClick={async () => {
             if (confirm('Are you sure you want to log out of your session?')) {
               try {
-                localStorage.removeItem('bacong_auth_role');
+                clearStoredData();
                 const supabase = createClient();
                 await supabase.auth.signOut();
               } catch {}

@@ -24,6 +24,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
+import { clearStoredData } from '@/data/mockData';
 
 interface SidebarProps {
   currentRole: string;
@@ -81,7 +82,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
   const handleLogout = async () => {
     if (confirm('Are you sure you want to sign out of your session?')) {
       try {
-        localStorage.removeItem('bacong_auth_role');
+        clearStoredData();
         const supabase = createClient();
         await supabase.auth.signOut();
       } catch {}

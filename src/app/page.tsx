@@ -26,7 +26,7 @@ import ParentView from '@/views/ParentView';
  */
 function AppContent() {
   const {
-    currentRole, setCurrentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
+    currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
     pupils, attendance, progress, announcements, users, auditLogs,
     handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
@@ -47,7 +47,6 @@ function AppContent() {
       {/* Full-width sticky header */}
       <Header
         currentRole={currentRole}
-        onRoleChange={setCurrentRole}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenMobileNav={() => setIsMobileNavOpen(true)}
@@ -60,7 +59,6 @@ function AppContent() {
         currentRole={currentRole}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onRoleChange={setCurrentRole}
       />
 
       {/* Main body flex rail: sidebar + scrollable content */}
