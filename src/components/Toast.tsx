@@ -36,7 +36,7 @@ export default function Toast({ toast, onClose }: ToastProps) {
       background: 'white',
       borderRadius: '9999px',
       boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-      borderLeft: `5px solid ${isSuccess ? 'var(--success)' : isDanger ? 'var(--danger)' : 'var(--primary)'}`,
+      border: `1px solid ${isSuccess ? 'var(--success)' : isDanger ? 'var(--danger)' : 'var(--primary)'}`,
     }}>
       {isSuccess && <CheckCircle2 size={20} color="var(--success)" />}
       {isDanger && <AlertCircle size={20} color="var(--danger)" />}

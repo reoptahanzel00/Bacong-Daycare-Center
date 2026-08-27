@@ -3,19 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --primary: #2F8F8A;
-  --primary-hover: #247571;
+  /* Palette. The teal, coral and yellow keep the daycare's identity; the
+     values below are the darkest members of each family that still read as
+     the same colour, chosen so text and white-on-fill both clear WCAG AA.
+     --primary was #2F8F8A, which is only 3.88:1 on white and failed as both
+     a text colour and a fill behind white text. */
+  --primary: #247571;              /* 5.44:1 on white */
+  --primary-hover: #1D605C;
   --primary-light: #EBF5F4;
+  /* Decorative-only teal: the hero gradient and other large display areas,
+     where the 3:1 large-text floor applies. Never use it for body text. */
+  --primary-display: #2F8F8A;
   --accent-yellow: #F5B942;
+  --accent-yellow-ink: #5C3D00;    /* 5.61:1 on --accent-yellow */
   --accent-coral: #F2896B;
+  --accent-coral-strong: #B84324;  /* 5.43:1 behind white text */
   --accent-coral-light: #FDF0EC;
+  --success: #1E7A46;              /* 4.86:1 on white; used by the save toast */
+  --danger: #C62828;               /* was #D32F2F, 4.36:1 on #FFEBEE */
+  --danger-light: #FFEBEE;
   --bg-main: #FAF8F5;
   --card-bg: #FFFFFF;
   --text-main: #2B2B2B;
   --text-muted: #6B6B6B;
-  --text-light: #9B9B9B;
+  --text-light: #707070;           /* was #9B9B9B at 2.78:1 — failed everywhere */
   --border-color: #E6E4DF;
   --border-light: #F0EEEA;
+  /* Minimum comfortable hit area. The register is filled in on a phone, one
+     tap per child, so controls are sized for a thumb rather than a cursor. */
+  --tap-target: 44px;
   --font-heading: var(--font-quicksand), system-ui, -apple-system, sans-serif;
   --font-body: var(--font-nunito), system-ui, -apple-system, sans-serif;
   --font-family: var(--font-body);
@@ -76,8 +92,103 @@ input, select, textarea {
 
 input:focus, select:focus, textarea:focus {
   border-color: var(--primary) !important;
-  box-shadow: 0 0 0 3px rgba(47, 143, 138, 0.18) !important;
+  box-shadow: 0 0 0 3px rgba(36, 117, 113, 0.22) !important;
   outline: none;
+}
+
+/* Keyboard focus. Only inputs carried a focus style before, so anyone driving
+   the app from a keyboard could not see which button, link or tab they were
+   on. :focus-visible keeps it off mouse clicks. The offset ring works on both
+   the cream app background and white cards. */
+/* Not written with :where(): that has zero specificity, so Tailwind's
+   focus:outline-none and ring utilities silently won and the ring fell back to
+   currentColor -- a gray button got a gray ring on a white card. These
+   selectors tie with a single Tailwind utility and come later in the sheet. */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  /* !important on purpose. Tailwind's focus:outline-none and the utility layer
+     both land after this rule in the compiled sheet, and a focus ring is an
+     accessibility guarantee rather than a style preference: no utility class
+     should be able to remove the only cue a keyboard user has. */
+  outline: 3px solid var(--primary) !important;
+  outline-offset: 2px !important;
+  border-radius: 6px;
+  /* Many controls carry Tailwind's transition-all, which animates the ring in
+     from the element's own text colour. A focus indicator has to be immediate
+     to be useful, so the outline is excluded from any transition. */
+  transition-property: background-color, border-color, color, box-shadow, transform !important;
+}
+
+/* Anything focusable on the teal hero needs a ring that reads against it. */
+.on-primary a:focus-visible,
+.on-primary button:focus-visible,
+.on-primary [role='button']:focus-visible {
+  outline-color: #FFFFFF;
+}
+
+/* Every control is at least a thumb's width on touch devices. Controls here
+   measured 28-38px tall, which is a miss on a phone held one-handed while
+   holding a child. Gated on pointer:coarse rather than a width breakpoint, so
+   this follows the input device: a mouse-driven desktop keeps its denser
+   layout, where cursor precision makes the larger target unnecessary. */
+@media (pointer: coarse) {
+  button, [role='button'], a.btn, .btn, .segmented-btn {
+    min-height: var(--tap-target);
+    min-width: var(--tap-target);
+  }
+  /* Text fields are tapped to focus, so they need the same floor. Date and
+     search inputs measured 32-34px. */
+  input, select, textarea {
+    min-height: var(--tap-target);
+  }
+  /* A field that fills its row must not be forced square by the rule above. */
+  input, select, textarea, button.w-full, .btn.w-full {
+    min-width: 0;
+  }
+  /* Small inline controls opt out explicitly rather than by accident. */
+  .tap-exempt, .tap-exempt button {
+    min-height: 0;
+  }
+}
+
+/* Browser surfaces the design never claimed. */
+::selection {
+  background: var(--primary-light);
+  color: var(--text-main);
+}
+
+:root {
+  accent-color: var(--primary);
+  caret-color: var(--primary);
+  scrollbar-color: #C4CBCA var(--bg-main);
+}
+
+/* Figures that sit in columns should line up. */
+table, .tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect a reduced-motion preference without flattening feedback: entrances
+   resolve instantly instead of sliding, and colour/state changes still read.
+   A blanket 0.01ms kill would also destroy the toggle feedback above. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  .card, .btn, .segmented-btn {
+    transition-property: background-color, color, border-color, box-shadow;
+    transition-duration: 0.12s;
+  }
+  .modal-overlay, .modal-panel {
+    animation: none !important;
+  }
 }
 
 /* Custom Buttons */
@@ -237,34 +348,38 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border-color);
 }
 
+/* The register's Present / Late / Absent control. A worker taps this once per
+   child every morning, usually on a phone, so it is sized to the tap target
+   and every active state clears AA rather than relying on colour alone. */
 .segmented-btn {
-  padding: 0.3rem 0.75rem;
+  min-height: var(--tap-target);
+  padding: 0.5rem 1rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   border: none;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .segmented-btn.active.present {
   background-color: var(--primary);
-  color: white;
-  box-shadow: 0 2px 6px rgba(47, 143, 138, 0.3);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(36, 117, 113, 0.3);
 }
 
 .segmented-btn.active.late {
   background-color: var(--accent-yellow);
-  color: #8A5D00;
+  color: var(--accent-yellow-ink);
   box-shadow: 0 2px 6px rgba(245, 185, 66, 0.3);
 }
 
 .segmented-btn.active.absent {
-  background-color: var(--accent-coral);
-  color: white;
-  box-shadow: 0 2px 6px rgba(242, 137, 107, 0.3);
+  background-color: var(--accent-coral-strong);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(184, 67, 36, 0.3);
 }
 
 /* Keyframes */

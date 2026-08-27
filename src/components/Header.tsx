@@ -75,7 +75,7 @@ export default function Header({
         return 'bg-[#FFEBEE] text-[#D96B4D] border-[#FFCDD2]';
       case 'worker':
       default:
-        return 'bg-[#EBF5F4] text-[#2F8F8A] border-[#2F8F8A]/30';
+        return 'bg-[#EBF5F4] text-[#247571] border-[#2F8F8A]/30';
     }
   };
 
@@ -134,7 +134,7 @@ export default function Header({
         >
           <Bell size={18} className="text-[#6B6B6B]" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-[#F2896B] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+            <span className="absolute -top-1 -right-1 bg-[#B84324] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
               {unreadCount}
             </span>
           )}
@@ -143,15 +143,17 @@ export default function Header({
         {/* Logout Button */}
         <button
           onClick={async () => {
-            if (confirm('Are you sure you want to log out of your session?')) {
-              try {
-                clearStoredData();
-                const supabase = createClient();
-                await supabase.auth.signOut();
-              } catch {}
-              router.push('/login');
-              router.refresh();
-            }
+            // Signing out is immediate and unconfirmed on purpose. These are
+            // shared barangay terminals: the cached roster is cleared on the
+            // way out, so anything that discourages signing out leaves a
+            // child's record on the screen for whoever sits down next.
+            try {
+              clearStoredData();
+              const supabase = createClient();
+              await supabase.auth.signOut();
+            } catch {}
+            router.push('/login');
+            router.refresh();
           }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-all cursor-pointer shadow-xs"
           title="Sign Out of Account"

@@ -107,14 +107,14 @@ export default function MobileNav({
             </div>
             <div>
               <h3 className="text-sm font-extrabold text-[#2B2B2B] leading-tight m-0">Bacong Daycare</h3>
-              <p className="text-[10px] font-semibold text-[#2F8F8A] uppercase tracking-wider m-0">
+              <p className="text-[10px] font-semibold text-[#247571] uppercase tracking-wider m-0">
                 {currentConfig.badge}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] transition-all border-none bg-transparent cursor-pointer"
+            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] transition-all border-none bg-transparent cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -122,7 +122,7 @@ export default function MobileNav({
 
         {/* Navigation Section */}
         <div className="space-y-1.5 flex-1">
-          <div className="text-[10px] font-extrabold text-[#9B9B9B] uppercase tracking-wider px-3 mb-2">
+          <div className="text-[10px] font-extrabold text-[#707070] uppercase tracking-wider px-3 mb-2">
             Navigation Menu
           </div>
           {currentConfig.items.map((item) => {
@@ -137,7 +137,7 @@ export default function MobileNav({
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left border-none cursor-pointer ${
                   isActive
-                    ? 'bg-[#2F8F8A] text-white shadow-md'
+                    ? 'bg-[#247571] text-white shadow-md'
                     : 'bg-transparent text-[#4A4A4A] hover:bg-[#FAF8F5]'
                 }`}
               >
@@ -152,7 +152,7 @@ export default function MobileNav({
 
         {/* Footer info */}
         <div className="border-t border-[#E6E4DF] pt-4 text-center">
-          <p className="text-[10px] font-semibold text-[#9B9B9B] m-0">
+          <p className="text-[10px] font-semibold text-[#707070] m-0">
             Barangay Bacong Daycare v1.0 • RA 10173 Compliant
           </p>
         </div>

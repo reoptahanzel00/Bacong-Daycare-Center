@@ -27,8 +27,14 @@ module.exports = {
         surface: '#FFFFFF',
       },
       fontFamily: {
-        heading: ['Quicksand', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
+        // These must name the fonts layout.tsx actually loads through
+        // next/font. `body` previously named Inter, which is never fetched,
+        // and Tailwind's default `font-sans` on <body> was overriding the
+        // globals.css rule — so the Nunito the app downloads was not being
+        // used for body text at all.
+        sans: ['var(--font-nunito)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-quicksand)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-nunito)', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         card: '20px',

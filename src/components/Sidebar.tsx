@@ -80,15 +80,14 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
   const navItems = getNavItems();
 
   const handleLogout = async () => {
-    if (confirm('Are you sure you want to sign out of your session?')) {
-      try {
-        clearStoredData();
-        const supabase = createClient();
-        await supabase.auth.signOut();
-      } catch {}
-      router.push('/login');
-      router.refresh();
-    }
+    // Immediate and unconfirmed: see the note on the header's sign-out.
+    try {
+      clearStoredData();
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {}
+    router.push('/login');
+    router.refresh();
   };
 
   return (
@@ -96,9 +95,9 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
       
       {/* Navigation Links */}
       <div className="space-y-1">
-        <div className="px-3 py-2 text-[10px] font-extrabold text-[#9B9B9B] uppercase tracking-wider flex items-center justify-between">
+        <div className="px-3 py-2 text-[10px] font-extrabold text-[#707070] uppercase tracking-wider flex items-center justify-between">
           <span>{currentRole.replace('_', ' ')} Rail</span>
-          <span className="w-2 h-2 rounded-full bg-[#2F8F8A] animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-[#247571] animate-pulse"></span>
         </div>
 
         {navItems.map((item) => {
@@ -111,12 +110,12 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
               onClick={() => onTabChange(item.id)}
               className={`w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-3 transition-all duration-200 cursor-pointer border-none text-left ${
                 isActive
-                  ? 'bg-[#EBF5F4] text-[#2F8F8A] shadow-sm translate-x-1'
+                  ? 'bg-[#EBF5F4] text-[#247571] shadow-sm translate-x-1'
                   : 'text-[#6B6B6B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] hover:translate-x-1'
               }`}
               suppressHydrationWarning
             >
-              <Icon size={18} className={isActive ? 'text-[#2F8F8A]' : 'text-[#9B9B9B]'} />
+              <Icon size={18} className={isActive ? 'text-[#247571]' : 'text-[#707070]'} />
               <span>{item.label}</span>
             </button>
           );
@@ -127,7 +126,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
       <div className="pt-4 border-t border-[#E6E4DF]">
         <button
           onClick={handleLogout}
-          className="w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold text-[#D32F2F] bg-[#FFEBEE] hover:bg-[#FFCDD2] transition-all flex items-center gap-3 border-none cursor-pointer"
+          className="w-full px-3.5 py-2.5 rounded-2xl text-xs font-bold text-[#C62828] bg-[#FFEBEE] hover:bg-[#FFCDD2] transition-all flex items-center gap-3 border-none cursor-pointer"
           suppressHydrationWarning
         >
           <LogOut size={18} />

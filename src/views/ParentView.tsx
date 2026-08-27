@@ -283,7 +283,7 @@ export default function ParentView({
             <Heart size={20} />
           </div>
           <div>
-            <div className="text-[10px] font-bold text-[#9B9B9B] uppercase tracking-wider">
+            <div className="text-[10px] font-bold text-[#707070] uppercase tracking-wider">
               Data Privacy Act (RA 10173) Linked Children
             </div>
             <h3 className="text-sm font-extrabold text-[#2B2B2B] m-0">Family Portal Child Switcher</h3>
@@ -299,7 +299,7 @@ export default function ParentView({
                 onClick={() => setSelectedChildId(p.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#F2896B] text-white border-[#F2896B] shadow-sm'
+                    ? 'bg-[#B84324] text-white border-[#F2896B] shadow-sm'
                     : 'bg-[#FAF8F5] text-[#2B2B2B] border-[#E6E4DF] hover:border-[#F2896B]'
                 }`}
               >
@@ -312,7 +312,7 @@ export default function ParentView({
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
                     p.enrollmentStatus === 'pending'
                       ? (isSelected ? 'bg-[#F5B942]/30 text-white' : 'bg-[#FEF8EC] text-[#B98A00]')
-                      : (isSelected ? 'bg-white/20 text-white' : 'bg-[#FFEBEE] text-[#D32F2F]')
+                      : (isSelected ? 'bg-white/20 text-white' : 'bg-[#FFEBEE] text-[#C62828]')
                   }`}>
                     {p.enrollmentStatus}
                   </span>
@@ -376,7 +376,7 @@ export default function ParentView({
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
             <div className="card bg-[#EBF5F4] border border-[#2F8F8A]/20 p-4">
-              <div className="text-2xl font-extrabold text-[#2F8F8A]">{rate}%</div>
+              <div className="text-2xl font-extrabold text-[#247571]">{rate}%</div>
               <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Attendance Rate</div>
             </div>
             <div className="card bg-[#EBF8FF] border border-[#2B6CB0]/20 p-4">
@@ -388,7 +388,7 @@ export default function ParentView({
               <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Days Late</div>
             </div>
             <div className="card bg-[#FFEBEE] border border-[#FFCDD2] p-4">
-              <div className="text-2xl font-extrabold text-[#D32F2F]">{absentCount}</div>
+              <div className="text-2xl font-extrabold text-[#C62828]">{absentCount}</div>
               <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Days Absent</div>
             </div>
           </div>
@@ -396,7 +396,7 @@ export default function ParentView({
           {/* Child & Family Background (ECCD Form Section 2) */}
           <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF]">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-[#2F8F8A]">
+              <div className="flex items-center gap-2 text-[#247571]">
                 <BookOpen size={20} />
                 <div>
                   <h3 className="text-base font-bold text-[#2B2B2B] m-0">Child & Family Background</h3>
@@ -419,19 +419,19 @@ export default function ParentView({
               <div className="space-y-3">
                 {backgroundRows.filter((r) => r.value?.trim()).map((row) => (
                   <div key={row.label} className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF]">
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A] mb-1">{row.label}</div>
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571] mb-1">{row.label}</div>
                     <p className="text-xs text-[#4A4A4A] leading-relaxed m-0 whitespace-pre-wrap">{row.value}</p>
                   </div>
                 ))}
                 {childBackground?.updated_at && (
-                  <p className="text-[10px] text-[#9B9B9B] m-0">
+                  <p className="text-[10px] text-[#707070] m-0">
                     Last updated {new Date(childBackground.updated_at).toLocaleString()}
                   </p>
                 )}
               </div>
             ) : (
               <div className="p-4 rounded-2xl bg-[#EBF5F4] border border-dashed border-[#2F8F8A]/30 text-center">
-                <p className="text-xs font-bold text-[#2F8F8A] m-0">No background info shared yet</p>
+                <p className="text-xs font-bold text-[#247571] m-0">No background info shared yet</p>
                 <p className="text-[11px] text-[#6B6B6B] m-0 mt-1">
                   Add your child&apos;s background, family environment, and home details so the teacher can
                   personalize the ECCD assessment.
@@ -444,9 +444,9 @@ export default function ParentView({
           {absentCount >= 2 && !acknowledgedAlerts['ABS-001'] && (
             <div className="p-4 rounded-3xl bg-[#FFEBEE] border border-[#FFCDD2] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertTriangle size={22} className="text-[#D32F2F] shrink-0 mt-0.5" />
+                <AlertTriangle size={22} className="text-[#C62828] shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-[#D32F2F] text-sm">Attendance Advisory Alert</div>
+                  <div className="font-bold text-[#C62828] text-sm">Attendance Advisory Alert</div>
                   <p className="text-[#4A4A4A] m-0 mt-0.5 leading-relaxed">
                     {child?.firstName} has accumulated absences. Automated SMS alert telemetry sent to primary guardian ({child?.guardian?.phone || '0917-888-9900'}).
                   </p>
@@ -465,7 +465,7 @@ export default function ParentView({
           {/* Daycare Daily Schedule Timeline */}
           <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[#2F8F8A]">
+              <div className="flex items-center gap-2 text-[#247571]">
                 <Clock size={20} />
                 <h3 className="text-base font-bold text-[#2B2B2B] m-0">Daycare Center Daily Schedule Routine</h3>
               </div>
@@ -474,7 +474,7 @@ export default function ParentView({
 
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
               <div className="p-3 rounded-2xl bg-[#EBF5F4] border border-[#2F8F8A]/20 space-y-1">
-                <span className="font-extrabold text-[#2F8F8A] block">08:00 AM - 08:30 AM</span>
+                <span className="font-extrabold text-[#247571] block">08:00 AM - 08:30 AM</span>
                 <div className="font-bold text-[#2B2B2B]">Circle Time</div>
                 <p className="text-[11px] text-[#6B6B6B] m-0">Arrival, flag ceremony, national anthem & greeting.</p>
               </div>
@@ -498,7 +498,7 @@ export default function ParentView({
               </div>
 
               <div className="p-3 rounded-2xl bg-[#FFEBEE] border border-[#FFCDD2] space-y-1">
-                <span className="font-extrabold text-[#D32F2F] block">11:15 AM - 11:30 AM</span>
+                <span className="font-extrabold text-[#C62828] block">11:15 AM - 11:30 AM</span>
                 <div className="font-bold text-[#2B2B2B]">Dismissal</div>
                 <p className="text-[11px] text-[#6B6B6B] m-0">Pack-up, prayer, and authorized guardian pick-up.</p>
               </div>
@@ -511,7 +511,7 @@ export default function ParentView({
             {/* 4-Domain Progress Overview */}
             <div className="card bg-white p-5 lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[#2F8F8A]">
+                <div className="flex items-center gap-2 text-[#247571]">
                   <TrendingUp size={20} />
                   <h3 className="text-base font-bold text-[#2B2B2B] m-0">
                     {child?.firstName}&rsquo;s 4-Domain Progress Summary
@@ -528,11 +528,11 @@ export default function ParentView({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-[#2B2B2B] text-sm">{item.domain}</span>
-                          <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#EBF5F4] text-[#2F8F8A] text-[10px]">
+                          <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#EBF5F4] text-[#247571] text-[10px]">
                             {item.rating}
                           </span>
                         </div>
-                        <span className="text-[11px] text-[#9B9B9B] font-semibold">{item.date}</span>
+                        <span className="text-[11px] text-[#707070] font-semibold">{item.date}</span>
                       </div>
 
                       <div className="w-full h-2.5 bg-[#EAE6DF] rounded-full overflow-hidden">
@@ -553,14 +553,14 @@ export default function ParentView({
             <div className="space-y-6">
               
               <div className="card bg-white p-5 space-y-3 border border-[#E6E4DF]">
-                <div className="flex items-center gap-2 text-[#2F8F8A]">
+                <div className="flex items-center gap-2 text-[#247571]">
                   <PhoneCall size={18} />
                   <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Lead Teacher Contact</h4>
                 </div>
                 <div className="p-3 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF] text-xs space-y-1.5">
                   <div className="font-bold text-[#2B2B2B]">Teacher Teresa Cruz</div>
                   <div className="text-[#6B6B6B]">Lead Daycare Worker • Barangay Bacong</div>
-                  <div className="text-[#2F8F8A] font-semibold flex items-center gap-1">
+                  <div className="text-[#247571] font-semibold flex items-center gap-1">
                     <PhoneCall size={12} /> 0917-000-1122
                   </div>
                 </div>
@@ -569,7 +569,7 @@ export default function ParentView({
               <div className="card bg-white p-5 space-y-3 border border-[#E6E4DF]">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-[#2B2B2B] m-0">Recent Attendance Log</h4>
-                  <span className="text-[10px] text-[#9B9B9B]">Daily register</span>
+                  <span className="text-[10px] text-[#707070]">Daily register</span>
                 </div>
 
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -585,7 +585,7 @@ export default function ParentView({
                       </div>
                     ))
                   ) : (
-                    <div className="text-center text-xs text-[#9B9B9B] p-4 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
+                    <div className="text-center text-xs text-[#707070] p-4 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
                       Attendance logged via daily register.
                     </div>
                   )}
@@ -600,7 +600,7 @@ export default function ParentView({
             <div className="p-6 rounded-3xl bg-white border border-[#E6E4DF] shadow-sm">
               <div className="flex items-start gap-3">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                  child?.enrollmentStatus === 'rejected' ? 'bg-[#FFEBEE] text-[#D32F2F]' : 'bg-[#FEF8EC] text-[#B98A00]'
+                  child?.enrollmentStatus === 'rejected' ? 'bg-[#FFEBEE] text-[#C62828]' : 'bg-[#FEF8EC] text-[#B98A00]'
                 }`}>
                   {child?.enrollmentStatus === 'rejected' ? <AlertCircle size={22} /> : <Clock size={22} />}
                 </div>
@@ -645,8 +645,8 @@ export default function ParentView({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <BookOpen size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <BookOpen size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   DepEd / DSWD Early Childhood Development Standard
                 </span>
               </div>
@@ -667,7 +667,7 @@ export default function ParentView({
                     onClick={() => setEccdRound(round)}
                     className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
                       eccdRound === round
-                        ? 'bg-[#2F8F8A] text-white shadow-sm'
+                        ? 'bg-[#247571] text-white shadow-sm'
                         : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
                     }`}
                     suppressHydrationWarning
@@ -690,7 +690,7 @@ export default function ParentView({
                   onClick={() => setSelectedDomainId(dom.id)}
                   className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none shrink-0 flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-[#2F8F8A] text-white shadow-md'
+                      ? 'bg-[#247571] text-white shadow-md'
                       : 'bg-[#FAF8F5] text-[#6B6B6B] hover:bg-[#EAE6DF]'
                   }`}
                 >
@@ -718,17 +718,17 @@ export default function ParentView({
 
             <div className="flex items-center gap-3 shrink-0">
               <div className="text-right">
-                <span className="text-xs font-extrabold text-[#2F8F8A]">
+                <span className="text-xs font-extrabold text-[#247571]">
                   {domainMasteryPct}% Present
                 </span>
-                <span className="text-[10px] text-[#9B9B9B] block">
+                <span className="text-[10px] text-[#707070] block">
                   Raw Score: {domainPresentCount} of {activeDomain.items.length}
                   {childScores[activeDomain.id]?.scaled != null && (
                     <> • Scaled: {childScores[activeDomain.id].scaled}</>
                   )}
                 </span>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center font-bold text-sm">
+              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold text-sm">
                 {domainMasteryPct}
               </div>
             </div>
@@ -742,12 +742,12 @@ export default function ParentView({
               return (
                 <div key={item.id} className="p-3.5 rounded-2xl border border-[#E6E4DF] bg-white hover:border-[#2F8F8A] transition-all flex items-start justify-between gap-3 text-xs">
                   <div className="flex items-start gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-[#FAF8F5] border border-[#E6E4DF] text-[#2F8F8A] font-extrabold flex items-center justify-center shrink-0">
+                    <span className="w-7 h-7 rounded-xl bg-[#FAF8F5] border border-[#E6E4DF] text-[#247571] font-extrabold flex items-center justify-center shrink-0">
                       {item.number}
                     </span>
                     <div>
                       <div className="font-bold text-[#2B2B2B] leading-snug">{item.description}</div>
-                      <span className="text-[10px] text-[#9B9B9B]">Item Code: {item.id}</span>
+                      <span className="text-[10px] text-[#707070]">Item Code: {item.id}</span>
                     </div>
                   </div>
 
@@ -772,7 +772,7 @@ export default function ParentView({
           
           {/* Form Side */}
           <div className="card bg-white p-5 space-y-4 border border-[#E6E4DF] lg:col-span-1">
-            <div className="flex items-center gap-2 text-[#2F8F8A]">
+            <div className="flex items-center gap-2 text-[#247571]">
               <MessageSquare size={20} />
               <h3 className="text-base font-bold text-[#2B2B2B] m-0">Submit Absence Notice</h3>
             </div>
@@ -829,7 +829,7 @@ export default function ParentView({
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-2xl bg-[#2F8F8A] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 border-none cursor-pointer"
+                className="w-full py-3 px-4 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 border-none cursor-pointer"
               >
                 <Send size={16} />
                 <span>Submit Notice to Teacher</span>
@@ -852,7 +852,7 @@ export default function ParentView({
                 <div key={note.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#2F8F8A] text-sm">{note.reason}</span>
+                      <span className="font-bold text-[#247571] text-sm">{note.reason}</span>
                       <span className="badge badge-warning text-[10px]">{note.date}</span>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]">
@@ -864,14 +864,14 @@ export default function ParentView({
 
                   {note.teacherReply && (
                     <div className="p-3 rounded-2xl bg-white border border-[#2F8F8A]/30 text-xs space-y-1 mt-2">
-                      <div className="font-bold text-[#2F8F8A] flex items-center gap-1.5">
+                      <div className="font-bold text-[#247571] flex items-center gap-1.5">
                         <CheckCircle size={14} /> Teacher Teresa Cruz Replied:
                       </div>
                       <p className="text-[#4A4A4A] m-0 italic">{note.teacherReply}</p>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px] text-[#9B9B9B]">
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px] text-[#707070]">
                     <span>Submitted: {note.submittedAt}</span>
                     <span>Contact: {note.phone}</span>
                   </div>
@@ -898,8 +898,8 @@ export default function ParentView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Activity size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <Activity size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   Barangay Health Center Integration
                 </span>
               </div>
@@ -916,7 +916,7 @@ export default function ParentView({
           {/* Metric Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div className="card bg-[#EBF5F4] border border-[#2F8F8A]/20 p-4">
-              <div className="text-2xl font-extrabold text-[#2F8F8A]">14.5 kg</div>
+              <div className="text-2xl font-extrabold text-[#247571]">14.5 kg</div>
               <div className="text-[10px] font-bold text-[#6B6B6B] uppercase tracking-wider mt-1">Weight-for-Age (Normal)</div>
             </div>
 
@@ -963,8 +963,8 @@ export default function ParentView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <ImageIcon size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <ImageIcon size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   Classroom Learning Activity Feed
                 </span>
               </div>
@@ -996,7 +996,7 @@ export default function ParentView({
                 </div>
                 <div className="p-4 space-y-1">
                   <h4 className="text-sm font-bold text-[#2B2B2B] m-0">{photo.title}</h4>
-                  <span className="text-[10px] text-[#9B9B9B]">{photo.date}</span>
+                  <span className="text-[10px] text-[#707070]">{photo.date}</span>
                   <p className="text-xs text-[#6B6B6B] line-clamp-2 m-0 pt-1">{photo.caption}</p>
                 </div>
               </div>
@@ -1011,8 +1011,8 @@ export default function ParentView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <FolderCheck size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <FolderCheck size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   Barangay Daycare Compliance Records
                 </span>
               </div>
@@ -1084,13 +1084,13 @@ export default function ParentView({
             {announcements.map((notice) => (
               <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#2F8F8A] text-sm">{notice.title}</span>
-                  <span className="text-[11px] text-[#9B9B9B] font-semibold">{notice.date}</span>
+                  <span className="font-bold text-[#247571] text-sm">{notice.title}</span>
+                  <span className="text-[11px] text-[#707070] font-semibold">{notice.date}</span>
                 </div>
                 <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
                 <div className="flex items-center justify-between pt-2 border-t border-[#E6E4DF] text-[10px]">
                   <span className="badge badge-warning">Broadcasted to Parent Portal</span>
-                  <span className="text-[#9B9B9B]">{notice.authorName ? 'Author: ' + notice.authorName : 'Author: Daycare Staff'}</span>
+                  <span className="text-[#707070]">{notice.authorName ? 'Author: ' + notice.authorName : 'Author: Daycare Staff'}</span>
                 </div>
               </div>
             ))}

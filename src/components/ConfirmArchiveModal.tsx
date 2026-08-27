@@ -25,7 +25,7 @@ export default function ConfirmArchiveModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFEBEE] text-[#D32F2F] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFEBEE] text-[#C62828] flex items-center justify-center font-bold shrink-0">
               <AlertTriangle size={20} />
             </div>
             <div>
@@ -37,7 +37,7 @@ export default function ConfirmArchiveModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />

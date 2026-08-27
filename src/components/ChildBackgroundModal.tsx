@@ -83,7 +83,7 @@ export default function ChildBackgroundModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
               <BookOpen size={20} />
             </div>
             <div>
@@ -97,7 +97,7 @@ export default function ChildBackgroundModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
@@ -110,7 +110,7 @@ export default function ChildBackgroundModal({
         </p>
 
         {error && (
-          <div className="flex items-center gap-2 text-xs font-bold text-[#D32F2F] bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl px-3 py-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#C62828] bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl px-3 py-2">
             <AlertCircle size={14} />
             {error}
           </div>
@@ -142,7 +142,7 @@ export default function ChildBackgroundModal({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-2xl text-xs font-bold text-white bg-[#2F8F8A] hover:bg-[#1D605D] border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+              className="px-4 py-2 rounded-2xl text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5"
               suppressHydrationWarning
             >
               <Save size={14} />

@@ -333,7 +333,7 @@ export default function AuthPage() {
               type="button"
               onClick={() => switchMode('signin')}
               className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none ${
-                mode === 'signin' ? 'bg-white text-[#2F8F8A] shadow-sm' : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                mode === 'signin' ? 'bg-white text-[#247571] shadow-sm' : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
               }`}
               suppressHydrationWarning
             >
@@ -343,7 +343,7 @@ export default function AuthPage() {
               type="button"
               onClick={() => switchMode('create')}
               className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-none ${
-                mode === 'create' ? 'bg-white text-[#2F8F8A] shadow-sm' : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
+                mode === 'create' ? 'bg-white text-[#247571] shadow-sm' : 'text-[#6B6B6B] hover:text-[#2B2B2B]'
               }`}
               suppressHydrationWarning
             >
@@ -394,7 +394,7 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9B9B] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                       suppressHydrationWarning
                     >
@@ -403,7 +403,7 @@ export default function AuthPage() {
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
                     {resetSent ? (
-                      <span className="text-[11px] font-bold text-[#2F8F8A] flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-[#247571] flex items-center gap-1">
                         <CheckCircle2 size={12} />
                         Reset link sent to your email.
                       </span>
@@ -412,7 +412,7 @@ export default function AuthPage() {
                         type="button"
                         onClick={handleForgotPassword}
                         disabled={loading}
-                        className="text-[11px] font-bold text-[#2F8F8A] hover:underline cursor-pointer border-none bg-transparent disabled:opacity-50"
+                        className="text-[11px] font-bold text-[#247571] hover:underline cursor-pointer border-none bg-transparent disabled:opacity-50"
                         suppressHydrationWarning
                       >
                         Forgot password?
@@ -424,7 +424,7 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 px-6 rounded-2xl bg-[#2F8F8A] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
                 >
                   <span>{loading ? 'Authenticating with Supabase...' : 'Sign In to Portal'}</span>
                   {!loading && <ArrowRight size={16} />}
@@ -452,7 +452,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => switchMode('signin')}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#2F8F8A] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all cursor-pointer border-none"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all cursor-pointer border-none"
                     suppressHydrationWarning
                   >
                     Go to Sign In <ArrowRight size={15} />
@@ -514,7 +514,7 @@ export default function AuthPage() {
                           placeholder="e.g. 0917-123-4567"
                           className="w-full px-4 py-3 rounded-2xl border border-[#E6E4DF] bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2F8F8A]"
                         />
-                        <p className="text-[10px] text-[#9B9B9B] font-semibold mt-1">
+                        <p className="text-[10px] text-[#707070] font-semibold mt-1">
                           Used for your guardian record and daycare contact.
                         </p>
                       </div>
@@ -543,7 +543,7 @@ export default function AuthPage() {
                           <button
                             type="button"
                             onClick={() => setShowCreatePassword(v => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9B9B] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707070] hover:text-[#2B2B2B] cursor-pointer border-none bg-transparent"
                             aria-label={showCreatePassword ? 'Hide password' : 'Show password'}
                             suppressHydrationWarning
                           >
@@ -562,7 +562,7 @@ export default function AuthPage() {
                             </p>
                           </div>
                           {children.length > 1 && (
-                            <span className="text-[10px] font-bold text-[#2F8F8A] shrink-0">
+                            <span className="text-[10px] font-bold text-[#247571] shrink-0">
                               {children.length} of 5 children
                             </span>
                           )}
@@ -574,14 +574,14 @@ export default function AuthPage() {
                             className="mt-3 p-4 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-3"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A]">
+                              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571]">
                                 Child #{index + 1}
                               </span>
                               {children.length > 1 && (
                                 <button
                                   type="button"
                                   onClick={() => removeChild(index)}
-                                  className="text-[10px] font-bold text-[#D32F2F] hover:underline cursor-pointer border-none bg-transparent"
+                                  className="text-[10px] font-bold text-[#C62828] hover:underline cursor-pointer border-none bg-transparent"
                                   suppressHydrationWarning
                                 >
                                   Remove child
@@ -697,7 +697,7 @@ export default function AuthPage() {
                                     onClick={() => updateChild(index, { handedness: option.value })}
                                     className={`px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
                                       child.handedness === option.value
-                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#2F8F8A]'
+                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#247571]'
                                         : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
                                     }`}
                                     suppressHydrationWarning
@@ -719,7 +719,7 @@ export default function AuthPage() {
                                     onClick={() => updateChild(index, { currentlyStudying: true })}
                                     className={`flex-1 px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
                                       child.currentlyStudying
-                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#2F8F8A]'
+                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#247571]'
                                         : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
                                     }`}
                                     suppressHydrationWarning
@@ -731,7 +731,7 @@ export default function AuthPage() {
                                     onClick={() => updateChild(index, { currentlyStudying: false, schoolName: '' })}
                                     className={`flex-1 px-3 py-2 rounded-2xl border text-[11px] font-bold transition-all cursor-pointer ${
                                       !child.currentlyStudying
-                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#2F8F8A]'
+                                        ? 'border-[#2F8F8A] bg-[#EBF5F4] text-[#247571]'
                                         : 'border-[#E6E4DF] bg-white text-[#6B6B6B] hover:border-[#9B9B9B]'
                                     }`}
                                     suppressHydrationWarning
@@ -758,7 +758,7 @@ export default function AuthPage() {
 
                             {/* Optional parent + sibling details */}
                             <details className="text-[11px]">
-                              <summary className="cursor-pointer font-bold text-[#2F8F8A]">
+                              <summary className="cursor-pointer font-bold text-[#247571]">
                                 Parent &amp; sibling details (optional)
                               </summary>
                               <div className="mt-3 space-y-3">
@@ -853,7 +853,7 @@ export default function AuthPage() {
                           <button
                             type="button"
                             onClick={addChild}
-                            className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-[#2F8F8A]/40 text-[11px] font-bold text-[#2F8F8A] bg-[#EBF5F4]/50 hover:bg-[#EBF5F4] transition-all cursor-pointer"
+                            className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-[#2F8F8A]/40 text-[11px] font-bold text-[#247571] bg-[#EBF5F4]/50 hover:bg-[#EBF5F4] transition-all cursor-pointer"
                             suppressHydrationWarning
                           >
                             + Add another child (max 5)
@@ -864,7 +864,7 @@ export default function AuthPage() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-[#2F8F8A] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
+                        className="w-full py-3.5 px-6 rounded-2xl bg-[#247571] text-white font-bold text-xs shadow-md hover:bg-[#1D605D] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50"
                       >
                         <span>{loading ? 'Creating your account...' : 'Submit for Verification'}</span>
                         {!loading && <ArrowRight size={16} />}
@@ -884,7 +884,7 @@ export default function AuthPage() {
                       <button
                         type="button"
                         onClick={() => setCreateRole('parent')}
-                        className="text-[11px] font-bold text-[#2F8F8A] hover:underline cursor-pointer border-none bg-transparent"
+                        className="text-[11px] font-bold text-[#247571] hover:underline cursor-pointer border-none bg-transparent"
                         suppressHydrationWarning
                       >
                         ← Register as a Parent instead
@@ -897,7 +897,7 @@ export default function AuthPage() {
           )}
 
           <div className="text-center pt-4 border-t border-[#E6E4DF]">
-            <p className="text-[11px] text-[#9B9B9B] m-0">
+            <p className="text-[11px] text-[#707070] m-0">
               Need account assistance? Contact <strong className="text-[#2B2B2B]">Barangay Bacong IT Administration</strong>.
             </p>
           </div>

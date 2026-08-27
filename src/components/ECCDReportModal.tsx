@@ -258,7 +258,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4 shrink-0 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
               <FileText size={20} />
             </div>
             <div>
@@ -272,7 +272,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-[#EBF5F4] text-[#2F8F8A] text-xs font-bold">
+            <span className="px-3 py-1.5 rounded-full bg-[#EBF5F4] text-[#247571] text-xs font-bold">
               1st &ndash; 3rd Assessment
             </span>
             <select
@@ -288,7 +288,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+              className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
               suppressHydrationWarning
             >
               <X size={20} />
@@ -299,7 +299,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
         {/* Report Preview Body */}
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 print:overflow-visible print:pr-0 print:flex-none">
           {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-[#2F8F8A]">
+            <div className="flex items-center justify-center gap-2 py-20 text-[#247571]">
               <Loader2 size={22} className="animate-spin" />
               <span className="text-xs font-bold">Loading evaluation records...</span>
             </div>
@@ -314,7 +314,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                 <h2 className="text-lg font-black text-[#1D605D] uppercase tracking-tight m-0">
                   BARANGAY BACONG DAYCARE CENTER
                 </h2>
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   ECCD Checklist, Child&apos;s Record 2
                 </h4>
                 <div className="text-[11px] text-[#6B6B6B]">
@@ -325,7 +325,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 1 — Sociodemographic Profile */}
               <section className="space-y-3">
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   Section 1: Sociodemographic Profile
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs">
@@ -354,10 +354,10 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 2 — Computation of the Child's Age */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   Section 2: Computation of the Child&apos;s Age
                 </h4>
-                <p className="text-[10px] text-[#9B9B9B] m-0">
+                <p className="text-[10px] text-[#707070] m-0">
                   It is recommended that the Checklist be administered to the child once a year.
                   Each month is composed of 30 days. Do not round off the months or years.
                 </p>
@@ -375,7 +375,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                     {ROUNDS.map((r) => (
                       <React.Fragment key={r}>
                         <tr className="bg-[#FAF8F5]">
-                          <td colSpan={5} className="p-1.5 border border-[#E6E4DF] font-extrabold text-[#2F8F8A] text-[11px]">
+                          <td colSpan={5} className="p-1.5 border border-[#E6E4DF] font-extrabold text-[#247571] text-[11px]">
                             {roundLabel(r)}
                           </td>
                         </tr>
@@ -395,9 +395,9 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                         </tr>
                         <tr>
                           <td className="p-2 border border-[#E6E4DF] font-semibold">Child&apos;s Age</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#2F8F8A]">{age.y}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#2F8F8A]">{age.m}</td>
-                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#2F8F8A]">{age.d}</td>
+                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">{age.y}</td>
+                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">{age.m}</td>
+                          <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">{age.d}</td>
                           <td className="p-2 border border-[#E6E4DF]"></td>
                         </tr>
                       </React.Fragment>
@@ -409,7 +409,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
               {/* Sections 3–9 — Checklist per domain */}
               {ECCD_DOMAINS.map((dom, i) => (
                 <section key={dom.id} className="space-y-3 print:break-before-page">
-                  <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                  <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                     Section {3 + i}: {dom.label} ({dom.items.length} items)
                   </h4>
                   <table className="w-full text-[11px] border-collapse">
@@ -436,7 +436,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                     <tbody>
                       {dom.items.map((item) => (
                         <tr key={item.id} className="print:break-inside-avoid">
-                          <td className="p-2 border border-[#E6E4DF] font-bold text-[#9B9B9B]">{item.number}</td>
+                          <td className="p-2 border border-[#E6E4DF] font-bold text-[#707070]">{item.number}</td>
                           <td className="p-2 border border-[#E6E4DF] font-medium">{item.description}</td>
                           <td className="p-2 border border-[#E6E4DF] text-[#6B6B6B]">{item.procedure || ''}</td>
                           {ROUNDS.map((r) => (
@@ -462,7 +462,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 10 — Examiner & Background Notes */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   Section 10: Examiner &amp; Background Notes
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-xs">
@@ -477,7 +477,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                   <div className="space-y-2">
                     {backgroundRows.filter((r) => r.value?.trim()).map((row) => (
                       <div key={row.label} className="p-2.5 rounded-2xl bg-[#FAF8F5] border border-[#E6E4DF]">
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F8A] mb-0.5">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#247571] mb-0.5">
                           {row.label}
                         </div>
                         <p className="text-[11px] text-[#4A4A4A] leading-relaxed m-0 whitespace-pre-wrap">
@@ -487,7 +487,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#9B9B9B] italic m-0">
+                  <p className="text-[11px] text-[#707070] italic m-0">
                     No background information recorded.
                   </p>
                 )}
@@ -495,10 +495,10 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 11 — Raw & Scaled Scores */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   Section 11: Raw &amp; Scaled Scores
                 </h4>
-                <p className="text-[10px] text-[#9B9B9B] m-0">
+                <p className="text-[10px] text-[#707070] m-0">
                   Raw Score = number of ✓ items per domain. Scaled Scores are entered from the
                   official raw-to-scaled conversion tables (age-based).
                 </p>
@@ -523,7 +523,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                           const scaled = scaledValue(scoresByRound[r]?.[dom.id]?.scaled);
                           return (
                             <React.Fragment key={r}>
-                              <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#2F8F8A]">
+                              <td className="p-2 border border-[#E6E4DF] text-center font-bold text-[#247571]">
                                 {raw}
                               </td>
                               <td className="p-2 border border-[#E6E4DF] text-center font-bold">
@@ -552,7 +552,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                     </tr>
                     <tr>
                       <td className="p-2 border border-[#E6E4DF] font-extrabold">Standard Score</td>
-                      <td colSpan={6} className="p-2 border border-[#E6E4DF] text-[#9B9B9B] text-[10px]">
+                      <td colSpan={6} className="p-2 border border-[#E6E4DF] text-[#707070] text-[10px]">
                         Leave blank &mdash; computed from the official Sum-of-Scaled-Scores
                         conversion table (hand-written on the printed form).
                       </td>
@@ -575,10 +575,10 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 12 — Scaled Scores Profile */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   Section 12: Scaled Scores Profile
                 </h4>
-                <p className="text-[10px] text-[#9B9B9B] m-0">
+                <p className="text-[10px] text-[#707070] m-0">
                   Scaled score per domain for each assessment (X marks, connected per round).
                 </p>
                 <div className="rounded-2xl border border-[#E6E4DF] p-4">
@@ -589,7 +589,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                           {ROUNDS.map((r) => {
                             const s = scaledNumber(scoresByRound[r]?.[dom.id]?.scaled);
                             const pct = s !== null ? Math.max(4, Math.round((s / 19) * 100)) : 2;
-                            const colors = ['bg-[#2F8F8A]', 'bg-[#2B6CB0]', 'bg-[#F5B942]'];
+                            const colors = ['bg-[#247571]', 'bg-[#2B6CB0]', 'bg-[#F5B942]'];
                             return (
                               <div
                                 key={r}
@@ -609,7 +609,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                   <div className="flex items-center gap-4 pt-2 text-[10px] text-[#6B6B6B] font-semibold">
                     {ROUNDS.map((r) => (
                       <span key={r} className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-sm ${['bg-[#2F8F8A]', 'bg-[#2B6CB0]', 'bg-[#F5B942]'][r - 1]}`} />
+                        <span className={`w-2.5 h-2.5 rounded-sm ${['bg-[#247571]', 'bg-[#2B6CB0]', 'bg-[#F5B942]'][r - 1]}`} />
                         {roundLabel(r)}
                       </span>
                     ))}
@@ -619,10 +619,10 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 
               {/* Section 13 — Standard Scores chart */}
               <section className="space-y-3 print:break-before-page">
-                <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+                <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                   Section 13: Standard Scores
                 </h4>
-                <p className="text-[10px] text-[#9B9B9B] m-0">
+                <p className="text-[10px] text-[#707070] m-0">
                   Mark an x on the corresponding standard score for each test administration and
                   connect the x&apos;s. Write the date for each test administration.
                 </p>
@@ -649,7 +649,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
                     ))}
                   </div>
                 </div>
-                <p className="text-[10px] text-[#9B9B9B] m-0">
+                <p className="text-[10px] text-[#707070] m-0">
                   Standard Score is computed from the official conversion table; X marks are
                   hand-written on the printed form.
                 </p>
@@ -680,7 +680,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
         {/* Modal Footer */}
         <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-between shrink-0 print:hidden">
           <span className="text-xs text-[#6B6B6B] font-semibold flex items-center gap-1">
-            <ShieldCheck size={16} className="text-[#2F8F8A]" /> Official ECCD Record 2 &mdash; PDF / Print Ready
+            <ShieldCheck size={16} className="text-[#247571]" /> Official ECCD Record 2 &mdash; PDF / Print Ready
           </span>
 
           <div className="flex items-center gap-3">
@@ -693,7 +693,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
             </button>
             <button
               onClick={() => window.print()}
-              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#2F8F8A] border border-[#2F8F8A]/30 hover:bg-[#EBF5F4] transition-all flex items-center gap-2 cursor-pointer bg-transparent"
+              className="px-5 py-2.5 rounded-full text-xs font-bold text-[#247571] border border-[#2F8F8A]/30 hover:bg-[#EBF5F4] transition-all flex items-center gap-2 cursor-pointer bg-transparent"
               suppressHydrationWarning
             >
               <Printer size={16} />
@@ -702,7 +702,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
             <button
               onClick={handleExportPDF}
               disabled={isExporting || isLoading}
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#2F8F8A] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
               suppressHydrationWarning
             >
               <Download size={16} />
@@ -720,7 +720,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[9px] font-extrabold uppercase tracking-wider text-[#2F8F8A] mb-0.5">
+      <div className="text-[9px] font-extrabold uppercase tracking-wider text-[#247571] mb-0.5">
         {label}
       </div>
       <div className="border-b border-dotted border-[#B9B4AA] text-[#2B2B2B] min-h-[1.3em]">

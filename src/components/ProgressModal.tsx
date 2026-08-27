@@ -50,7 +50,7 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFEBEE] text-[#D32F2F] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFEBEE] text-[#C62828] flex items-center justify-center font-bold shrink-0">
               <TrendingUp size={20} />
             </div>
             <div>
@@ -62,7 +62,7 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
@@ -70,7 +70,7 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
         </div>
 
         {error && (
-          <div className="bg-[#FFEBEE] border border-[#FFCDD2] text-[#D32F2F] p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
+          <div className="bg-[#FFEBEE] border border-[#FFCDD2] text-[#C62828] p-3 rounded-2xl text-xs flex items-center gap-2 font-semibold">
             <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -159,7 +159,7 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#2F8F8A] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
               suppressHydrationWarning
             >
               <Save size={16} />

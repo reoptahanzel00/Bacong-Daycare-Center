@@ -63,7 +63,7 @@ export default function DSWDReportModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center font-bold shrink-0">
               <FileText size={20} />
             </div>
             <div>
@@ -88,7 +88,7 @@ export default function DSWDReportModal({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+              className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
               suppressHydrationWarning
             >
               <X size={20} />
@@ -108,7 +108,7 @@ export default function DSWDReportModal({
               <h2 className="text-lg font-black text-[#1D605D] uppercase tracking-tight m-0">
                 BARANGAY BACONG DAYCARE CENTER
               </h2>
-              <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+              <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                 DSWD FORM 1: ANNUAL ECCD DEMOGRAPHIC & MILESTONE COMPREHENSIVE REPORT
               </h4>
               <div className="text-[11px] text-[#6B6B6B]">
@@ -119,7 +119,7 @@ export default function DSWDReportModal({
             {/* Quick Metrics Grid */}
             <div className="grid grid-cols-4 gap-4 text-center">
               <div className="p-3 rounded-2xl bg-[#EBF5F4] border border-[#2F8F8A]/20">
-                <div className="text-xl font-extrabold text-[#2F8F8A]">{enrolledPupils.length}</div>
+                <div className="text-xl font-extrabold text-[#247571]">{enrolledPupils.length}</div>
                 <div className="text-[10px] font-bold text-[#6B6B6B] uppercase">Total Enrolled</div>
               </div>
               <div className="p-3 rounded-2xl bg-[#EBF8FF] border border-[#2B6CB0]/20">
@@ -131,14 +131,14 @@ export default function DSWDReportModal({
                 <div className="text-[10px] font-bold text-[#6B6B6B] uppercase">Avg Attendance</div>
               </div>
               <div className="p-3 rounded-2xl bg-[#FFEBEE] border border-[#FFCDD2]">
-                <div className="text-xl font-extrabold text-[#D32F2F]">{masteredPercent}%</div>
+                <div className="text-xl font-extrabold text-[#C62828]">{masteredPercent}%</div>
                 <div className="text-[10px] font-bold text-[#6B6B6B] uppercase">ECCD Mastery</div>
               </div>
             </div>
 
             {/* Pupil Roster Table */}
             <div className="space-y-2">
-              <h4 className="text-xs font-extrabold text-[#2F8F8A] uppercase tracking-wider m-0">
+              <h4 className="text-xs font-extrabold text-[#247571] uppercase tracking-wider m-0">
                 Section A: Enrolled Daycare Pupils Demographics
               </h4>
               <table className="w-full text-xs border-collapse">
@@ -155,7 +155,7 @@ export default function DSWDReportModal({
                 <tbody>
                   {enrolledPupils.map(p => (
                     <tr key={p.id} className="border-b border-[#E6E4DF]">
-                      <td className="p-2 font-bold text-[#2F8F8A] border border-[#E6E4DF]">{p.id}</td>
+                      <td className="p-2 font-bold text-[#247571] border border-[#E6E4DF]">{p.id}</td>
                       <td className="p-2 font-semibold border border-[#E6E4DF]">{p.firstName} {p.lastName}</td>
                       <td className="p-2 border border-[#E6E4DF]">{p.sex}</td>
                       <td className="p-2 border border-[#E6E4DF]">{p.birthDate}</td>
@@ -187,7 +187,7 @@ export default function DSWDReportModal({
         {/* Modal Footer */}
         <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-between shrink-0">
           <span className="text-xs text-[#6B6B6B] font-semibold flex items-center gap-1">
-            <ShieldCheck size={16} className="text-[#2F8F8A]" /> DSWD Form 1 Standard Vector PDF Export Ready
+            <ShieldCheck size={16} className="text-[#247571]" /> DSWD Form 1 Standard Vector PDF Export Ready
           </span>
 
           <div className="flex items-center gap-3">
@@ -201,7 +201,7 @@ export default function DSWDReportModal({
             <button
               onClick={handleExportPDF}
               disabled={isExporting}
-              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#2F8F8A] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
+              className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
               suppressHydrationWarning
             >
               <Download size={16} />

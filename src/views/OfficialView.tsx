@@ -138,7 +138,7 @@ export default function OfficialView({
           {/* Executive Metric Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="card flex items-center gap-3.5 p-4 bg-white border border-[#E6E4DF]">
-              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#2F8F8A] flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-[#EBF5F4] text-[#247571] flex items-center justify-center shrink-0">
                 <Users size={22} />
               </div>
               <div>
@@ -168,11 +168,11 @@ export default function OfficialView({
             </div>
 
             <div className="card flex items-center gap-3.5 p-4 bg-white border border-[#E6E4DF]">
-              <div className="w-12 h-12 rounded-2xl bg-[#FFEBEE] text-[#D32F2F] flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-[#FFEBEE] text-[#C62828] flex items-center justify-center shrink-0">
                 <Award size={22} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold text-[#D32F2F] leading-none">
+                <div className="text-2xl font-extrabold text-[#C62828] leading-none">
                   {milestoneCount ?? progress.length}
                 </div>
                 <div className="text-xs text-[#6B6B6B] mt-1">Milestones Evaluated</div>
@@ -184,7 +184,7 @@ export default function OfficialView({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             <div className="card bg-white p-5">
-              <div className="flex items-center gap-2 mb-4 text-[#2F8F8A]">
+              <div className="flex items-center gap-2 mb-4 text-[#247571]">
                 <PieChart size={20} />
                 <h3 className="text-sm font-bold text-[#2B2B2B] m-0">Pupil Sex Demographic Ratio</h3>
               </div>
@@ -219,17 +219,17 @@ export default function OfficialView({
             </div>
 
             <div className="card bg-white p-5">
-              <div className="flex items-center gap-2 mb-4 text-[#2F8F8A]">
+              <div className="flex items-center gap-2 mb-4 text-[#247571]">
                 <BarChart3 size={20} />
                 <h3 className="text-sm font-bold text-[#2B2B2B] m-0">Attendance Status Ratio</h3>
               </div>
 
               <div className="space-y-3.5 text-xs">
                 <div className="flex items-center gap-3">
-                  <span className="w-16 font-bold text-[#2F8F8A]">Present</span>
+                  <span className="w-16 font-bold text-[#247571]">Present</span>
                   <div className="flex-1 h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#2F8F8A] rounded-full transition-all duration-500"
+                      className="h-full bg-[#247571] rounded-full transition-all duration-500"
                       style={{ width: `${totalAttRecords ? (presentCount / totalAttRecords) * 100 : 0}%` }}
                     ></div>
                   </div>
@@ -248,10 +248,10 @@ export default function OfficialView({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="w-16 font-bold text-[#D32F2F]">Absent</span>
+                  <span className="w-16 font-bold text-[#C62828]">Absent</span>
                   <div className="flex-1 h-3 bg-[#EAE6DF] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#F2896B] rounded-full transition-all duration-500"
+                      className="h-full bg-[#B84324] rounded-full transition-all duration-500"
                       style={{ width: `${totalAttRecords ? (absentCount / totalAttRecords) * 100 : 0}%` }}
                     ></div>
                   </div>
@@ -309,8 +309,8 @@ export default function OfficialView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <FileText size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <FileText size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   Department of Social Welfare & Development
                 </span>
               </div>
@@ -334,20 +334,20 @@ export default function OfficialView({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="text-xs font-bold text-[#6B6B6B] uppercase">Total Enrolled Pupils</span>
-              <div className="text-2xl font-extrabold text-[#2F8F8A]">{enrolledPupils.length} Children</div>
-              <span className="text-[10px] text-[#9B9B9B]">Room A & Room B Daycare Center</span>
+              <div className="text-2xl font-extrabold text-[#247571]">{enrolledPupils.length} Children</div>
+              <span className="text-[10px] text-[#707070]">Room A & Room B Daycare Center</span>
             </div>
 
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="text-xs font-bold text-[#6B6B6B] uppercase">Council Resolution</span>
               <div className="text-sm font-extrabold text-emerald-700">Resolution No. 2026-04 Approved</div>
-              <span className="text-[10px] text-[#9B9B9B]">Barangay Bacong Council Session</span>
+              <span className="text-[10px] text-[#707070]">Barangay Bacong Council Session</span>
             </div>
 
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="text-xs font-bold text-[#6B6B6B] uppercase">Compliance Status</span>
               <div className="text-sm font-extrabold text-[#2B6CB0]">DSWD Region 7 Compliant ✅</div>
-              <span className="text-[10px] text-[#9B9B9B]">7-Domain Checklist Complete</span>
+              <span className="text-[10px] text-[#707070]">7-Domain Checklist Complete</span>
             </div>
           </div>
         </div>
@@ -359,8 +359,8 @@ export default function OfficialView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <BellRing size={18} className="text-[#D32F2F]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#D32F2F]">
+                <BellRing size={18} className="text-[#C62828]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#C62828]">
                   Early Intervention Telemetry
                 </span>
               </div>
@@ -378,7 +378,7 @@ export default function OfficialView({
             {highRiskPupils.map((p) => (
               <div key={p.id} className="p-4 rounded-3xl border border-[#FFCDD2] bg-[#FFEBEE] flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle size={22} className="text-[#D32F2F] shrink-0 mt-0.5" />
+                  <AlertTriangle size={22} className="text-[#C62828] shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-[#2B2B2B] text-sm">{p.firstName} {p.lastName} ({p.id})</div>
                     <p className="text-[#4A4A4A] m-0 mt-0.5">
@@ -418,8 +418,8 @@ export default function OfficialView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Utensils size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <Utensils size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   Barangay Daycare Supplemental Feeding Program
                 </span>
               </div>
@@ -434,21 +434,21 @@ export default function OfficialView({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="font-bold text-[#2F8F8A]">Monday / Wednesday Menu</span>
+              <span className="font-bold text-[#247571]">Monday / Wednesday Menu</span>
               <div className="font-extrabold text-[#2B2B2B]">Pork & Malunggay Monggo Soup</div>
-              <span className="text-[10px] text-[#9B9B9B]">Rich in iron & vitamins A/C</span>
+              <span className="text-[10px] text-[#707070]">Rich in iron & vitamins A/C</span>
             </div>
 
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="font-bold text-[#2B6CB0]">Tuesday / Thursday Menu</span>
               <div className="font-extrabold text-[#2B2B2B]">Chicken Lugaw with Hard-Boiled Egg</div>
-              <span className="text-[10px] text-[#9B9B9B]">High protein growth support</span>
+              <span className="text-[10px] text-[#707070]">High protein growth support</span>
             </div>
 
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="font-bold text-[#8A5D00]">Friday Menu</span>
               <div className="font-extrabold text-[#2B2B2B]">Champorado with Fortified Milk</div>
-              <span className="text-[10px] text-[#9B9B9B]">Calcium & energy boost</span>
+              <span className="text-[10px] text-[#707070]">Calcium & energy boost</span>
             </div>
           </div>
 
@@ -457,12 +457,12 @@ export default function OfficialView({
             {announcements.map((notice) => (
               <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#2F8F8A]">{notice.title}</span>
-                  <span className="text-[11px] text-[#9B9B9B]">{notice.date}</span>
+                  <span className="font-bold text-[#247571]">{notice.title}</span>
+                  <span className="text-[11px] text-[#707070]">{notice.date}</span>
                 </div>
                 <p className="text-xs text-[#4A4A4A] m-0">{notice.content}</p>
                 {notice.authorName && (
-                  <div className="text-[10px] text-[#9B9B9B] font-semibold">Posted by {notice.authorName}</div>
+                  <div className="text-[10px] text-[#707070] font-semibold">Posted by {notice.authorName}</div>
                 )}
               </div>
             ))}

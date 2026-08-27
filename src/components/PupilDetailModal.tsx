@@ -52,7 +52,7 @@ export default function PupilDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-[#9B9B9B] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
+            className="p-2 rounded-full text-[#707070] hover:bg-[#FAF8F5] hover:text-[#2B2B2B] border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
           >
             <X size={20} />
@@ -62,7 +62,7 @@ export default function PupilDetailModal({
         {/* Demographic & Guardian Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 rounded-3xl bg-[#FAF8F5] border border-[#E6E4DF] space-y-2 text-xs">
-            <h4 className="font-extrabold text-[#2F8F8A] uppercase tracking-wider text-[10px] m-0">Demographics</h4>
+            <h4 className="font-extrabold text-[#247571] uppercase tracking-wider text-[10px] m-0">Demographics</h4>
             <div><strong className="text-[#2B2B2B]">Sex:</strong> {pupil.sex}</div>
             <div><strong className="text-[#2B2B2B]">Date of Birth:</strong> {pupil.birthDate} (4 yrs old)</div>
             <div><strong className="text-[#2B2B2B]">Barangay Address:</strong> {pupil.address}</div>
@@ -70,7 +70,7 @@ export default function PupilDetailModal({
           </div>
 
           <div className="p-4 rounded-3xl bg-[#FAF8F5] border border-[#E6E4DF] space-y-2 text-xs">
-            <h4 className="font-extrabold text-[#2F8F8A] uppercase tracking-wider text-[10px] m-0">Guardian Contact</h4>
+            <h4 className="font-extrabold text-[#247571] uppercase tracking-wider text-[10px] m-0">Guardian Contact</h4>
             <div><strong className="text-[#2B2B2B]">Full Name:</strong> {pupil.guardian?.fullName}</div>
             <div><strong className="text-[#2B2B2B]">Relationship:</strong> {pupil.guardian?.relationship}</div>
             <div><strong className="text-[#2B2B2B]">Phone:</strong> {pupil.guardian?.phone}</div>
@@ -83,7 +83,7 @@ export default function PupilDetailModal({
           <div>
             <span className="font-bold text-[#8A5D00]">Attendance Register Record</span>
             <div className="text-[#6B6B6B] text-[11px] mt-0.5">
-              <strong className="text-[#2F8F8A]">{presentCount} Present</strong> • {lateCount} Late • {absentCount} Absent
+              <strong className="text-[#247571]">{presentCount} Present</strong> • {lateCount} Late • {absentCount} Absent
             </div>
           </div>
           <span className="badge badge-warning font-bold">Consecutive Absences: {pupil.consecutiveAbsences || 0}</span>
@@ -111,15 +111,15 @@ export default function PupilDetailModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-[#2B2B2B]">{p.domain}</span>
-                      <span className="px-2 py-0.5 rounded-full font-bold bg-[#EBF5F4] text-[#2F8F8A] text-[10px]">{p.rating}</span>
+                      <span className="px-2 py-0.5 rounded-full font-bold bg-[#EBF5F4] text-[#247571] text-[10px]">{p.rating}</span>
                     </div>
-                    <span className="text-[10px] text-[#9B9B9B]">{p.date}</span>
+                    <span className="text-[10px] text-[#707070]">{p.date}</span>
                   </div>
                   <p className="text-[#4A4A4A] text-[11px] m-0">{p.notes}</p>
                 </div>
               ))
             ) : (
-              <div className="text-center text-xs text-[#9B9B9B] p-4 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
+              <div className="text-center text-xs text-[#707070] p-4 bg-[#FAF8F5] rounded-2xl border border-[#E6E4DF]">
                 No milestone evaluations recorded yet.
               </div>
             )}
@@ -130,7 +130,7 @@ export default function PupilDetailModal({
         <div className="pt-4 border-t border-[#E6E4DF] flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#2F8F8A] hover:bg-[#1D605D] transition-all border-none cursor-pointer shadow-md"
+            className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#247571] hover:bg-[#1D605D] transition-all border-none cursor-pointer shadow-md"
             suppressHydrationWarning
           >
             Close Profile

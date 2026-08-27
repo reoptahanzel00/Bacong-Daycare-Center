@@ -188,7 +188,7 @@ export default function AdminView({
                           onClick={() => handleResetPassword(u.id, u.email, u.fullName || u.name)}
                           className={`btn btn-sm gap-1.5 transition-all ${
                             resetSent[u.id]
-                              ? 'bg-[#EBF5F4] text-[#2F8F8A] border-[#2F8F8A]/30'
+                              ? 'bg-[#EBF5F4] text-[#247571] border-[#2F8F8A]/30'
                               : 'btn-secondary'
                           }`}
                           title={resetSent[u.id] ? 'Reset link generated!' : 'Generate password reset link'}
@@ -202,7 +202,7 @@ export default function AdminView({
                             href={resetLinks[u.id]}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[10px] text-[#2F8F8A] underline max-w-[180px] truncate"
+                            className="text-[10px] text-[#247571] underline max-w-[180px] truncate"
                             title={resetLinks[u.id]}
                             suppressHydrationWarning
                           >
@@ -223,29 +223,29 @@ export default function AdminView({
       {activeTab === 'audit_logs' && (
         <div className="card bg-white p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#2F8F8A]">
+            <div className="flex items-center gap-2 text-[#247571]">
               <History size={20} />
               <h3 className="text-base font-bold text-[#2B2B2B] m-0">System Security Audit Log Trail</h3>
             </div>
-            <span className="text-xs text-[#9B9B9B]">Real-time mutation telemetry ({auditLogs.length} entries)</span>
+            <span className="text-xs text-[#707070]">Real-time mutation telemetry ({auditLogs.length} entries)</span>
           </div>
 
           <div className="space-y-2.5 pr-1">
             {paginatedAuditLogs.map((log) => (
               <div key={log.id} className="p-3 rounded-2xl border border-[#E6E4DF] bg-[#FAF8F5] flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#2F8F8A] border border-[#E6E4DF] flex items-center justify-center font-bold flex-shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-white text-[#247571] border border-[#E6E4DF] flex items-center justify-center font-bold flex-shrink-0">
                     {log.action.charAt(0)}
                   </div>
                   <div>
                     <div className="font-bold text-[#2B2B2B]">{log.action}</div>
                     <div className="text-[#6B6B6B] text-[11px] mt-0.5">{log.details}</div>
-                    <div className="text-[10px] text-[#9B9B9B] mt-0.5">{log.userName}</div>
+                    <div className="text-[10px] text-[#707070] mt-0.5">{log.userName}</div>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <span className="text-[11px] font-semibold text-[#2F8F8A] block">{log.target}</span>
-                  <span className="text-[10px] text-[#9B9B9B]">{log.timestamp}</span>
+                  <span className="text-[11px] font-semibold text-[#247571] block">{log.target}</span>
+                  <span className="text-[10px] text-[#707070]">{log.timestamp}</span>
                 </div>
               </div>
             ))}
@@ -253,7 +253,7 @@ export default function AdminView({
 
           {totalAuditPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E6E4DF] text-xs">
-              <span className="text-[#9B9B9B]">Page {auditPage} of {totalAuditPages} • {auditLogs.length} total entries</span>
+              <span className="text-[#707070]">Page {auditPage} of {totalAuditPages} • {auditLogs.length} total entries</span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setAuditPage(p => Math.max(1, p - 1))}
@@ -283,8 +283,8 @@ export default function AdminView({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Shield size={18} className="text-[#2F8F8A]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F8A]">
+                <Shield size={18} className="text-[#247571]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#247571]">
                   Data Privacy Act of 2012 (RA 10173) Audit
                 </span>
               </div>
@@ -300,21 +300,21 @@ export default function AdminView({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
-              <span className="font-bold text-[#2F8F8A]">Row-Level Security (RLS)</span>
+              <span className="font-bold text-[#247571]">Row-Level Security (RLS)</span>
               <div className="font-extrabold text-[#2B2B2B] text-sm">Enforced on PostgreSQL Tables ✅</div>
-              <span className="text-[10px] text-[#9B9B9B]">Pupils, Attendance, Progress, Users</span>
+              <span className="text-[10px] text-[#707070]">Pupils, Attendance, Progress, Users</span>
             </div>
 
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="font-bold text-[#2B6CB0]">Session JWT Encryption</span>
               <div className="font-extrabold text-[#2B2B2B] text-sm">HS256 SSR Token Encrypted ✅</div>
-              <span className="text-[10px] text-[#9B9B9B]">Next.js Middleware HttpOnly Cookies</span>
+              <span className="text-[10px] text-[#707070]">Next.js Middleware HttpOnly Cookies</span>
             </div>
 
             <div className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-1">
               <span className="font-bold text-[#8A5D00]">Database Backup Strategy</span>
               <div className="font-extrabold text-[#2B2B2B] text-sm">Daily Automated Snapshots ✅</div>
-              <span className="text-[10px] text-[#9B9B9B]">Point-in-time recovery active</span>
+              <span className="text-[10px] text-[#707070]">Point-in-time recovery active</span>
             </div>
           </div>
 
@@ -364,8 +364,8 @@ export default function AdminView({
             {announcements.map((notice) => (
               <div key={notice.id} className="p-4 rounded-3xl border border-[#E6E4DF] bg-[#FAF8F5] space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#2F8F8A]">{notice.title}</span>
-                  <span className="text-[11px] text-[#9B9B9B]">{notice.date}</span>
+                  <span className="font-bold text-[#247571]">{notice.title}</span>
+                  <span className="text-[11px] text-[#707070]">{notice.date}</span>
                 </div>
                 <p className="text-xs text-[#4A4A4A] leading-relaxed m-0">{notice.content}</p>
               </div>
