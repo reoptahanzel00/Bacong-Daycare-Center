@@ -20,10 +20,42 @@ Copy `.env.example` to `.env.local` and fill in all values before running or dep
 | `SEMAPHORE_SENDER_NAME` | âš ï¸ Optional | Sender name for SMS (e.g. `BacongDaycare`) |
 | `RESEND_API_KEY` | ⚠️ Optional | Email dispatch for notifications. Get from https://resend.com |
 | `EMAIL_FROM` | ⚠️ Optional | Sender address for notification emails (e.g. `Bacong Daycare <noreply@yourdomain.com>`) |
+| `UPSTASH_REDIS_REST_URL` | ✅ Yes for production | Shared store for the sign-in rate limiter. Without it the limit is per-instance only — see below. |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ Yes for production | Paired token for the same store. |
 | `NEXT_PUBLIC_APP_URL` | âš ï¸ Optional | Full URL of the deployed app (e.g. `https://bacong-daycare.vercel.app`) |
 
 > âš ï¸ **Security:** Never commit `.env.local` to git. It is already in `.gitignore`.  
 > âš ï¸ **Security:** Never put `SUPABASE_SERVICE_ROLE_KEY` in any `NEXT_PUBLIC_*` variable.
+
+---
+
+## Rate Limiting (required before production)
+
+`/api/auth/login` and `/api/auth/signup` are rate limited per IP. The limiter
+uses a shared Redis store when `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN` are set, and falls back to an in-process counter
+when they are not.
+
+**The fallback is not a real limit on serverless.** Every function instance
+gets its own memory, so "10 sign-in attempts per 15 minutes" becomes 10 per
+instance rather than 10 per attacker. Provision the store before going live:
+
+```bash
+# 1. Link this repository to its Vercel project (opens a browser to sign in)
+npx vercel link
+
+# 2. Provision Upstash Redis through the Vercel Marketplace.
+#    This creates a billable Marketplace resource and injects both
+#    UPSTASH_REDIS_* variables into the project automatically.
+npx vercel integration add upstash
+
+# 3. Pull the new variables down for local development
+npx vercel env pull .env.local --yes
+```
+
+No code change is needed - the limiter switches to Redis as soon as both
+variables are present. If Redis is configured but unreachable at request time,
+it degrades to the in-process counter rather than locking every user out.
 
 ---
 

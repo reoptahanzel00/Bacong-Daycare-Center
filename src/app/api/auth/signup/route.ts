@@ -61,7 +61,7 @@ const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export async function POST(request: Request) {
   try {
     const ip = clientIp(request);
-    if (rateLimited(ip, 'signup', RATE_LIMIT, RATE_WINDOW_MS)) {
+    if (await rateLimited(ip, 'signup', RATE_LIMIT, RATE_WINDOW_MS)) {
       return NextResponse.json(
         { error: 'Too many signup attempts. Please try again later.' },
         { status: 429 }

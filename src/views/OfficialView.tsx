@@ -262,8 +262,7 @@ export default function OfficialView({
                     <th>Pupil Name</th>
                     <th>Sex</th>
                     <th>Birth Date</th>
-                    <th>Barangay Address</th>
-                    <th>Guardian Contact</th>
+                    <th>Guardian</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -273,8 +272,7 @@ export default function OfficialView({
                       <td className="font-bold text-[#2B2B2B]">{p.firstName} {p.lastName}</td>
                       <td>{p.sex}</td>
                       <td>{p.birthDate}</td>
-                      <td>{p.address}</td>
-                      <td>{p.guardian?.fullName} ({p.guardian?.phone})</td>
+                      <td>{p.guardian?.fullName}</td>
                       <td><span className="badge badge-success">Enrolled</span></td>
                     </tr>
                   ))}
@@ -364,7 +362,7 @@ export default function OfficialView({
                   <div>
                     <div className="font-bold text-[#2B2B2B] text-sm">{p.firstName} {p.lastName} ({p.id})</div>
                     <p className="text-[#4A4A4A] m-0 mt-0.5">
-                      Guardian: <strong>{p.guardian?.fullName}</strong> ({p.guardian?.phone}) • Address: <strong>{p.address}</strong>
+                      Guardian: <strong>{p.guardian?.fullName}</strong> • Follow-up is handled by the Daycare Worker.
                     </p>
                     <span className="badge badge-danger text-[10px] mt-1">
                       {p.consecutiveAbsences || 2} Consecutive Unexcused Absences

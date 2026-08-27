@@ -20,7 +20,7 @@ const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 export async function POST(request: Request) {
   try {
     const ip = clientIp(request);
-    if (rateLimited(ip, 'login', RATE_LIMIT, RATE_WINDOW_MS)) {
+    if (await rateLimited(ip, 'login', RATE_LIMIT, RATE_WINDOW_MS)) {
       return NextResponse.json(
         { error: 'Too many sign-in attempts. Please try again later.' },
         { status: 429 }

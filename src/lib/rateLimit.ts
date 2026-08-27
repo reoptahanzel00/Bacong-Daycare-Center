@@ -1,14 +1,54 @@
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
 /**
- * Lightweight in-memory rate limiter (per IP + action key).
+ * Rate limiter for public/auth surfaces (per IP + action).
  *
- * Best-effort protection for public/auth surfaces. This is shared, single-node
- * memory only: it resets on serverless cold starts and is not distributed.
- * For multi-instance deployments pair this with a shared store (Upstash/Redis)
- * or a gateway-level limiter (Vercel WAF) for stronger guarantees.
+ * Backed by Upstash Redis when UPSTASH_REDIS_REST_URL and
+ * UPSTASH_REDIS_REST_TOKEN are set, which is the only configuration where the
+ * limit actually holds: every serverless instance gets its own memory, so an
+ * in-process counter caps attempts per instance rather than per attacker.
+ *
+ * Without those variables it falls back to a shared in-process bucket. That is
+ * fine for local development and single-node hosting, and is NOT a real limit
+ * on serverless — provision the Redis store before relying on it in production.
  */
+
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
-export function rateLimited(
+function hasRedisConfig(): boolean {
+  return Boolean(
+    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+  );
+}
+
+let redis: Redis | null = null;
+function getRedis(): Redis {
+  if (!redis) redis = Redis.fromEnv();
+  return redis;
+}
+
+// One Ratelimit instance per (action, limit, window). Rebuilding it per request
+// would discard the client's connection reuse and its ephemeral cache.
+const limiters = new Map<string, Ratelimit>();
+
+function getLimiter(action: string, limit: number, windowMs: number): Ratelimit {
+  const key = `${action}:${limit}:${windowMs}`;
+  let limiter = limiters.get(key);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis: getRedis(),
+      limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
+      prefix: `rl:${action}`,
+      analytics: false,
+    });
+    limiters.set(key, limiter);
+  }
+  return limiter;
+}
+
+/** In-process fallback. Shared memory only; resets on cold start. */
+function localRateLimited(
   ip: string,
   action: string,
   limit: number,
@@ -23,6 +63,33 @@ export function rateLimited(
   }
   entry.count += 1;
   return entry.count > limit;
+}
+
+/**
+ * Returns true when this IP has exceeded `limit` requests for `action` within
+ * `windowMs`, and the caller should reject with 429.
+ *
+ * If Redis is configured but unreachable, this degrades to the in-process
+ * bucket rather than failing open (which would remove the limit entirely) or
+ * failing closed (which would lock every user out of sign-in during an outage).
+ */
+export async function rateLimited(
+  ip: string,
+  action: string,
+  limit: number,
+  windowMs: number
+): Promise<boolean> {
+  if (!hasRedisConfig()) {
+    return localRateLimited(ip, action, limit, windowMs);
+  }
+
+  try {
+    const { success } = await getLimiter(action, limit, windowMs).limit(ip);
+    return !success;
+  } catch (e) {
+    console.warn('[RateLimit] Redis unavailable, falling back to in-process bucket:', e);
+    return localRateLimited(ip, action, limit, windowMs);
+  }
 }
 
 /** Extracts the best-effort client IP from a request (Vercel-propagated). */
