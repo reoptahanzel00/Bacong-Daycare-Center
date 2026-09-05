@@ -40,6 +40,15 @@ jobs:
       - name: Schema/route contract check
         run: npm run check:contract
 
+      # Every table in the public schema must have RLS on and a policy. Supabase
+      # grants anon full DML by default and RLS is the only thing that takes it
+      # back, so a table shipped without it is world-writable through the anon
+      # key that lives in the browser bundle. Two tables shipped that way and
+      # nothing caught it -- the app worked, because the application layer never
+      # tried what was permitted.
+      - name: Row Level Security contract check
+        run: npm run check:rls
+
       - name: Build production bundle
         run: npm run build
 

@@ -41,9 +41,14 @@ BLOCKER — the report says so before anything else.
 npx tsc --noEmit
 npm run lint
 npm run check:contract     # scripts/check-uuid-ids.mjs — schema/route ID contract
+npm run check:rls          # scripts/check-rls.mjs — every table has RLS + a policy
 npm run build
 npm run test:e2e           # Playwright, offline demo mode (needs no secrets)
 ```
+
+`check:rls` covers Gate 2's first question mechanically, so treat a green run as
+evidence for the file and keep looking at the *shape* of the policies — a table can
+have RLS, a policy, and still let a parent read another family's child.
 
 Also confirm the working tree is clean and nothing build-generated is tracked:
 
