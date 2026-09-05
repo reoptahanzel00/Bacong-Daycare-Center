@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
+import { todayLocalISO } from '@/lib/dates';
 
 const SignupSchema = z.object({
   role: z.enum(['worker', 'official', 'barangay_admin', 'parent']).default('parent'),
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
         sex: child.sex,
         address,
         enrollment_status: 'pending',
-        enrollment_date: new Date().toISOString().split('T')[0],
+        enrollment_date: todayLocalISO(),
         consecutive_absences: 0,
         created_by: authData.user.id,
       });

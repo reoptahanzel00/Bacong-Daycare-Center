@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Save, BookOpen, AlertCircle } from 'lucide-react';
 import type { ChildBackground } from '@/services/eccdService';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface ChildBackgroundModalProps {
   isOpen: boolean;
@@ -58,6 +59,8 @@ export default function ChildBackgroundModal({
   });
   const [error, setError] = useState('');
 
+  const dialogProps = useModalA11y(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -77,7 +80,7 @@ export default function ChildBackgroundModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
+    <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-xl p-6 space-y-5 animate-scaleUp">
 
         {/* Header */}
@@ -96,6 +99,7 @@ export default function ChildBackgroundModal({
             </div>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning

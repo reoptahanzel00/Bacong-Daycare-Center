@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Save, AlertCircle } from 'lucide-react';
 import type { MockPupil } from '@/contexts/DaycareContext';
+import { todayLocalISO } from '@/lib/dates';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface PupilModalProps {
   isOpen: boolean;
@@ -31,6 +33,8 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
   const [formData, setFormData] = useState(() => buildInitialForm(pupilToEdit));
   const [error, setError] = useState('');
 
+  const dialogProps = useModalA11y(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,7 +52,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
       sex: formData.sex,
       address: formData.address,
       enrollmentStatus: formData.enrollmentStatus,
-      enrollmentDate: pupilToEdit ? pupilToEdit.enrollmentDate : new Date().toISOString().split('T')[0],
+      enrollmentDate: pupilToEdit ? pupilToEdit.enrollmentDate : todayLocalISO(),
       avatar: pupilToEdit ? pupilToEdit.avatar : 'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=200&q=80',
       guardian: {
         fullName: formData.guardianName,
@@ -64,7 +68,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
+    <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
@@ -83,6 +87,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
             </div>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning

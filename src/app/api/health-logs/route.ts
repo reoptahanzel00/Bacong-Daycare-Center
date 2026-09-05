@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { todayLocalISO } from '@/lib/dates';
 
 const HealthLogSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const admin = createAdminClient();
-    const recordedAt = parsed.recorded_at || new Date().toISOString().split('T')[0];
+    const recordedAt = parsed.recorded_at || todayLocalISO();
 
     const { error } = await admin.from('health_logs').upsert(
       {

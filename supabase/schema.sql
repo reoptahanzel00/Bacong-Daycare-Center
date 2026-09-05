@@ -299,6 +299,24 @@ ALTER TABLE eccd_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE child_backgrounds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sociodemographic_profiles ENABLE ROW LEVEL SECURITY;
 
+-- Reference tables. These hold no personal data, but Supabase grants anon and
+-- authenticated full DML on public tables by default and RLS is the only thing
+-- that takes it back -- so without this the anon key that ships in the browser
+-- bundle could DELETE the ECCD domains that progress_observations.domain_id
+-- points at, or the school years the DSWD report keys on. Read-only for signed
+-- in users, writes through the service role, like center_settings below.
+ALTER TABLE school_years ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School Years SELECT Auth Policy" ON school_years;
+CREATE POLICY "School Years SELECT Auth Policy" ON school_years
+  FOR SELECT TO authenticated
+  USING (true);
+
+ALTER TABLE progress_domains ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Progress Domains SELECT Auth Policy" ON progress_domains;
+CREATE POLICY "Progress Domains SELECT Auth Policy" ON progress_domains
+  FOR SELECT TO authenticated
+  USING (true);
+
 -- Users RLS: each user reads their own profile; admins read all profiles.
 -- Provisioning/updates go through the admin API (service role, bypasses RLS),
 -- so no client INSERT/UPDATE/DELETE policies are defined.

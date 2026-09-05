@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, AlertTriangle, Archive } from 'lucide-react';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface ConfirmArchiveModalProps {
   isOpen: boolean;
@@ -16,10 +17,12 @@ export default function ConfirmArchiveModal({
   onConfirm,
   pupilName
 }: ConfirmArchiveModalProps) {
+  const dialogProps = useModalA11y(isOpen, onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
+    <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-md p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
@@ -36,6 +39,7 @@ export default function ConfirmArchiveModal({
             </div>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning

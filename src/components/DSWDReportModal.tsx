@@ -5,6 +5,8 @@ import { X, FileText, Download, ShieldCheck } from 'lucide-react';
 import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
 import type { CenterSettingsRow } from '@/services/settingsService';
 import { buildDswdPdf, type DswdPupilRow } from '@/lib/dswdPdf';
+import { todayLocalISO } from '@/lib/dates';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface DSWDReportModalProps {
   isOpen: boolean;
@@ -30,6 +32,8 @@ export default function DSWDReportModal({
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2026-2027');
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const dialogProps = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -68,7 +72,7 @@ export default function DSWDReportModal({
 
       buildDswdPdf(doc, autoTable, {
         schoolYear: selectedSchoolYear,
-        reportDate: new Date().toISOString().split('T')[0],
+        reportDate: todayLocalISO(),
         totalEnrolled: enrolledPupils.length,
         maleCount,
         femaleCount,
@@ -93,7 +97,7 @@ export default function DSWDReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
+    <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-4xl p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col">
         
         {/* Modal Header */}
@@ -123,6 +127,7 @@ export default function DSWDReportModal({
             </select>
 
             <button
+              aria-label="Close"
               onClick={onClose}
               className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
               suppressHydrationWarning
@@ -148,7 +153,7 @@ export default function DSWDReportModal({
                 DSWD FORM 1: ANNUAL ECCD DEMOGRAPHIC & MILESTONE COMPREHENSIVE REPORT
               </h4>
               <div className="text-[11px] text-ink-muted">
-                School Year: <strong>{selectedSchoolYear}</strong> • Report Date: <strong>{new Date().toISOString().split('T')[0]}</strong>
+                School Year: <strong>{selectedSchoolYear}</strong> • Report Date: <strong>{todayLocalISO()}</strong>
               </div>
             </div>
 

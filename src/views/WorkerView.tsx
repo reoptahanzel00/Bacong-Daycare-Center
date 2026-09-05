@@ -42,6 +42,7 @@ import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { verifyPupil } from '@/services/pupilService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
+import { todayLocalISO } from '@/lib/dates';
 
 interface WorkerViewProps {
   activeTab: string;
@@ -76,7 +77,7 @@ export default function WorkerView({
 }: WorkerViewProps) {
   const { showToast, logAuditAction, updatePupilEnrollment } = useDaycare();
 
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(todayLocalISO());
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
   const [selectedPupilDetail, setSelectedPupilDetail] = useState<MockPupil | null>(null);
   const [archiveTargetPupil, setArchiveTargetPupil] = useState<MockPupil | null>(null);
@@ -1244,6 +1245,7 @@ export default function WorkerView({
                 </div>
               </div>
               <button
+                aria-label="Close"
                 onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
                 className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
                 suppressHydrationWarning

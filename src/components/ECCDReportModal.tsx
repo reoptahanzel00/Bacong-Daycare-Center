@@ -13,6 +13,8 @@ import {
 import type { jsPDF } from 'jspdf';
 import type { CellHookData } from 'jspdf-autotable';
 import type { MockPupil } from '@/contexts/DaycareContext';
+import { toLocalISODate } from '@/lib/dates';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface ECCDReportModalProps {
   isOpen: boolean;
@@ -114,7 +116,9 @@ function computeAgeYMD(birthDate: string, asOf: Date): { y: number; m: number; d
 }
 
 function fmtDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  // Centre-local, not UTC: an evaluation dated from a Manila afternoon must not
+  // print as the previous day on a report that is filed with DSWD.
+  return toLocalISODate(d);
 }
 
 function rawFor(domainId: string, round: EccdRound, ratings: RatingsMap, scores: ScoresMap): number {
@@ -209,6 +213,8 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
     };
   }, [isOpen, pupilId]);
 
+  const dialogProps = useModalA11y(isOpen, onClose);
+
   if (!isOpen || !pupil) return null;
 
   const today = new Date();
@@ -249,7 +255,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
   };
 
   return (
-    <div
+    <div {...dialogProps}
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn print:static print:block print:bg-white print:backdrop-blur-0 print:p-0 print:overflow-visible"
       suppressHydrationWarning
     >
@@ -287,6 +293,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
             </select>
 
             <button
+              aria-label="Close"
               onClick={onClose}
               className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
               suppressHydrationWarning

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { todayLocalISO } from '@/lib/dates';
 
 const EccdRoundSchema = z.coerce.number().int().min(1).max(3).default(1);
 
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
         note: `ECCD checklist round ${parsed.round}`,
         status_rating: 'Present',
         evaluation_round: parsed.round,
-        observation_date: new Date().toISOString().split('T')[0],
+        observation_date: todayLocalISO(),
         recorded_by: session.userId,
       }));
       const { error: insertError } = await admin.from('progress_observations').insert(rows);

@@ -26,6 +26,7 @@ import { submitParentNote } from '@/services/parentNotesService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
+import { todayLocalISO } from '@/lib/dates';
 
 interface ParentViewProps {
   pupils: MockPupil[];
@@ -59,7 +60,7 @@ export default function ParentView({
 
   // Direct Teacher Message / Absence Note Form State
   const [absenceReason, setAbsenceReason] = useState<string>('Illness / Medical');
-  const [absenceDate, setAbsenceDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [absenceDate, setAbsenceDate] = useState<string>(todayLocalISO());
   const [guardianNotes, setGuardianNotes] = useState<string>('');
   const [contactPhone, setContactPhone] = useState<string>('0917-888-9900');
   interface ParentSubmittedNote {

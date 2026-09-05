@@ -113,6 +113,7 @@ export default function MobileNav({
             </div>
           </div>
           <button
+            aria-label="Close navigation"
             onClick={onClose}
             className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink transition-all border-none bg-transparent cursor-pointer"
           >

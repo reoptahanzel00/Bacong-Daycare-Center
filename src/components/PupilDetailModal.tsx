@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import Image from 'next/image';
 import { DEFAULT_AVATAR } from '@/data/mockData';
 import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface PupilDetailModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ export default function PupilDetailModal({
   progressRecords,
   onOpenProgressModal
 }: PupilDetailModalProps) {
+  const dialogProps = useModalA11y(isOpen, onClose);
+
   if (!isOpen || !pupil) return null;
 
   const childAttendance = attendanceRecords.filter(a => a.pupil_id === pupil.id);
@@ -32,7 +35,7 @@ export default function PupilDetailModal({
   const childProgress = progressRecords.filter(p => p.pupil_id === pupil.id);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
+    <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-2xl p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
@@ -51,6 +54,7 @@ export default function PupilDetailModal({
             </div>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
