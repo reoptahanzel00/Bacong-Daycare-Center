@@ -129,15 +129,6 @@ CREATE TABLE IF NOT EXISTS progress_observations (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 8. Announcements Stream Table
-CREATE TABLE IF NOT EXISTS announcements (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  posted_by UUID REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
 -- 9. System Audit Log Table (Immutable RA 10173 Audit Trail)
 CREATE TABLE IF NOT EXISTS audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -181,18 +172,6 @@ CREATE TABLE IF NOT EXISTS parent_notes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_parent_notes_status ON parent_notes(status, submitted_at DESC);
-
--- 12. Health / Nutrition Logs (weight & height per pupil per day)
-CREATE TABLE IF NOT EXISTS health_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
-  weight_kg TEXT,
-  height_cm TEXT,
-  recorded_at DATE NOT NULL DEFAULT CURRENT_DATE,
-  recorded_by UUID REFERENCES users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (pupil_id, recorded_at)
-);
 
 -- 13. ECCD evaluation rounds (official checklist is administered up to 3x/year)
 ALTER TABLE progress_observations
@@ -318,7 +297,6 @@ ALTER TABLE guardians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parent_notes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE health_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eccd_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE child_backgrounds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sociodemographic_profiles ENABLE ROW LEVEL SECURITY;
@@ -418,14 +396,6 @@ CREATE POLICY "Center Settings SELECT Auth Policy" ON center_settings
   FOR SELECT TO authenticated
   USING (true);
 
--- Announcements (low risk) are readable by any authenticated user, so the
--- feed can use the RLS-bound session client instead of the service role.
-ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Announcements SELECT Auth Policy" ON announcements;
-CREATE POLICY "Announcements SELECT Auth Policy" ON announcements
-  FOR SELECT TO authenticated
-  USING (true);
-
 -- Parent notes: parents may read their own; staff read all.
 DROP POLICY IF EXISTS "Parent Notes SELECT Own" ON parent_notes;
 CREATE POLICY "Parent Notes SELECT Own" ON parent_notes
@@ -433,16 +403,6 @@ CREATE POLICY "Parent Notes SELECT Own" ON parent_notes
   USING (user_id = auth.uid());
 DROP POLICY IF EXISTS "Parent Notes SELECT Staff" ON parent_notes;
 CREATE POLICY "Parent Notes SELECT Staff" ON parent_notes
-  FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
-
--- Health logs: parents read linked children only; staff read all.
-DROP POLICY IF EXISTS "Health Logs SELECT Own" ON health_logs;
-CREATE POLICY "Health Logs SELECT Own" ON health_logs
-  FOR SELECT TO authenticated
-  USING (pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid()));
-DROP POLICY IF EXISTS "Health Logs SELECT Staff" ON health_logs;
-CREATE POLICY "Health Logs SELECT Staff" ON health_logs
   FOR SELECT TO authenticated
   USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
 
@@ -540,7 +500,7 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
--- Parent notes, health logs, ECCD scores & child backgrounds: NO client
+-- Parent notes, ECCD scores & child backgrounds: NO client
 -- policies — all access goes through the server API (service role) with
 -- session-derived identities, so direct client writes/reads are denied.
 -- Sociodemographic profiles are the exception: they carry a SELECT policy so

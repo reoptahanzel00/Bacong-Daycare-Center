@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Nunito, Quicksand } from 'next/font/google';
 import './globals.css';
-import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import ServiceWorkerCleanup from '@/components/ServiceWorkerCleanup';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -41,7 +41,7 @@ export default function RootLayout({
     <html lang="en" className={`${nunito.variable} ${quicksand.variable}`} suppressHydrationWarning>
       <body className="font-sans bg-canvas text-ink antialiased" suppressHydrationWarning>
         {children}
-        <ServiceWorkerRegister />
+        <ServiceWorkerCleanup />
       </body>
     </html>
   );

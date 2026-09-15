@@ -64,14 +64,6 @@ export interface ProgressObservation {
   created_at?: string;
 }
 
-export interface Announcement {
-  id: string;
-  title: string;
-  body: string;
-  posted_by: string;
-  created_at: string;
-}
-
 export interface AuditLog {
   id: string;
   user_id?: string;

@@ -1,7 +1,3 @@
-/** Fallback avatar for pupils enrolled from the real database (no avatar_url set). */
-export const DEFAULT_AVATAR =
-  'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=200&q=80';
-
 export const INITIAL_PUPILS = [
   {
     id: 'PUP-2026-001',
@@ -12,7 +8,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 1, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Maria Santos',
       relationship: 'Mother',
@@ -30,7 +25,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 2, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Juan Reyes',
       relationship: 'Father',
@@ -48,7 +42,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 3, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Elena Dela Cruz',
       relationship: 'Mother',
@@ -66,7 +59,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 1, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Carmela Mendoza',
       relationship: 'Grandmother',
@@ -84,7 +76,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 4, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Roberto Bautista',
       relationship: 'Father',
@@ -102,7 +93,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 2, Barangay Bacong',
     enrollmentStatus: 'enrolled',
     enrollmentDate: '2025-06-02',
-    avatar: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Maria Santos',
       relationship: 'Mother',
@@ -120,7 +110,6 @@ export const INITIAL_PUPILS = [
     address: 'Purok 5, Barangay Bacong',
     enrollmentStatus: 'archived',
     enrollmentDate: '2024-06-01',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     guardian: {
       fullName: 'Teresa Aquino',
       relationship: 'Mother',
@@ -206,23 +195,6 @@ export const INITIAL_PROGRESS = [
     date: '2026-08-04',
     note: 'Gabriel hopped on one foot 5 consecutive times during outdoor physical play.',
     recordedBy: 'Teacher Teresa (Daycare Worker)'
-  }
-];
-
-export const INITIAL_ANNOUNCEMENTS = [
-  {
-    id: 'ANN-001',
-    title: 'Nutrition Month Culminating Activity & Feeding Program',
-    body: 'Dear Parents, please prepare a clean food container and spoon for your child this coming Friday, August 15. The Barangay Nutrition Council will conduct a special healthy feeding session.',
-    date: '2026-08-08',
-    postedBy: 'Teacher Teresa (Daycare Worker)'
-  },
-  {
-    id: 'ANN-002',
-    title: 'Deworming & Health Screening Schedule',
-    body: 'Barangay Health Workers will visit our Daycare Center on August 20 for the bi-annual DOH deworming initiative. Consent forms have been distributed.',
-    date: '2026-08-03',
-    postedBy: 'Barangay Health Office'
   }
 ];
 

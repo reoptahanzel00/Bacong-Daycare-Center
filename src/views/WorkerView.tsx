@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
 import { useEffect } from 'react';
 import { 
   CheckCircle2, 
@@ -10,19 +9,17 @@ import {
   Archive, 
   TrendingUp, 
   FileText, 
-  Megaphone,
   Eye,
   BellRing,
   BookOpen,
   MessageSquare,
-  Activity,
   CheckCircle,
   ShieldCheck,
   X,
   AlertTriangle,
   FileDown,
 } from 'lucide-react';
-import { DEFAULT_AVATAR } from '@/data/mockData';
+import PupilAvatar from '@/components/PupilAvatar';
 import PupilDetailModal from '@/components/PupilDetailModal';
 import ConfirmArchiveModal from '@/components/ConfirmArchiveModal';
 import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
@@ -37,11 +34,10 @@ import {
   type EccdRound,
 } from '@/services/eccdService';
 import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
-import { fetchHealthLogs, saveHealthLog } from '@/services/healthLogsService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { verifyPupil } from '@/services/pupilService';
-import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
+import { useDaycare, type MockPupil, type MockAttendance, type MockProgress } from '@/contexts/DaycareContext';
 import { todayLocalISO } from '@/lib/dates';
 
 interface WorkerViewProps {
@@ -49,11 +45,9 @@ interface WorkerViewProps {
   pupils: MockPupil[];
   attendance: MockAttendance[];
   progress: MockProgress[];
-  announcements: MockAnnouncement[];
   searchQuery: string;
   onOpenPupilModal: () => void;
   onOpenProgressModal: () => void;
-  onOpenAnnouncementModal: () => void;
   onOpenDSWDReportModal: () => void;
   onSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
   onArchivePupil: (id: string) => void;
@@ -64,12 +58,10 @@ export default function WorkerView({
   activeTab, 
   pupils, 
   attendance, 
-  progress, 
-  announcements,
+  progress,
   searchQuery,
   onOpenPupilModal,
   onOpenProgressModal,
-  onOpenAnnouncementModal,
   onOpenDSWDReportModal,
   onSaveAttendance,
   onArchivePupil,
@@ -160,16 +152,11 @@ export default function WorkerView({
 
   const [inboxNotes, setInboxNotes] = useState<ParentNote[]>([]);
 
-  // Nutritional Log State
-  const [healthLogs, setHealthLogs] = useState<Record<string, { weight: string; height: string }>>({});
-  const [healthDrafts, setHealthDrafts] = useState<Record<string, { weight: string; height: string }>>({});
-  const [savingHealthPupil, setSavingHealthPupil] = useState<string | null>(null);
-
-  // Load the real parent-notes inbox + health logs once on mount.
+  // Load the real parent-notes inbox once on mount.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [notesRes, healthRes] = await Promise.all([fetchParentNotes(), fetchHealthLogs()]);
+      const notesRes = await fetchParentNotes();
       if (cancelled) return;
 
       if (notesRes.ok && notesRes.notes.length > 0) {
@@ -188,16 +175,6 @@ export default function WorkerView({
           status: row.status === 'acknowledged' ? 'Excused & Acknowledged' : 'Pending Teacher Review',
           submittedAt: row.submitted_at ? new Date(row.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
         })));
-      }
-
-      if (healthRes.ok && healthRes.logs.length > 0) {
-        const map: Record<string, { weight: string; height: string }> = {};
-        for (const log of healthRes.logs) {
-          if (!map[log.pupil_id]) {
-            map[log.pupil_id] = { weight: log.weight_kg || '', height: log.height_cm || '' };
-          }
-        }
-        setHealthLogs(map);
       }
     })();
     return () => { cancelled = true; };
@@ -276,7 +253,7 @@ export default function WorkerView({
     } else {
       showToast(`Marked locally — could not reach the server.`, 'warning');
     }
-    logAuditAction('Acknowledged Parent Absence Note', pupilId, `Teacher Teresa marked absence note for ${pupilName} as Excused.`);
+    logAuditAction('Acknowledged Parent Absence Note', pupilId, `Marked the absence note for ${pupilName} as excused.`);
   };
 
   const handleToggleECCDItem = (pupilId: string, itemId: string) => {
@@ -328,24 +305,6 @@ export default function WorkerView({
       setReportPupil(pupil);
     } else {
       showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
-    }
-  };
-
-  const handleSaveHealthLog = async (pupil: MockPupil, weight: string, height: string) => {
-    setSavingHealthPupil(pupil.id);
-    const res = await saveHealthLog(pupil.id, weight, height);
-    setSavingHealthPupil(null);
-    if (res.success) {
-      setHealthLogs(prev => ({ ...prev, [pupil.id]: { weight, height } }));
-      setHealthDrafts(prev => {
-        const next = { ...prev };
-        delete next[pupil.id];
-        return next;
-      });
-      showToast(`Updated health record for ${pupil.firstName}!`, 'success');
-      logAuditAction('Updated Pupil Health Log', pupil.id, `Recorded weight ${weight}kg, height ${height}cm.`);
-    } else {
-      showToast(`Could not save health log: ${res.error || 'unknown error'}`, 'danger');
     }
   };
 
@@ -448,7 +407,7 @@ export default function WorkerView({
               Barangay Bacong ECCD Daily Operations
             </h2>
             <p className="text-xs md:text-sm text-white/90 mt-1.5 leading-relaxed max-w-2xl m-0">
-              Mark daily attendance registers, evaluate {ECCD_TOTAL_ITEMS} DepEd ECCD milestones, review parent absence notes, and record growth metrics.
+              Mark daily attendance registers, evaluate {ECCD_TOTAL_ITEMS} DepEd ECCD milestones, and review parent absence notes.
             </p>
           </div>
 
@@ -523,8 +482,8 @@ export default function WorkerView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="card bg-white p-5 lg:col-span-2 space-y-4">
+          <div className="grid grid-cols-1 gap-6">
+            <div className="card bg-white p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-ink m-0">Daily Register Checklist</h3>
@@ -548,7 +507,7 @@ export default function WorkerView({
                         <tr key={pupil.id}>
                           <td>
                             <div className="flex items-center gap-2.5">
-                              <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover shrink-0" />
+                              <PupilAvatar src={pupil.avatar} firstName={pupil.firstName} lastName={pupil.lastName} size={36} className="rounded-full" />
                               <div>
                                 <div className="font-bold text-ink">{pupil.firstName} {pupil.lastName}</div>
                                 <span className="text-[10px] text-ink-subtle">{pupil.id}</span>
@@ -588,31 +547,6 @@ export default function WorkerView({
                 </table>
               </div>
             </div>
-
-            <div className="card bg-white p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-ink m-0">Daycare Notices</h3>
-                <button
-                  onClick={onOpenAnnouncementModal}
-                  className="btn btn-secondary btn-sm text-[11px] py-1 px-2.5"
-                  suppressHydrationWarning
-                >
-                  + Notice
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {announcements.slice(0, 4).map((item) => (
-                  <div key={item.id} className="p-3 rounded-2xl bg-canvas border border-line text-xs">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-primary truncate">{item.title}</span>
-                      <span className="text-[10px] text-ink-subtle shrink-0">{item.date}</span>
-                    </div>
-                    <p className="text-ink-soft text-[11px] leading-relaxed m-0">{item.content}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </>
       )}
@@ -635,7 +569,7 @@ export default function WorkerView({
             {filteredEnrolledPupils.map((pupil) => (
               <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-white hover:-translate-y-1 transition-all space-y-3 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={48} height={48} className="w-12 h-12 rounded-2xl object-cover shrink-0" />
+                  <PupilAvatar src={pupil.avatar} firstName={pupil.firstName} lastName={pupil.lastName} size={48} className="rounded-2xl" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="badge badge-primary">{pupil.id}</span>
@@ -719,13 +653,7 @@ export default function WorkerView({
                   <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <Image
-                          src={pupil.avatar || DEFAULT_AVATAR}
-                          alt={pupil.firstName}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-2xl object-cover shrink-0"
-                        />
+                        <PupilAvatar src={pupil.avatar} firstName={pupil.firstName} lastName={pupil.lastName} size={48} className="rounded-2xl" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="badge badge-warning">{pupil.id}</span>
@@ -917,10 +845,10 @@ export default function WorkerView({
                 <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
+                      <PupilAvatar src={pupil.avatar} firstName={pupil.firstName} lastName={pupil.lastName} size={36} className="rounded-full" />
                       <div>
                         <div className="font-bold text-ink text-sm">{pupil.firstName} {pupil.lastName}</div>
-                        <span className="text-[10px] text-ink-subtle">{pupil.id} • Room A</span>
+                        <span className="text-[10px] text-ink-subtle">{pupil.id}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -1020,7 +948,7 @@ export default function WorkerView({
                               className={`w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer border-none shrink-0 transition-all ${
                                 comment
                                   ? 'bg-primary-light text-primary'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-primary-light hover:text-primary'
+                                  : 'bg-canvas text-ink-soft hover:bg-primary-light hover:text-primary'
                               }`}
                               title={comment ? `Comment: ${comment}` : 'Add a comment (e.g. why the child could not do it)'}
                               suppressHydrationWarning
@@ -1032,7 +960,7 @@ export default function WorkerView({
                               className={`w-8 h-8 rounded-xl text-sm font-extrabold cursor-pointer border-none shrink-0 transition-all ${
                                 present
                                   ? 'bg-emerald-600 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-800'
+                                  : 'bg-canvas text-ink-soft hover:bg-primary-light hover:text-primary-hover'
                               }`}
                               title={present ? 'Present — tap to clear' : 'Tap to mark present (✓)'}
                               suppressHydrationWarning
@@ -1144,125 +1072,6 @@ export default function WorkerView({
         </div>
       )}
 
-      {/* 5. Pupil Nutritional & Growth Log */}
-      {activeTab === 'health_entry' && (
-        <div className="card bg-white p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Activity size={18} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Early Childhood Health Telemetry
-                </span>
-              </div>
-              <h3 className="text-lg font-extrabold text-ink m-0">
-                Pupil Nutritional & Growth Telemetry Entry
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                Record height (cm) and weight (kg) measurements for DSWD Form 1 nutritional status tracking.
-              </p>
-            </div>
-          </div>
-
-          <div className="table-container">
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Pupil Name</th>
-                  <th>Weight (kg)</th>
-                  <th>Height (cm)</th>
-                  <th>Nutritional Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {enrolledPupils.map((pupil) => {
-                  const saved = healthLogs[pupil.id];
-                  const draft = healthDrafts[pupil.id] || saved || { weight: '', height: '' };
-                  return (
-                    <tr key={pupil.id}>
-                      <td className="font-bold text-ink">{pupil.firstName} {pupil.lastName}</td>
-                      <td>
-                        <input
-                          type="text"
-                          value={draft.weight}
-                          onChange={(e) => setHealthDrafts(prev => ({
-                            ...prev,
-                            [pupil.id]: { weight: e.target.value, height: draft.height },
-                          }))}
-                          placeholder="kg"
-                          className="w-20 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={draft.height}
-                          onChange={(e) => setHealthDrafts(prev => ({
-                            ...prev,
-                            [pupil.id]: { weight: draft.weight, height: e.target.value },
-                          }))}
-                          placeholder="cm"
-                          className="w-20 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
-                        />
-                      </td>
-                      <td>
-                        {saved ? (
-                          <span className="badge badge-success">Recorded</span>
-                        ) : (
-                          <span className="badge badge-warning">No log yet</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => handleSaveHealthLog(pupil, draft.weight, draft.height)}
-                          disabled={savingHealthPupil === pupil.id}
-                          className="btn btn-secondary btn-sm text-xs"
-                        >
-                          {savingHealthPupil === pupil.id ? 'Saving...' : 'Save Log'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 6. Daycare Notices Tab */}
-      {activeTab === 'announcements' && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-ink m-0">Daycare Notices & Broadcast Feed</h3>
-              <span className="text-xs text-ink-muted">Broadcast official daycare notices to parent portal</span>
-            </div>
-            <button onClick={onOpenAnnouncementModal} className="btn btn-primary btn-sm font-bold" suppressHydrationWarning>
-              <Megaphone size={16} />
-              <span>+ Publish Notice</span>
-            </button>
-          </div>
-
-          <div className="space-y-3.5">
-            {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-primary">{notice.title}</span>
-                  <span className="text-[11px] text-ink-subtle">{notice.date}</span>
-                </div>
-                <p className="text-xs text-ink-soft leading-relaxed m-0">{notice.content}</p>
-                {notice.authorName && (
-                  <div className="text-[10px] text-ink-subtle font-semibold">Posted by {notice.authorName}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Profile & Archive Modals */}
       <PupilDetailModal
         isOpen={!!selectedPupilDetail}
         onClose={() => setSelectedPupilDetail(null)}

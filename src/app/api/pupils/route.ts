@@ -113,7 +113,11 @@ export async function POST(request: Request) {
 
       const { error: pupilError } = await supabase.from('pupils').upsert([dbRecord]);
       if (pupilError) {
-        console.warn('[Pupils API] DB write warning:', pupilError.message);
+        console.error('[Pupils API] DB write failed:', pupilError.message);
+        return NextResponse.json(
+          { success: false, error: 'The pupil record could not be saved. Please try again.' },
+          { status: 503 }
+        );
       } else {
         // Update-or-insert the primary guardian so re-saves on an existing pupil
         // do not create duplicate guardian rows every edit.
@@ -146,8 +150,11 @@ export async function POST(request: Request) {
         }
       }
     } catch {
-      // Database not configured — local state only
-      console.warn('[Pupils API] Database not available, using local state.');
+      console.error('[Pupils API] Database unavailable; pupil not saved.');
+      return NextResponse.json(
+        { success: false, error: 'The pupil record could not be saved. Please try again.' },
+        { status: 503 }
+      );
     }
 
     return NextResponse.json({

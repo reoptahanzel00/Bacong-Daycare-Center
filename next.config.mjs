@@ -5,14 +5,6 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/api/eccd/report': ['./src/templates/eccd-child-record-2.docx'],
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-    ],
-  },
   async headers() {
     const isProduction = process.env.NODE_ENV === 'production';
 
@@ -39,7 +31,7 @@ const nextConfig = {
           "frame-ancestors 'none'",
           "form-action 'self'",
           "object-src 'none'",
-          "img-src 'self' data: blob: https://images.unsplash.com",
+          "img-src 'self' data: blob:",
           "font-src 'self' data:",
           "style-src 'self' 'unsafe-inline'",
           // 'unsafe-eval' is only needed by the dev-mode React refresh runtime.

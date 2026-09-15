@@ -12,13 +12,12 @@ import {
   CheckCircle,
   Shield,
 } from 'lucide-react';
-import { useDaycare, type MockUser, type MockAuditLog, type MockAnnouncement } from '@/contexts/DaycareContext';
+import { useDaycare, type MockUser, type MockAuditLog } from '@/contexts/DaycareContext';
 import { resetUserPassword } from '@/services/usersService';
 
 interface AdminViewProps {
   users: MockUser[];
   auditLogs: MockAuditLog[];
-  announcements?: MockAnnouncement[];
   activeTab?: string;
   onOpenUserModal: () => void;
   onLinkParent?: () => void;
@@ -30,7 +29,6 @@ const AUDIT_PAGE_SIZE = 8;
 export default function AdminView({ 
   users, 
   auditLogs, 
-  announcements = [], 
   activeTab = 'users', 
   onOpenUserModal, 
   onLinkParent,
@@ -415,31 +413,6 @@ export default function AdminView({
                 <span className="badge badge-success shrink-0">Policy Active ✅</span>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: System Announcements & Maintenance Feed */}
-      {activeTab === 'announcements' && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-ink m-0">System Governance & Maintenance Feed</h3>
-              <span className="text-xs text-ink-muted">System notices broadcasted by Barangay Admin</span>
-            </div>
-            <span className="badge badge-primary">System Administration</span>
-          </div>
-
-          <div className="space-y-3.5">
-            {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-primary">{notice.title}</span>
-                  <span className="text-[11px] text-ink-subtle">{notice.date}</span>
-                </div>
-                <p className="text-xs text-ink-soft leading-relaxed m-0">{notice.content}</p>
-              </div>
-            ))}
           </div>
         </div>
       )}

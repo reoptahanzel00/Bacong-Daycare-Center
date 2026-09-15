@@ -11,7 +11,7 @@ A comprehensive daycare management system built for **Barangay Bacong, San Luis,
 - Daily attendance register (Present / Absent / Late)
 - ECCD 7-domain milestone observation logging
 - 109-item ECCD checklist (3 rounds, item comments) that fills the official Child's Record 2 Word form
-- Class announcements & parent notifications
+- Parent notifications (absence alerts, enrollment decisions)
 - DSWD Form 1 PDF report generation
 - Archive graduated/withdrawn pupils
 
@@ -29,9 +29,8 @@ A comprehensive daycare management system built for **Barangay Bacong, San Luis,
 
 ### 👨‍👩‍👧 Parent / Guardian
 - View child's attendance history & calendar
-- Receive real-time notifications (absences, announcements)
+- Receive notifications (absence alerts, enrollment decisions)
 - Download the child's ECCD Child's Record 2 (Word form, filled from the worker's evaluations)
-- View upcoming barangay events
 
 ---
 

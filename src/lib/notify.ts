@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type NotificationType = 'consecutive_absences' | 'announcement' | 'milestone';
+export type NotificationType = 'consecutive_absences' | 'milestone';
 export type NotificationSeverity = 'high' | 'medium' | 'info';
 export type NotificationChannel = 'PORTAL' | 'EMAIL' | 'SMS';
 

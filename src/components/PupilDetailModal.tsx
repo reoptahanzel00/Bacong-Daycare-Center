@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import Image from 'next/image';
-import { DEFAULT_AVATAR } from '@/data/mockData';
+import PupilAvatar from '@/components/PupilAvatar';
 import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
 import { useModalA11y } from '@/hooks/useModalA11y';
 
@@ -41,7 +40,7 @@ export default function PupilDetailModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
-            <Image src={pupil.avatar || DEFAULT_AVATAR} alt={pupil.firstName} width={48} height={48} className="w-12 h-12 rounded-2xl object-cover border border-line shrink-0" />
+            <PupilAvatar src={pupil.avatar} firstName={pupil.firstName} lastName={pupil.lastName} size={48} className="rounded-2xl border border-line" />
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-extrabold text-ink m-0">{pupil.firstName} {pupil.lastName}</h3>

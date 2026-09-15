@@ -6,10 +6,8 @@ import {
   INITIAL_PUPILS,
   INITIAL_ATTENDANCE,
   INITIAL_PROGRESS,
-  INITIAL_ANNOUNCEMENTS,
   INITIAL_USERS,
   INITIAL_AUDIT_LOGS,
-  DEFAULT_AVATAR,
   getStoredData,
   saveStoredData,
 } from '@/data/mockData';
@@ -25,7 +23,6 @@ import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceServic
 import { fetchProgress, recordObservation, type ProgressPayload, type ProgressRow } from '@/services/progressService';
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
 import { logAuditEntry, fetchAuditLogs } from '@/services/auditService';
-import { fetchAnnouncements, publishAnnouncement, type AnnouncementRow } from '@/services/announcementsService';
 import { fetchSettings, updateSettings, EMPTY_SETTINGS, type CenterSettingsRow } from '@/services/settingsService';
 
 // Local-compatible types (matching mockData shape).
@@ -56,18 +53,6 @@ export interface MockAttendance {
   date: string;
   status: 'present' | 'absent' | 'late';
   notes?: string;
-}
-
-export interface MockAnnouncement {
-  id: string;
-  title: string;
-  body?: string;
-  date: string;
-  postedBy?: string;
-  /** Resolved author display name from the server (may be null for staff). */
-  authorName?: string | null;
-  content?: string;
-  author?: string;
 }
 
 export interface MockUser {
@@ -122,7 +107,6 @@ interface DaycareContextValue {
   pupils: MockPupil[];
   attendance: MockAttendance[];
   progress: MockProgress[];
-  announcements: MockAnnouncement[];
   users: MockUser[];
   auditLogs: MockAuditLog[];
 
@@ -133,7 +117,6 @@ interface DaycareContextValue {
   handleEditPupil: (pupil: MockPupil) => void;
   handleSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
   handleSaveProgress: (progressData: MockProgress) => void;
-  handleSaveAnnouncement: (annData: MockAnnouncement) => void;
   handleSaveUser: (userData: MockUser) => void;
   handleToggleUserStatus: (userId: string) => void;
   logAuditAction: (action: string, target: string, details: string) => void;
@@ -150,8 +133,6 @@ interface DaycareContextValue {
   setPupilToEdit: (p: MockPupil | null) => void;
   isProgressModalOpen: boolean;
   setIsProgressModalOpen: (v: boolean) => void;
-  isAnnouncementModalOpen: boolean;
-  setIsAnnouncementModalOpen: (v: boolean) => void;
   isUserModalOpen: boolean;
   setIsUserModalOpen: (v: boolean) => void;
   isLinkParentModalOpen: boolean;
@@ -184,7 +165,7 @@ function mapPupilRowStatic(row: PupilRow): MockPupil {
     enrollmentDate: row.enrollment_date,
     rejectionReason: row.rejection_reason ?? null,
     consecutiveAbsences: row.consecutive_absences ?? 0,
-    avatar: row.avatar_url || DEFAULT_AVATAR,
+    avatar: row.avatar_url || undefined,
     guardian: Array.isArray(row.guardian) && row.guardian.length > 0
       ? (() => {
           const g = row.guardian.find(x => x.is_primary_contact) || row.guardian[0];
@@ -216,16 +197,9 @@ function mapProgressRowStatic(r: ProgressRow): MockProgress {
   } as MockProgress;
 }
 
-/** Maps an announcement row to the client MockAnnouncement shape. */
-function mapAnnouncementRowStatic(a: AnnouncementRow): MockAnnouncement {
-  return {
-    id: a.id,
-    title: a.title,
-    content: a.body,
-    date: (a.created_at || '').slice(0, 10),
-    postedBy: a.posted_by || undefined,
-    authorName: a.author_name || null,
-  } as MockAnnouncement;
+/** A server error message fit for a toast; validation errors arrive as arrays. */
+function errorText(error: unknown, fallback: string): string {
+  return typeof error === 'string' && error.trim() ? error : fallback;
 }
 
 /** The tab each role lands on. Kept in one place so the server-seeded first
@@ -249,7 +223,6 @@ export interface InitialAppState {
   pupils?: PupilRow[];
   attendance?: Array<{ pupil_id: string; date: string; status: string; notes?: string }>;
   progress?: ProgressRow[];
-  announcements?: AnnouncementRow[];
   settings?: CenterSettingsRow;
 }
 
@@ -315,11 +288,6 @@ export function DaycareProvider({
       ? initial.progress.map(r => mapProgressRowStatic(r))
       : INITIAL_PROGRESS)
   );
-  const [announcements, setAnnouncements] = useState<MockAnnouncement[]>(
-    () => (initial?.announcements
-      ? initial.announcements.map(r => mapAnnouncementRowStatic(r))
-      : INITIAL_ANNOUNCEMENTS)
-  );
   const [settings, setSettings] = useState<CenterSettingsRow>(
     () => initial?.settings ?? EMPTY_SETTINGS
   );
@@ -328,7 +296,6 @@ export function DaycareProvider({
 
   const [pupilToEdit, setPupilToEdit] = useState<MockPupil | null>(null);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
-  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isLinkParentModalOpen, setIsLinkParentModalOpen] = useState(false);
   const [linkParentOpenCount, setLinkParentOpenCount] = useState(0);
@@ -364,13 +331,12 @@ export function DaycareProvider({
       // Admin-only endpoints (user directory, audit trail) are only fetched for
       // the barangay_admin to avoid firing 401/403 requests for every other role.
       const isAdmin = role === 'barangay_admin';
-      const [pupilRes, attendanceRes, progressRes, usersRes, auditRes, announcementRes] = await Promise.all([
+      const [pupilRes, attendanceRes, progressRes, usersRes, auditRes] = await Promise.all([
         fetchPupils(['pending', 'enrolled', 'rejected']),
         fetchAttendance(),
         fetchProgress(),
         isAdmin ? fetchUsers() : Promise.resolve({ ok: false, users: [] }),
         isAdmin ? fetchAuditLogs() : Promise.resolve({ ok: false, logs: [] }),
-        fetchAnnouncements(),
       ]);
 
       const settingsRes = await fetchSettings();
@@ -422,16 +388,6 @@ export function DaycareProvider({
           details: l.details || undefined,
         })));
       }
-      if (announcementRes.ok) {
-        setAnnouncements(announcementRes.announcements.map(a => ({
-          id: a.id,
-          title: a.title,
-          content: a.body,
-          date: (a.created_at || '').slice(0, 10),
-          postedBy: a.posted_by || undefined,
-          authorName: a.author_name || null,
-        })));
-      }
     } catch (e) {
       console.warn('Server sync failed; continuing with local data.', e);
     }
@@ -457,7 +413,6 @@ export function DaycareProvider({
         setPupils(getStoredData('pupils', INITIAL_PUPILS));
         setAttendance(getStoredData('attendance', INITIAL_ATTENDANCE));
         setProgress(getStoredData('progress', INITIAL_PROGRESS));
-        setAnnouncements(getStoredData('announcements', INITIAL_ANNOUNCEMENTS));
       }
       // The staff directory and the audit trail are deliberately NOT restored
       // from local storage: both are admin-only, neither is usable offline,
@@ -540,11 +495,12 @@ export function DaycareProvider({
     };
   }, [router, syncFromServer, hasServerData, initialRole]);
 
-  // Persist to localStorage whenever data changes
-  useEffect(() => { if (isHydrated) saveStoredData('pupils', pupils); }, [pupils, isHydrated]);
-  useEffect(() => { if (isHydrated) saveStoredData('attendance', attendance); }, [attendance, isHydrated]);
-  useEffect(() => { if (isHydrated) saveStoredData('progress', progress); }, [progress, isHydrated]);
-  useEffect(() => { if (isHydrated) saveStoredData('announcements', announcements); }, [announcements, isHydrated]);
+  // Demo mode only. With a real session nothing is written to the device: the
+  // system has no offline mode (see the capstone paper's delimitations), and a
+  // roster left in localStorage outlives the session on a shared phone.
+  useEffect(() => { if (isHydrated && !hasServerData) saveStoredData('pupils', pupils); }, [pupils, isHydrated, hasServerData]);
+  useEffect(() => { if (isHydrated && !hasServerData) saveStoredData('attendance', attendance); }, [attendance, isHydrated, hasServerData]);
+  useEffect(() => { if (isHydrated && !hasServerData) saveStoredData('progress', progress); }, [progress, isHydrated, hasServerData]);
   // users and auditLogs are intentionally not persisted — see the hydration
   // comment above.
 
@@ -577,13 +533,21 @@ export function DaycareProvider({
 
     if (isEdit) {
       // Upsert with the existing id so the DB row updates in place.
-      await enrollPupil(toEnrollPayload(pupilData, pupilToEdit.id));
+      const res = await enrollPupil(toEnrollPayload(pupilData, pupilToEdit.id));
+      if (hasServerData && !res.success) {
+        showToast(errorText(res.error, 'Could not save — check your connection and try again.'), 'danger');
+        return;
+      }
       setPupils(prev => prev.map(p => p.id === pupilData.id ? pupilData : p));
       logAuditAction('Updated Pupil Profile', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, 'Modified pupil demographic / guardian information.');
       showToast(`Pupil profile for ${pupilData.firstName} updated.`);
     } else {
       // New pupil: let the server generate the authoritative id.
       const res = await enrollPupil(toEnrollPayload(pupilData));
+      if (hasServerData && !(res.success && res.pupil?.id)) {
+        showToast(errorText(res.error, 'Could not save — check your connection and try again.'), 'danger');
+        return;
+      }
       if (res.success && res.pupil?.id) {
         const serverPupil: MockPupil = {
           id: res.pupil.id,
@@ -595,20 +559,20 @@ export function DaycareProvider({
           enrollmentStatus: res.pupil.enrollmentStatus,
           enrollmentDate: res.pupil.enrollmentDate,
           consecutiveAbsences: res.pupil.consecutiveAbsences,
-          avatar: pupilData.avatar || DEFAULT_AVATAR,
+          avatar: pupilData.avatar || undefined,
           guardian: res.pupil.guardian,
         };
         setPupils(prev => [serverPupil, ...prev]);
         logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${serverPupil.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
       } else {
-        // DB not reachable (offline/demo) — keep the optimistic local pupil.
+        // Demo mode (no database configured): the pupil lives in this browser only.
         setPupils(prev => [pupilData, ...prev]);
         logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
       }
       showToast(`Pupil ${pupilData.firstName} ${pupilData.lastName} enrolled successfully!`);
     }
     setPupilToEdit(null);
-  }, [pupilToEdit, toEnrollPayload, logAuditAction, showToast]);
+  }, [pupilToEdit, toEnrollPayload, logAuditAction, showToast, hasServerData]);
 
   /** Local-only update after a worker approves/rejects a parent enrollment. */
   const updatePupilEnrollment = useCallback((
@@ -627,12 +591,16 @@ export function DaycareProvider({
     const targetPupil = pupils.find(p => p.id === pupilId);
     if (targetPupil) {
       // Soft-archive server-side (enrollment_status = archived).
-      await enrollPupil(toEnrollPayload(targetPupil, pupilId, 'archived'));
+      const res = await enrollPupil(toEnrollPayload(targetPupil, pupilId, 'archived'));
+      if (hasServerData && !res.success) {
+        showToast(errorText(res.error, 'Could not archive — check your connection and try again.'), 'danger');
+        return;
+      }
     }
     setPupils(prev => prev.map(p => p.id === pupilId ? { ...p, enrollmentStatus: 'archived' } : p));
     logAuditAction('Archived Pupil Record', pupilId, `Soft-archived record for ${targetPupil?.firstName} ${targetPupil?.lastName}.`);
     showToast(`Record for ${targetPupil?.firstName || pupilId} archived.`, 'danger');
-  }, [pupils, toEnrollPayload, logAuditAction, showToast]);
+  }, [pupils, toEnrollPayload, logAuditAction, showToast, hasServerData]);
 
   const handleEditPupil = useCallback((pupil: MockPupil) => {
     setPupilToEdit(pupil);
@@ -669,19 +637,26 @@ export function DaycareProvider({
       return { ...pupil, consecutiveAbsences: consecutive };
     }));
 
-    logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
-    // Optimistic toast — the local save already happened.
-    showToast(`Attendance register for ${dateStr} saved!`);
+    if (!hasServerData) {
+      // Demo mode (no database configured): the register lives in this browser only.
+      logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
+      showToast(`Attendance register for ${dateStr} saved (demo mode).`);
+      return;
+    }
 
-    // Persist to the real daily register; surface failure without blocking UX.
+    // Only report success once the database has the register: there is no
+    // offline queue to catch a failed save later.
     const res = await saveBulkAttendance(
       dateStr,
       records.map(({ pupil_id, status, notes }) => ({ pupil_id, status, notes })),
     );
-    if (!res.success) {
-      showToast(`Database sync unavailable — register saved locally for ${dateStr}.`, 'warning');
+    if (res.success) {
+      logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
+      showToast(`Attendance register for ${dateStr} saved!`);
+    } else {
+      showToast(errorText(res.error, `The register for ${dateStr} was not saved — check your connection and try again.`), 'danger');
     }
-  }, [attendance, logAuditAction, showToast]);
+  }, [attendance, logAuditAction, showToast, hasServerData]);
 
   const handleSaveProgress = useCallback(async (progressData: MockProgress) => {
     const payload: ProgressPayload = {
@@ -693,28 +668,19 @@ export function DaycareProvider({
       rating: progressData.rating,
     };
 
-    setProgress(prev => [progressData, ...prev]);
     const targetPupil = pupils.find(p => p.id === progressData.pupil_id);
+    if (hasServerData) {
+      const res = await recordObservation(payload);
+      if (!res.success) {
+        showToast(errorText(res.error, 'The observation was not saved — check your connection and try again.'), 'danger');
+        return;
+      }
+    }
+    setProgress(prev => [progressData, ...prev]);
     logAuditAction('Recorded Progress Observation', `${targetPupil?.firstName || progressData.pupil_id}`, `Added milestone observation under ${progressData.domain}.`);
-    // Optimistic toast — the local save already happened.
     showToast(`Development milestone recorded for ${targetPupil?.firstName || 'pupil'}.`);
+  }, [pupils, logAuditAction, showToast, hasServerData]);
 
-    // Persist to the real observations table; surface failure without blocking UX.
-    const res = await recordObservation(payload);
-    if (!res.success) {
-      showToast('Milestone saved locally — database sync unavailable.', 'warning');
-    }
-  }, [pupils, logAuditAction, showToast]);
-
-  const handleSaveAnnouncement = useCallback(async (annData: MockAnnouncement) => {
-    setAnnouncements(prev => [annData, ...prev]);
-    const res = await publishAnnouncement(annData.title, annData.content || annData.body || '');
-    if (!res.success) {
-      showToast(`Notice saved locally — could not reach the server.`, 'warning');
-    }
-    logAuditAction('Published Announcement', annData.title, 'Broadcasted daycare notice to parent portal.');
-    showToast(`Notice "${annData.title}" broadcasted to parents.`);
-  }, [logAuditAction, showToast]);
 
   const handleSaveUser = useCallback((userData: MockUser) => {
     setUsers(prev => [userData, ...prev]);
@@ -754,9 +720,9 @@ export function DaycareProvider({
   // every view (each 1000+ lines, unmemoised) re-renders on each keystroke.
   const value: DaycareContextValue = useMemo(() => ({
     currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
-    pupils, attendance, progress, announcements, users, auditLogs,
+    pupils, attendance, progress, users, auditLogs,
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil, handleSaveAttendance,
-    handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
+    handleSaveProgress, handleSaveUser, handleToggleUserStatus,
     logAuditAction,
     settings, saveSettings, currentUserName,
     showToast,
@@ -767,7 +733,6 @@ export function DaycareProvider({
     isPupilModalOpen,
     setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
     isProgressModalOpen, setIsProgressModalOpen,
-    isAnnouncementModalOpen, setIsAnnouncementModalOpen,
     isUserModalOpen, setIsUserModalOpen,
     isLinkParentModalOpen, setIsLinkParentModalOpen,
     linkParentOpenCount, setLinkParentOpenCount,
@@ -775,12 +740,12 @@ export function DaycareProvider({
     isHydrated,
   }), [
     currentRole, activeTab, searchQuery,
-    pupils, attendance, progress, announcements, users, auditLogs,
+    pupils, attendance, progress, users, auditLogs,
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil,
-    handleSaveAttendance, handleSaveProgress, handleSaveAnnouncement, handleSaveUser,
+    handleSaveAttendance, handleSaveProgress, handleSaveUser,
     handleToggleUserStatus, logAuditAction, settings, saveSettings, currentUserName, showToast, toast,
     isMobileNavOpen, isPupilModalOpen, pupilToEdit,
-    isProgressModalOpen, isAnnouncementModalOpen, isUserModalOpen,
+    isProgressModalOpen, isUserModalOpen,
     isLinkParentModalOpen, linkParentOpenCount, isDSWDReportModalOpen,
     isHydrated,
   ]);

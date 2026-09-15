@@ -5,9 +5,8 @@ import {
   X, 
   Users, 
   CheckCircle2, 
-  TrendingUp, 
-  Megaphone, 
-  FileText, 
+  TrendingUp,
+  FileText,
   Shield, 
   ShieldCheck,
   Heart, 
@@ -16,9 +15,6 @@ import {
   BellRing,
   BookOpen,
   MessageSquare,
-  Activity,
-  Image,
-  FolderCheck
 } from 'lucide-react';
 import type { UserRole } from '@/contexts/DaycareContext';
 import { ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
@@ -50,8 +46,6 @@ export default function MobileNav({
         { id: 'verify', label: 'Verify Enrollments', icon: ShieldCheck },
         { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
         { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
-        { id: 'health_entry', label: 'Nutritional Log', icon: Activity },
-        { id: 'announcements', label: 'Announcements', icon: Megaphone },
       ]
     },
     official: {
@@ -61,7 +55,6 @@ export default function MobileNav({
         { id: 'overview', label: 'Executive Overview', icon: Shield },
         { id: 'reports', label: 'DSWD Form 1 PDF', icon: FileText },
         { id: 'consecutive_absences', label: 'Absence Telemetry', icon: BellRing },
-        { id: 'announcements', label: 'Barangay Notices', icon: Megaphone },
       ]
     },
     barangay_admin: {
@@ -71,7 +64,6 @@ export default function MobileNav({
         { id: 'users', label: 'User Provisioning', icon: UserCheck },
         { id: 'audit_logs', label: 'Security Audit Trail', icon: FileText },
         { id: 'security', label: 'Data Privacy RLS Audit', icon: Shield },
-        { id: 'announcements', label: 'System Notices', icon: Megaphone },
       ]
     },
     parent: {
@@ -81,10 +73,6 @@ export default function MobileNav({
         { id: 'child', label: 'Child Profile', icon: Heart },
         { id: 'eccd_checklist', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Checklist`, icon: BookOpen },
         { id: 'parent_notes', label: 'Teacher Messages', icon: MessageSquare },
-        { id: 'health_tracker', label: 'Nutritional & Growth', icon: Activity },
-        { id: 'gallery', label: 'Classroom Moments', icon: Image },
-        { id: 'documents', label: 'Requirements', icon: FolderCheck },
-        { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
       ]
     }
   };

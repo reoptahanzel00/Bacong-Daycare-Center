@@ -6,7 +6,6 @@ import type { UserRole } from '@/contexts/DaycareContext';
 import type { PupilRow } from '@/services/pupilService';
 import type { AttendanceRow } from '@/services/attendanceService';
 import type { ProgressRow } from '@/services/progressService';
-import type { AnnouncementRow } from '@/services/announcementsService';
 import { toClientObservation } from '@/lib/progressMapping';
 import { EMPTY_SETTINGS, type CenterSettingsRow } from '@/services/settingsService';
 
@@ -23,7 +22,6 @@ export interface InitialAppData {
   pupils: PupilRow[];
   attendance: AttendanceRow[];
   progress: ProgressRow[];
-  announcements: AnnouncementRow[];
   settings: CenterSettingsRow;
 }
 
@@ -33,7 +31,6 @@ const EMPTY: InitialAppData = {
   pupils: [],
   attendance: [],
   progress: [],
-  announcements: [],
   settings: EMPTY_SETTINGS,
 };
 
@@ -53,7 +50,7 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
   try {
     const supabase = await createClient();
 
-    const [profileRes, pupilsRes, attendanceRes, progressRes, settingsRes, announcementsRes] =
+    const [profileRes, pupilsRes, attendanceRes, progressRes, settingsRes] =
       await Promise.all([
         supabase.from('users').select('full_name').eq('id', session.userId).maybeSingle(),
         supabase
@@ -72,11 +69,6 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
           .from('center_settings')
           .select('center_name, daycare_worker_name, barangay_captain_name')
           .maybeSingle(),
-        supabase
-          .from('announcements')
-          .select('id, title, body, posted_by, created_at, author:posted_by(full_name)')
-          .order('created_at', { ascending: false })
-          .limit(100),
       ]);
 
     return {
@@ -90,18 +82,6 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
         (row) => toClientObservation(row as Record<string, unknown>) as ProgressRow
       ),
       settings: (settingsRes.data as CenterSettingsRow | null) ?? EMPTY_SETTINGS,
-      announcements: ((announcementsRes.data as unknown[] | null) ?? []).map((row) => {
-        const a = row as Record<string, unknown>;
-        const author = a.author as { full_name?: string } | null | undefined;
-        return {
-          id: a.id,
-          title: a.title,
-          body: a.body,
-          posted_by: a.posted_by,
-          created_at: a.created_at,
-          author_name: author && typeof author === 'object' ? author.full_name ?? null : null,
-        } as unknown as AnnouncementRow;
-      }),
     };
   } catch {
     // Database unreachable: fall back to the role alone so the shell still

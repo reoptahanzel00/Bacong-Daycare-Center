@@ -48,11 +48,12 @@ export async function POST(request: Request) {
 
       if (error) {
         console.error('[Attendance API] Upsert error:', error);
-        return NextResponse.json({
-          success: true,
-          warning: 'Saved locally but database write failed. Will sync when connection is restored.',
-          count: records.length,
-        });
+        // Not saved. There is no offline queue, so say so rather than letting
+        // the worker believe the register is stored.
+        return NextResponse.json(
+          { success: false, error: 'The attendance register could not be saved. Please try again.' },
+          { status: 503 }
+        );
       }
 
       // Notify linked guardians when a pupil reaches 3+ consecutive absences.
@@ -91,8 +92,11 @@ export async function POST(request: Request) {
         }
       });
     } catch {
-      // Database not configured yet — graceful degradation
-      console.warn('[Attendance API] Database not available, using local state fallback.');
+      console.error('[Attendance API] Database unavailable; register not saved.');
+      return NextResponse.json(
+        { success: false, error: 'The attendance register could not be saved. Please try again.' },
+        { status: 503 }
+      );
     }
 
     return NextResponse.json({

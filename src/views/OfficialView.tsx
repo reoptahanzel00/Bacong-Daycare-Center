@@ -11,17 +11,13 @@ import {
   Download,
   AlertTriangle,
   BellRing,
-  Utensils,
-  CheckCircle,
-  PhoneCall,
 } from 'lucide-react';
-import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
+import { type MockPupil, type MockAttendance, type MockProgress } from '@/contexts/DaycareContext';
 
 interface OfficialViewProps {
   pupils: MockPupil[];
   attendance: MockAttendance[];
   progress: MockProgress[];
-  announcements?: MockAnnouncement[];
   activeTab?: string;
   onOpenDSWDReportModal: () => void;
 }
@@ -30,14 +26,9 @@ export default function OfficialView({
   pupils, 
   attendance, 
   progress, 
-  announcements = [], 
   activeTab = 'overview', 
   onOpenDSWDReportModal 
 }: OfficialViewProps) {
-  const { showToast, logAuditAction } = useDaycare();
-
-  // State for dispatched outreach actions
-  const [dispatchedOutreach, setDispatchedOutreach] = useState<Record<string, boolean>>({});
   // Aggregate milestone count (officials cannot read individual notes; the
   // oversight stat is sourced from the aggregate endpoint instead).
   const [milestoneCount, setMilestoneCount] = useState<number | null>(null);
@@ -80,7 +71,7 @@ export default function OfficialView({
       absentCount: absent,
       attendanceRate: attendance.length
         ? Math.round(((present + late) / attendance.length) * 100)
-        : 100,
+        : null,
     };
   }, [attendance]);
 
@@ -93,12 +84,6 @@ export default function OfficialView({
     () => enrolledPupils.filter(p => (p.consecutiveAbsences || 0) >= 2),
     [enrolledPupils]
   );
-
-  const handleDispatchOutreach = (pupilId: string, pupilName: string) => {
-    setDispatchedOutreach(prev => ({ ...prev, [pupilId]: true }));
-    showToast(`Barangay Health Worker outreach dispatched for ${pupilName}!`, 'success');
-    logAuditAction('Dispatched Health Worker Outreach', pupilId, `Assigned barangay health worker to visit ${pupilName}'s household.`);
-  };
 
   return (
     <div className="space-y-6" suppressHydrationWarning>
@@ -145,7 +130,7 @@ export default function OfficialView({
                 <CheckCircle2 size={22} />
               </div>
               <div>
-                <div className="text-2xl font-extrabold text-[#2B6CB0] leading-none">{attendanceRate}%</div>
+                <div className="text-2xl font-extrabold text-[#2B6CB0] leading-none">{attendanceRate === null ? '—' : `${attendanceRate}%`}</div>
                 <div className="text-xs text-ink-muted mt-1">Average Attendance Rate</div>
               </div>
             </div>
@@ -311,7 +296,7 @@ export default function OfficialView({
                 Official DSWD Form 1 ECCD Report Center
               </h3>
               <p className="text-xs text-ink-muted mt-1 m-0">
-                Generate and export official quarterly summary reports for DSWD Field Office VII submission.
+                Generate and export the DSWD Form 1 summary report for submission to the DSWD Field Office III.
               </p>
             </div>
             <button
@@ -328,19 +313,6 @@ export default function OfficialView({
             <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
               <span className="text-xs font-bold text-ink-muted uppercase">Total Enrolled Pupils</span>
               <div className="text-2xl font-extrabold text-primary">{enrolledPupils.length} Children</div>
-              <span className="text-[10px] text-ink-subtle">Room A & Room B Daycare Center</span>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="text-xs font-bold text-ink-muted uppercase">Council Resolution</span>
-              <div className="text-sm font-extrabold text-emerald-700">Resolution No. 2026-04 Approved</div>
-              <span className="text-[10px] text-ink-subtle">Barangay Bacong Council Session</span>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="text-xs font-bold text-ink-muted uppercase">Compliance Status</span>
-              <div className="text-sm font-extrabold text-[#2B6CB0]">DSWD Region III Compliant ✅</div>
-              <span className="text-[10px] text-ink-subtle">7-Domain Checklist Complete</span>
             </div>
           </div>
         </div>
@@ -382,81 +354,6 @@ export default function OfficialView({
                     </span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {dispatchedOutreach[p.id] ? (
-                    <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1">
-                      <CheckCircle size={14} /> BHW Outreach Dispatched
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleDispatchOutreach(p.id, `${p.firstName} ${p.lastName}`)}
-                      className="btn btn-sm bg-danger text-white hover:bg-[#B71C1C] font-bold shadow-md"
-                      suppressHydrationWarning
-                    >
-                      <PhoneCall size={14} />
-                      <span>Dispatch Health Worker Visit</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: Supplemental Feeding Program & Announcements */}
-      {(activeTab === 'announcements' || activeTab === 'feeding_program') && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Utensils size={18} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Barangay Daycare Supplemental Feeding Program
-                </span>
-              </div>
-              <h3 className="text-lg font-extrabold text-ink m-0">
-                Nutritional Feeding Allocation & Council Notices
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                Monitoring 120-day DSWD supplemental feeding menu allocations and council daycare announcements.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="font-bold text-primary">Monday / Wednesday Menu</span>
-              <div className="font-extrabold text-ink">Pork & Malunggay Monggo Soup</div>
-              <span className="text-[10px] text-ink-subtle">Rich in iron & vitamins A/C</span>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="font-bold text-[#2B6CB0]">Tuesday / Thursday Menu</span>
-              <div className="font-extrabold text-ink">Chicken Lugaw with Hard-Boiled Egg</div>
-              <span className="text-[10px] text-ink-subtle">High protein growth support</span>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="font-bold text-warn">Friday Menu</span>
-              <div className="font-extrabold text-ink">Champorado with Fortified Milk</div>
-              <span className="text-[10px] text-ink-subtle">Calcium & energy boost</span>
-            </div>
-          </div>
-
-          <div className="space-y-3 pt-3 border-t border-line">
-            <h4 className="text-sm font-bold text-ink m-0">Barangay Council Daycare Notices Feed</h4>
-            {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-primary">{notice.title}</span>
-                  <span className="text-[11px] text-ink-subtle">{notice.date}</span>
-                </div>
-                <p className="text-xs text-ink-soft m-0">{notice.content}</p>
-                {notice.authorName && (
-                  <div className="text-[10px] text-ink-subtle font-semibold">Posted by {notice.authorName}</div>
-                )}
               </div>
             ))}
           </div>

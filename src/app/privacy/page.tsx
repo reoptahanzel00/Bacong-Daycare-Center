@@ -21,12 +21,12 @@ const NOTICE_BODY: Array<{ heading: string; body: string }> = [
   {
     heading: 'What we collect',
     body:
-      "Your child's full name, date of birth, sex, and home address; your name, relationship to the child, and contact number; the sociodemographic details of the ECCD Form (parents' names, ages, occupations and education, number of siblings, birth order); daily attendance; developmental observations against the DepEd ECCD checklist; and height and weight records.",
+      "Your child's full name, date of birth, sex, and home address; your name, relationship to the child, and contact number; the sociodemographic details of the ECCD Form (parents' names, ages, occupations and education, number of siblings, birth order); daily attendance; parents’ absence notes; and developmental observations against the DSWD ECCD checklist, including the Child & Family Background notes of the ECCD form.",
   },
   {
     heading: 'Why we collect it',
     body:
-      'To enrol your child, keep the daily attendance register, record developmental progress against the ECCD checklist, monitor nutrition and growth, and produce the reports the Barangay and the DSWD require.',
+      'To enrol your child, keep the daily attendance register, record developmental progress against the ECCD checklist, and produce the reports the Barangay and the DSWD require.',
   },
   {
     heading: 'Who can see it',
