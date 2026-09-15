@@ -43,11 +43,11 @@ export default function DSWDReportModal({
 
   const totalAttendance = attendance.length;
   const totalPresent = attendance.filter(a => a.status === 'present' || a.status === 'late').length;
-  const avgAttendance = totalAttendance ? Math.round((totalPresent / totalAttendance) * 100) : 92;
+  const avgAttendance = totalAttendance ? Math.round((totalPresent / totalAttendance) * 100) : null;
 
-  const masteredCount = progress.filter(p => p.rating === 'Demonstrates Mastery' || p.rating === 'Mastered').length;
-  const totalProg = progress.length || 1;
-  const masteredPercent = Math.round((masteredCount / totalProg) * 100);
+  // Enrolled children with at least one ECCD checklist rating on record.
+  const enrolledIds = new Set(enrolledPupils.map(p => p.id));
+  const eccdAssessed = new Set(progress.filter(p => enrolledIds.has(p.pupil_id)).map(p => p.pupil_id)).size;
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
@@ -77,7 +77,7 @@ export default function DSWDReportModal({
         maleCount,
         femaleCount,
         avgAttendance,
-        masteredPercent,
+        eccdAssessed,
         pupils: rows,
         centerName: settings.center_name,
         // The preparer certifies the copy they generated; the noting official
@@ -168,12 +168,12 @@ export default function DSWDReportModal({
                 <div className="text-[10px] font-bold text-ink-muted uppercase">Sex Ratio</div>
               </div>
               <div className="p-3 rounded-2xl bg-warn-light border border-warn-fill/30">
-                <div className="text-xl font-extrabold text-warn">{avgAttendance}%</div>
+                <div className="text-xl font-extrabold text-warn">{avgAttendance === null ? 'No records' : `${avgAttendance}%`}</div>
                 <div className="text-[10px] font-bold text-ink-muted uppercase">Avg Attendance</div>
               </div>
               <div className="p-3 rounded-2xl bg-danger-light border border-danger-border">
-                <div className="text-xl font-extrabold text-danger">{masteredPercent}%</div>
-                <div className="text-[10px] font-bold text-ink-muted uppercase">ECCD Mastery</div>
+                <div className="text-xl font-extrabold text-danger">{eccdAssessed} of {enrolledPupils.length}</div>
+                <div className="text-[10px] font-bold text-ink-muted uppercase">ECCD Assessed</div>
               </div>
             </div>
 

@@ -22,7 +22,7 @@ export default async function Home() {
 
   const initial = isConfigured
     ? await loadInitialAppData()
-    : { role: null, userName: null, pupils: [], attendance: [], progress: [], announcements: [] };
+    : { role: null, userName: null, pupils: [], attendance: [], progress: [] };
 
   // The middleware already redirects unauthenticated visitors; this is the
   // server-side backstop for a session that resolves to no provisioned role.

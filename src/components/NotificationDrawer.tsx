@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, X, AlertTriangle, Megaphone, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
+import { Bell, X, AlertTriangle, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
 
 interface NotificationItem {
   id: string;
@@ -57,7 +57,6 @@ export default function NotificationDrawer({
         {notifications.length > 0 ? (
           notifications.map((n) => {
             const isAbsence = n.type === 'consecutive_absences';
-            const isNotice = n.type === 'announcement';
 
             return (
               <div
@@ -65,16 +64,13 @@ export default function NotificationDrawer({
                 className={`p-3 rounded-2xl border text-xs transition-all ${
                   isAbsence
                     ? 'bg-danger-light border-danger-border'
-                    : isNotice
-                    ? 'bg-warn-light border-warn-border'
                     : 'bg-canvas border-line'
                 }`}
               >
                 <div className="flex items-start gap-2.5">
                   <div className="p-2 rounded-xl bg-white shadow-sm flex-shrink-0">
                     {isAbsence && <AlertTriangle size={16} className="text-danger" />}
-                    {isNotice && <Megaphone size={16} className="text-warn" />}
-                    {!isAbsence && !isNotice && <Sparkles size={16} className="text-primary" />}
+                    {!isAbsence && <Sparkles size={16} className="text-primary" />}
                   </div>
 
                   <div className="flex-1 min-w-0">

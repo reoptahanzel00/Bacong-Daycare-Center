@@ -37,12 +37,6 @@ INSERT INTO guardians (pupil_id, full_name, relationship, phone, is_primary_cont
   ('PUP-2026-006', 'Patricia Villanueva', 'Mother', '0922-333-7711', true)
 ON CONFLICT DO NOTHING;
 
--- 5. Seed Announcements (fixed IDs so re-runs are idempotent)
-INSERT INTO announcements (id, title, body) VALUES
-  ('a0000000-0000-0000-0000-000000000001', '📢 Nutrition Month Feeding Program', 'Barangay Nutrition Council feeding session on Friday, Aug 15. Please bring reusable food containers.'),
-  ('a0000000-0000-0000-0000-000000000002', '🩺 Dengue Awareness & Clean-up Drive', 'Barangay Health Workers will conduct a fogging and clean-up activity on Saturday morning.')
-ON CONFLICT (id) DO NOTHING;
-
 -- 6. Seed Demo Attendance (recent school days so UAT dashboards/reports
 --    show meaningful data). Most pupils are present; a few late/absent rows
 --    demonstrate the consecutive-absences trigger and absence alerts.

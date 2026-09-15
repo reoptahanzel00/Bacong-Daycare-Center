@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { checkPassword } from '@/lib/password';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
+import { clearStoredData } from '@/data/mockData';
 
 type UserRole = 'worker' | 'official' | 'barangay_admin' | 'parent';
 type AuthMode = 'signin' | 'create';
@@ -79,6 +80,12 @@ const ROLE_OPTIONS: Array<{ id: UserRole; label: string; hint: string; isPublic:
 
 export default function AuthPage() {
   const router = useRouter();
+
+  // Arriving here means no session: an expired one, a redirect, or a sign-out
+  // from another tab. Leave nothing from the previous user on a shared phone.
+  useEffect(() => {
+    clearStoredData();
+  }, []);
 
   const [mode, setMode] = useState<AuthMode>(() =>
     typeof window !== 'undefined' && window.location.hash === '#create' ? 'create' : 'signin'

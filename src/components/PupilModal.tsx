@@ -53,7 +53,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
       address: formData.address,
       enrollmentStatus: formData.enrollmentStatus,
       enrollmentDate: pupilToEdit ? pupilToEdit.enrollmentDate : todayLocalISO(),
-      avatar: pupilToEdit ? pupilToEdit.avatar : 'https://images.unsplash.com/photo-1543332164-6e82f355badc?auto=format&fit=crop&w=200&q=80',
+      avatar: pupilToEdit ? pupilToEdit.avatar : undefined,
       guardian: {
         fullName: formData.guardianName,
         relationship: formData.relationship,

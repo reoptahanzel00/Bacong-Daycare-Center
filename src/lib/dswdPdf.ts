@@ -37,8 +37,9 @@ export interface DswdReportData {
   totalEnrolled: number;
   maleCount: number;
   femaleCount: number;
-  avgAttendance: number;
-  masteredPercent: number;
+  avgAttendance: number | null;
+  /** Enrolled children with at least one ECCD checklist rating. */
+  eccdAssessed: number;
   pupils: DswdPupilRow[];
   preparedBy: string;
   notedBy: string;
@@ -98,12 +99,12 @@ export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdRepor
   autoTable(doc, {
     startY: 43,
     margin: { left: MARGIN, right: MARGIN, top: 43, bottom: 18 },
-    head: [['Total Enrolled', 'Sex Ratio (M / F)', 'Average Attendance', 'ECCD Mastery']],
+    head: [['Total Enrolled', 'Sex Ratio (M / F)', 'Average Attendance', 'ECCD Assessed']],
     body: [[
       String(data.totalEnrolled),
       `${data.maleCount} M / ${data.femaleCount} F`,
-      `${data.avgAttendance}%`,
-      `${data.masteredPercent}%`,
+      data.avgAttendance === null ? 'No records' : `${data.avgAttendance}%`,
+      `${data.eccdAssessed} of ${data.totalEnrolled}`,
     ]],
     theme: 'grid',
     styles: { font: 'helvetica', fontSize: 9, cellPadding: 3, halign: 'center', textColor: INK,

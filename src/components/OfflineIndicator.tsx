@@ -34,7 +34,7 @@ export default function OfflineIndicator() {
       suppressHydrationWarning
     >
       <WifiOff size={15} className="shrink-0" />
-      <span>You&apos;re offline — changes save locally and sync when you&apos;re back online.</span>
+      <span>You&apos;re offline — changes can&apos;t be saved until you&apos;re back online.</span>
     </div>
   );
 }

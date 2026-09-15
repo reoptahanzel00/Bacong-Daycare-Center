@@ -119,13 +119,11 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true, observation: data });
     } catch {
-      // Database not configured — return optimistic local record with warning
-      console.warn('[Progress API] Database not available. Returning local record.');
-      return NextResponse.json({
-        success: true,
-        observation: record,
-        warning: 'Saved locally only. Database not connected.',
-      });
+      console.error('[Progress API] Database unavailable; observation not saved.');
+      return NextResponse.json(
+        { success: false, error: 'The observation could not be saved. Please try again.' },
+        { status: 503 }
+      );
     }
   } catch (error) {
     if (error instanceof z.ZodError) {

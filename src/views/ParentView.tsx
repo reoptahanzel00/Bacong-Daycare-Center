@@ -2,45 +2,52 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-  Heart, 
-  TrendingUp, 
-  AlertTriangle, 
-  PhoneCall, 
-  Download, 
+  Heart,
+  TrendingUp,
+  AlertTriangle,
+  Download,
   BookOpen,
   MessageSquare,
-  Activity,
-  Image as ImageIcon,
-  FolderCheck,
+  School,
   Send,
   Clock,
   CheckCircle,
   Pencil,
   AlertCircle,
 } from 'lucide-react';
-import Image from 'next/image';
-import { DEFAULT_AVATAR } from '@/data/mockData';
+import PupilAvatar from '@/components/PupilAvatar';
 import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
-import { fetchEccdRatings, fetchEccdScores, fetchChildBackground, saveChildBackground, type ChildBackground, type EccdRound } from '@/services/eccdService';
-import { submitParentNote } from '@/services/parentNotesService';
+import {
+  fetchEccdRatings,
+  fetchEccdScores,
+  fetchEccdRecord,
+  fetchChildBackground,
+  saveChildBackground,
+  type ChildBackground,
+  type EccdRound,
+} from '@/services/eccdService';
+import { fetchParentNotes, submitParentNote } from '@/services/parentNotesService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
-import { useDaycare, type MockPupil, type MockAttendance, type MockProgress, type MockAnnouncement } from '@/contexts/DaycareContext';
+import { useDaycare, type MockPupil, type MockAttendance } from '@/contexts/DaycareContext';
 import { todayLocalISO } from '@/lib/dates';
+import {
+  ROUND_ORDINAL,
+  computeAgeYMD,
+  latestGradedRound,
+  rawScore,
+  type EccdRecordRound,
+} from '@/lib/eccdRecord';
 
 interface ParentViewProps {
   pupils: MockPupil[];
   attendance: MockAttendance[];
-  progress: MockProgress[];
-  announcements: MockAnnouncement[];
   activeTab?: string;
 }
 
-export default function ParentView({ 
-  pupils, 
-  attendance, 
-  progress, 
-  announcements, 
+export default function ParentView({
+  pupils,
+  attendance,
   activeTab = 'child'
 }: ParentViewProps) {
   const { showToast, logAuditAction, settings } = useDaycare();
@@ -59,39 +66,67 @@ export default function ParentView({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Direct Teacher Message / Absence Note Form State
-  const [absenceReason, setAbsenceReason] = useState<string>('Illness / Medical');
+  const [absenceReason, setAbsenceReason] = useState<string>('Illness / Fever');
   const [absenceDate, setAbsenceDate] = useState<string>(todayLocalISO());
   const [guardianNotes, setGuardianNotes] = useState<string>('');
-  const [contactPhone, setContactPhone] = useState<string>('0917-888-9900');
+  const [contactPhone, setContactPhone] = useState<string | null>(null);
   interface ParentSubmittedNote {
     id: string;
+    pupilId: string;
     date: string;
     reason: string;
     notes: string;
     phone: string;
-    status: string;
-    teacherReply?: string;
+    acknowledged: boolean;
     submittedAt: string;
   }
 
-  const [submittedNotes, setSubmittedNotes] = useState<ParentSubmittedNote[]>([
-    {
-      id: 'NOTE-101',
-      date: '2026-02-09',
-      reason: 'Doctor Visit / Checkup',
-      notes: 'Maria had her routine 4-year-old pediatric checkup and immunization update at Barangay Bacong Health Center.',
-      phone: '0917-888-9900',
-      status: 'Excused & Acknowledged',
-      teacherReply: 'Thank you for updating us! Record has been marked as excused absence.',
-      submittedAt: 'Feb 9, 2026 07:45 AM',
-    }
-  ]);
+  const [submittedNotes, setSubmittedNotes] = useState<ParentSubmittedNote[]>([]);
+  // The latest graded ECCD round, for the progress summary on the profile tab.
+  const [latestRound, setLatestRound] = useState<EccdRecordRound | null>(null);
 
   // Active Linked Child Record
   const child = useMemo(
     () => pupils.find(p => p.id === selectedChildId) || pupils[0],
     [pupils, selectedChildId]
   );
+
+  // The guardian's phone on file, unless the parent types a different one.
+  const notePhone = contactPhone ?? child?.guardian?.phone ?? '';
+
+  // The notes this parent has actually sent (RLS returns only their own).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetchParentNotes();
+      if (cancelled || !res.ok) return;
+      setSubmittedNotes(res.notes.map((n) => ({
+        id: n.id,
+        pupilId: n.pupil_id,
+        date: n.note_date,
+        reason: n.reason,
+        notes: n.notes,
+        phone: n.phone || '',
+        acknowledged: n.status === 'acknowledged',
+        submittedAt: n.submitted_at ? new Date(n.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
+      })));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // The child's ECCD record, reduced to the most recent graded round.
+  useEffect(() => {
+    if (!child?.id || child.enrollmentStatus !== 'enrolled') return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchEccdRecord(child.id);
+      if (!cancelled) setLatestRound(res.record ? latestGradedRound(res.record) : null);
+    })();
+    return () => { cancelled = true; };
+  }, [child?.id, child?.enrollmentStatus]);
+
+  const childAge = child?.birthDate ? computeAgeYMD(child.birthDate, todayLocalISO()) : null;
+  const childNotes = submittedNotes.filter((n) => n.pupilId === child?.id);
 
   const childAttendance = useMemo(
     () => attendance.filter(a => a.pupil_id === child?.id),
@@ -165,11 +200,7 @@ export default function ParentView({
   const absentCount = childAttendance.filter(a => a.status === 'absent').length;
   const totalAtt = childAttendance.length;
 
-  const rate = totalAtt ? Math.round(((presentCount + lateCount) / totalAtt) * 100) : 100;
-  const childProgress = useMemo(
-    () => progress.filter(p => p.pupil_id === child?.id),
-    [progress, child?.id]
-  );
+  const rate = totalAtt ? Math.round(((presentCount + lateCount) / totalAtt) * 100) : null;
 
   const handleAcknowledgeAlert = (alertId: string) => {
     setAcknowledgedAlerts(prev => ({ ...prev, [alertId]: true }));
@@ -185,50 +216,32 @@ export default function ParentView({
     }
     if (!child?.id) return;
 
-    const newNote = {
-      id: `NOTE-${Date.now().toString().slice(-4)}`,
-      date: absenceDate,
-      reason: absenceReason,
-      notes: guardianNotes,
-      phone: contactPhone,
-      status: 'Pending Teacher Review',
-      submittedAt: new Date().toLocaleString('sv').replace('T', ' '),
-    };
-
-    setSubmittedNotes(prev => [newNote, ...prev]);
-    setGuardianNotes('');
-
-    // Persist to the real parent-notes inbox (best-effort).
     const res = await submitParentNote({
       pupil_id: child.id,
       date: absenceDate,
       reason: absenceReason,
       notes: guardianNotes,
-      phone: contactPhone,
+      phone: notePhone,
     });
-    if (res.success) {
-      showToast(`Absence note for ${absenceDate} sent to Teacher Teresa!`, 'success');
-    } else {
-      showToast(`Note saved locally — could not reach the daycare server.`, 'warning');
+    if (!res.success) {
+      // Nothing is kept on the phone: the note is not sent until the server has it.
+      showToast('Could not send the note — check your connection and try again.', 'danger');
+      return;
     }
-    logAuditAction('Submitted Absence Note', child?.id || 'PUP-001', `Reason: ${absenceReason} for date ${absenceDate}`);
-  };
 
-  const getRatingProgressPercent = (rating?: string) => {
-    switch (rating) {
-      case 'Demonstrates Mastery':
-      case 'Mastered':
-      case 'P':
-        return 100;
-      case 'Developing':
-      case 'O':
-        return 75;
-      case 'Needs Practice':
-      case 'R':
-        return 45;
-      default:
-        return 60;
-    }
+    setSubmittedNotes(prev => [{
+      id: res.note?.id || `NOTE-${Date.now()}`,
+      pupilId: child.id,
+      date: absenceDate,
+      reason: absenceReason,
+      notes: guardianNotes,
+      phone: notePhone,
+      acknowledged: false,
+      submittedAt: new Date().toLocaleString('sv').replace('T', ' '),
+    }, ...prev]);
+    setGuardianNotes('');
+    showToast(`Absence note for ${absenceDate} sent to the Daycare Worker.`, 'success');
+    logAuditAction('Submitted Absence Note', child.id, `Reason: ${absenceReason} for date ${absenceDate}`);
   };
 
   // ECCD Checklist active domain
@@ -237,42 +250,6 @@ export default function ParentView({
   const domainMasteryPct = activeDomain.items.length > 0
     ? Math.round((domainPresentCount / activeDomain.items.length) * 100)
     : 0;
-
-  // Classroom photo gallery items
-  const galleryPhotos = [
-    {
-      id: 1,
-      title: 'Art & Fine Motor Station',
-      date: 'Feb 10, 2026',
-      tag: 'Fine Motor Domain',
-      src: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=80',
-      caption: 'Children practicing color recognition, paper folding, and crayon palmar grip during station activity.'
-    },
-    {
-      id: 2,
-      title: 'Nutritional Snack & Manners',
-      date: 'Feb 09, 2026',
-      tag: 'Self-Help Domain',
-      src: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80',
-      caption: 'Morning healthy snack session focusing on handwashing, utensil holding, and table etiquette.'
-    },
-    {
-      id: 3,
-      title: 'Storytelling & Receptive Language',
-      date: 'Feb 06, 2026',
-      tag: 'Language Domain',
-      src: 'https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=600&q=80',
-      caption: 'Interactive storytelling circle with Teacher Teresa reading Tagalog early literacy picture books.'
-    },
-    {
-      id: 4,
-      title: 'Outdoor Movement & Balance Games',
-      date: 'Feb 04, 2026',
-      tag: 'Gross Motor Domain',
-      src: 'https://images.unsplash.com/photo-1472162072942-cd5147eb3902?auto=format&fit=crop&w=600&q=80',
-      caption: 'Barangay daycare playground games practicing hopping, walking backward, and balance beams.'
-    }
-  ];
 
   return (
     <div className="space-y-6 pb-12" suppressHydrationWarning>
@@ -304,7 +281,7 @@ export default function ParentView({
                     : 'bg-canvas text-ink border-line hover:border-accent-coral'
                 }`}
               >
-                <Image src={p.avatar || DEFAULT_AVATAR} alt={p.firstName} width={24} height={24} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                <PupilAvatar src={p.avatar} firstName={p.firstName} lastName={p.lastName} size={24} className="rounded-full" />
                 <span>{p.firstName} {p.lastName}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-line-strong text-ink-muted'}`}>
                   {p.id}
@@ -331,19 +308,19 @@ export default function ParentView({
           <div className="card bg-gradient-to-br from-accent-coral via-[#E87556] to-[#D96B4D] text-white p-6 rounded-3xl shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
               <div className="flex items-center gap-4">
-                <Image
-                  src={child?.avatar || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=150&q=80'}
-                  alt={child?.firstName || 'Child avatar'}
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-white/40 shadow-md shrink-0"
+                <PupilAvatar
+                  src={child?.avatar}
+                  firstName={child?.firstName}
+                  lastName={child?.lastName}
+                  size={64}
+                  className="rounded-2xl border-2 border-white/40 shadow-md"
                 />
                 <div>
                   <h2 className="text-xl md:text-2xl font-extrabold text-white m-0 tracking-tight">
                     {child?.firstName} {child?.lastName}
                   </h2>
                   <p className="text-xs text-white/90 mt-1 m-0">
-                    ID: <strong>{child?.id}</strong> • Sex: <strong>{child?.sex}</strong> • DOB: <strong>{child?.birthDate}</strong> (4 yrs old)
+                    ID: <strong>{child?.id}</strong> • Sex: <strong>{child?.sex}</strong> • DOB: <strong>{child?.birthDate}</strong>{childAge ? <> ({childAge.y} yr{childAge.y === 1 ? '' : 's'} {childAge.m} mo)</> : null}
                   </p>
                   <p className="text-xs text-white/85 mt-0.5 m-0">
                     Assigned Daycare Class: <strong>{settings.center_name}</strong>{settings.daycare_worker_name ? <> &bull; Lead Teacher: <strong>{settings.daycare_worker_name}</strong></> : null}
@@ -371,7 +348,7 @@ export default function ParentView({
           {/* Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
             <div className="card bg-primary-light border border-primary-display/20 p-4">
-              <div className="text-2xl font-extrabold text-primary">{rate}%</div>
+              <div className="text-2xl font-extrabold text-primary">{rate === null ? '—' : `${rate}%`}</div>
               <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Attendance Rate</div>
             </div>
             <div className="card bg-[#EBF8FF] border border-[#2B6CB0]/20 p-4">
@@ -443,7 +420,8 @@ export default function ParentView({
                 <div>
                   <div className="font-bold text-danger text-sm">Attendance Advisory Alert</div>
                   <p className="text-ink-soft m-0 mt-0.5 leading-relaxed">
-                    {child?.firstName} has accumulated absences. Automated SMS alert telemetry sent to primary guardian ({child?.guardian?.phone || '0917-888-9900'}).
+                    {child?.firstName} has {absentCount} recorded absences. Please send the Daycare Worker a note
+                    explaining any absence from the Teacher Messages &amp; Notes tab.
                   </p>
                 </div>
               </div>
@@ -503,63 +481,71 @@ export default function ParentView({
           {/* Main Grid: Progress Evaluation & Attendance Log */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* 4-Domain Progress Overview */}
+            {/* ECCD progress: the latest graded assessment, per domain */}
             <div className="card bg-white p-5 lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-primary">
                   <TrendingUp size={20} />
                   <h3 className="text-base font-bold text-ink m-0">
-                    {child?.firstName}&rsquo;s 4-Domain Progress Summary
+                    {child?.firstName}&rsquo;s ECCD Progress
                   </h3>
                 </div>
-                <span className="badge badge-primary">{childProgress.length} Domains Evaluated</span>
+                {latestRound && (
+                  <span className="badge badge-primary">
+                    {ROUND_ORDINAL[latestRound.round]} assessment{latestRound.testedOn ? ` • ${latestRound.testedOn}` : ''}
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-4">
-                {childProgress.map((item) => {
-                  const percent = getRatingProgressPercent(item.rating);
-                  return (
-                    <div key={item.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-ink text-sm">{item.domain}</span>
-                          <span className="px-2.5 py-0.5 rounded-full font-bold bg-primary-light text-primary text-[10px]">
-                            {item.rating}
+              {latestRound ? (
+                <div className="space-y-3">
+                  {ECCD_DOMAINS.map((dom) => {
+                    const raw = rawScore(latestRound, dom.id);
+                    const percent = Math.round((raw / dom.items.length) * 100);
+                    return (
+                      <div key={dom.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-ink">{dom.shortLabel}</span>
+                          <span className="font-semibold text-ink-muted">
+                            {raw} of {dom.items.length} skills shown
                           </span>
                         </div>
-                        <span className="text-[11px] text-ink-subtle font-semibold">{item.date}</span>
-                      </div>
-
-                      <div className="w-full h-2.5 bg-line-strong rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-primary-display to-primary-hover rounded-full transition-all duration-500"
-                          style={{ width: `${percent}%` }}
-                        ></div>
+                          className="w-full h-2.5 bg-line-strong rounded-full overflow-hidden"
+                          role="img"
+                          aria-label={`${dom.shortLabel}: ${raw} of ${dom.items.length} skills shown`}
+                        >
+                          <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: dom.color }}></div>
+                        </div>
                       </div>
-
-                      <p className="text-xs text-ink-soft leading-relaxed m-0 pt-1">{item.notes}</p>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                  <p className="text-[11px] text-ink-subtle m-0 pt-1">
+                    From the Daycare Worker&apos;s ECCD checklist. See the full checklist in the {ECCD_TOTAL_ITEMS}-Item ECCD Checklist tab.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-canvas border border-line text-center text-xs text-ink-muted">
+                  No ECCD assessment has been recorded for {child?.firstName} yet.
+                </div>
+              )}
             </div>
 
-            {/* Sidebar: Teacher Contact & Attendance History */}
+            {/* Sidebar: Teacher & Attendance History */}
             <div className="space-y-6">
-              
-              <div className="card bg-white p-5 space-y-3 border border-line">
-                <div className="flex items-center gap-2 text-primary">
-                  <PhoneCall size={18} />
-                  <h4 className="text-sm font-bold text-ink m-0">Lead Teacher Contact</h4>
-                </div>
-                <div className="p-3 rounded-2xl bg-canvas border border-line text-xs space-y-1.5">
-                  <div className="font-bold text-ink">Teacher Teresa Cruz</div>
-                  <div className="text-ink-muted">Lead Daycare Worker • Barangay Bacong</div>
-                  <div className="text-primary font-semibold flex items-center gap-1">
-                    <PhoneCall size={12} /> 0917-000-1122
+
+              {settings.daycare_worker_name && (
+                <div className="card bg-white p-5 space-y-3 border border-line">
+                  <div className="flex items-center gap-2 text-primary">
+                    <School size={18} />
+                    <h4 className="text-sm font-bold text-ink m-0">Daycare Worker</h4>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-canvas border border-line text-xs space-y-1.5">
+                    <div className="font-bold text-ink">{settings.daycare_worker_name}</div>
+                    <div className="text-ink-muted">{settings.center_name}</div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="card bg-white p-5 space-y-3 border border-line">
                 <div className="flex items-center justify-between">
@@ -611,8 +597,8 @@ export default function ParentView({
                       daycare center to resolve the following: <strong>{child?.rejectionReason || 'No reason provided.'}</strong></>
                     ) : (
                       <>Your child&apos;s sociodemographic profile has been submitted and is being
-                      reviewed by the Daycare Worker. Once approved, attendance, ECCD checklists,
-                      and health tracking will appear here.</>
+                      reviewed by the Daycare Worker. Once approved, attendance and the ECCD
+                      checklist will appear here.</>
                     )}
                   </p>
                   <span className={`badge ${child?.enrollmentStatus === 'rejected' ? 'badge-danger' : 'badge-warning'} font-bold uppercase`}>
@@ -707,7 +693,7 @@ export default function ParentView({
                 <h4 className="text-base font-extrabold text-ink m-0">{activeDomain.label}</h4>
               </div>
               <p className="text-xs text-ink-muted mt-1 m-0">
-                Assessing {activeDomain.items.length} DepEd competency metrics for age 4 early childhood milestones.
+                {activeDomain.items.length} items on the ECCD Checklist, Child&apos;s Record 2 (ages 3 years 1 month to 5 years).
               </p>
             </div>
 
@@ -772,7 +758,7 @@ export default function ParentView({
               <h3 className="text-base font-bold text-ink m-0">Submit Absence Notice</h3>
             </div>
             <p className="text-xs text-ink-muted m-0 leading-relaxed">
-              Send an absence excusal note or medical advisory directly to Teacher Teresa for <strong>{child?.firstName}</strong>.
+              Send an absence note to the Daycare Worker for <strong>{child?.firstName}</strong>.
             </p>
 
             <form onSubmit={handleSendAbsenceNote} className="space-y-3.5">
@@ -805,7 +791,7 @@ export default function ParentView({
                 <label htmlFor="srcviewsparentview-guardian-contact-phone-3" className="block text-xs font-bold text-ink mb-1">Guardian Contact Phone</label>
                 <input id="srcviewsparentview-guardian-contact-phone-3"
                   type="text"
-                  value={contactPhone}
+                  value={notePhone}
                   onChange={(e) => setContactPhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-2xl border border-line bg-canvas text-xs font-semibold focus:outline-none focus:border-primary-display"
                 />
@@ -839,257 +825,48 @@ export default function ParentView({
                 <h3 className="text-base font-bold text-ink m-0">Submitted Guardian Notices Log</h3>
                 <span className="text-xs text-ink-muted">History of absence notes and teacher responses</span>
               </div>
-              <span className="badge badge-primary">{submittedNotes.length} Submitted Notes</span>
+              <span className="badge badge-primary">{childNotes.length} Submitted Notes</span>
             </div>
 
             <div className="space-y-3">
-              {submittedNotes.map((note) => (
+              {childNotes.length === 0 && (
+                <div className="p-4 rounded-2xl bg-canvas border border-line text-center text-xs text-ink-muted">
+                  No notes sent for {child?.firstName} yet.
+                </div>
+              )}
+              {childNotes.map((note) => (
                 <div key={note.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-primary text-sm">{note.reason}</span>
                       <span className="badge badge-warning text-[10px]">{note.date}</span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]">
-                      {note.status}
+                    <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
+                      note.acknowledged
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-warn-light text-warn border-warn-border'
+                    }`}>
+                      {note.acknowledged ? 'Acknowledged' : 'Awaiting review'}
                     </span>
                   </div>
 
                   <p className="text-xs text-ink-soft leading-relaxed m-0">{note.notes}</p>
 
-                  {note.teacherReply && (
-                    <div className="p-3 rounded-2xl bg-white border border-primary-display/30 text-xs space-y-1 mt-2">
-                      <div className="font-bold text-primary flex items-center gap-1.5">
-                        <CheckCircle size={14} /> Teacher Teresa Cruz Replied:
-                      </div>
-                      <p className="text-ink-soft m-0 italic">{note.teacherReply}</p>
+                  {note.acknowledged && (
+                    <div className="font-bold text-primary text-xs flex items-center gap-1.5">
+                      <CheckCircle size={14} /> Acknowledged by the Daycare Worker
                     </div>
                   )}
 
                   <div className="flex items-center justify-between pt-2 border-t border-line text-[10px] text-ink-subtle">
                     <span>Submitted: {note.submittedAt}</span>
-                    <span>Contact: {note.phone}</span>
+                    {note.phone && <span>Contact: {note.phone}</span>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-        </div>
-      )}
-
-      {/* TAB 4: Nutritional & Growth Tracker */}
-      {activeTab === 'health_tracker' && (
-        child?.enrollmentStatus !== 'enrolled' ? (
-          <div className="p-6 rounded-3xl bg-white border border-line shadow-sm text-center">
-            <Activity size={28} className="text-warn mx-auto mb-2" />
-            <p className="text-sm font-bold text-ink m-0">Health tracking unavailable</p>
-            <p className="text-xs text-ink-muted m-0 mt-1">
-              Nutritional and growth tracking unlocks once this child&apos;s enrollment is approved.
-            </p>
-          </div>
-        ) : (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Activity size={18} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Barangay Health Center Integration
-                </span>
-              </div>
-              <h3 className="text-lg font-extrabold text-ink m-0">
-                Nutritional Status & Growth Telemetry
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                Height, Weight, and BMI metrics recorded by daycare staff and barangay health workers.
-              </p>
-            </div>
-            <span className="badge badge-success font-bold">Normal Status</span>
-          </div>
-
-          {/* Metric Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="card bg-primary-light border border-primary-display/20 p-4">
-              <div className="text-2xl font-extrabold text-primary">14.5 kg</div>
-              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Weight-for-Age (Normal)</div>
-            </div>
-
-            <div className="card bg-[#EBF8FF] border border-[#2B6CB0]/20 p-4">
-              <div className="text-2xl font-extrabold text-[#2B6CB0]">98.5 cm</div>
-              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Height-for-Age (Normal)</div>
-            </div>
-
-            <div className="card bg-warn-light border border-warn-fill/30 p-4">
-              <div className="text-2xl font-extrabold text-warn">14.9 BMI</div>
-              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mt-1">Weight-for-Height (Healthy)</div>
-            </div>
-          </div>
-
-          {/* Immunization Verification List */}
-          <div className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
-            <h4 className="text-sm font-bold text-ink m-0">Barangay Health Center Immunization Checklist</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <span className="font-bold text-ink">BCG Vaccine</span>
-                <span className="badge badge-success">Verified ✅</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <span className="font-bold text-ink">DPT Booster</span>
-                <span className="badge badge-success">Verified ✅</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <span className="font-bold text-ink">Oral Polio Vaccine</span>
-                <span className="badge badge-success">Verified ✅</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <span className="font-bold text-ink">Measles / MMR</span>
-                <span className="badge badge-success">Verified ✅</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        )
-      )}
-
-      {/* TAB 5: Classroom Moments & Photo Gallery */}
-      {activeTab === 'gallery' && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <ImageIcon size={18} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Classroom Learning Activity Feed
-                </span>
-              </div>
-              <h3 className="text-lg font-extrabold text-ink m-0">
-                Classroom Moments & Learning Gallery
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                Visual highlights of daily activities at Barangay Bacong Daycare Center.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {galleryPhotos.map((photo) => (
-              <div
-                key={photo.id}
-                className="group rounded-3xl border border-line bg-white overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3"
-              >
-                <div className="h-44 overflow-hidden relative">
-                  <Image
-                    src={photo.src}
-                    alt={photo.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-all duration-500"
-                  />
-                  <span className="absolute top-3 right-3 badge badge-primary text-[10px]">
-                    {photo.tag}
-                  </span>
-                </div>
-                <div className="p-4 space-y-1">
-                  <h4 className="text-sm font-bold text-ink m-0">{photo.title}</h4>
-                  <span className="text-[10px] text-ink-subtle">{photo.date}</span>
-                  <p className="text-xs text-ink-muted line-clamp-2 m-0 pt-1">{photo.caption}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 6: Documents & Requirements Center */}
-      {activeTab === 'documents' && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <FolderCheck size={18} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Barangay Daycare Compliance Records
-                </span>
-              </div>
-              <h3 className="text-lg font-extrabold text-ink m-0">
-                Enrollment Document & Requirements Center
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                Verification status for official DSWD and Barangay Bacong daycare enrollment requirements.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsReportModalOpen(true)}
-              className="btn btn-primary btn-sm font-bold shadow-md"
-              suppressHydrationWarning
-            >
-              <Download size={16} />
-              <span>Download Report Card (Word)</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="badge badge-success text-[10px]">Verified ✅</span>
-              </div>
-              <h4 className="text-sm font-bold text-ink m-0">PSA Birth Certificate</h4>
-              <p className="text-xs text-ink-muted m-0">Official PSA copy on file with Barangay Bacong office.</p>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="badge badge-success text-[10px]">Verified ✅</span>
-              </div>
-              <h4 className="text-sm font-bold text-ink m-0">Barangay Health Card</h4>
-              <p className="text-xs text-ink-muted m-0">Immunization record signed by Barangay Nurse.</p>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="badge badge-success text-[10px]">Verified ✅</span>
-              </div>
-              <h4 className="text-sm font-bold text-ink m-0">2x2 Pupil ID Photos</h4>
-              <p className="text-xs text-ink-muted m-0">Digital photo roster uploaded to pupil profile.</p>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="badge badge-success text-[10px]">Completed ✅</span>
-              </div>
-              <h4 className="text-sm font-bold text-ink m-0">DSWD Family Profile Record</h4>
-              <p className="text-xs text-ink-muted m-0">Socio-economic information verified for DSWD Form 1.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 7: Daycare Broadcast Notices Feed */}
-      {activeTab === 'announcements' && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-ink m-0">Daycare Notices & Broadcast Feed</h3>
-              <span className="text-xs text-ink-muted">Official announcements broadcasted to Barangay Bacong parents</span>
-            </div>
-            <span className="badge badge-primary">Data Privacy Protected</span>
-          </div>
-
-          <div className="space-y-3.5">
-            {announcements.map((notice) => (
-              <div key={notice.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-primary text-sm">{notice.title}</span>
-                  <span className="text-[11px] text-ink-subtle font-semibold">{notice.date}</span>
-                </div>
-                <p className="text-xs text-ink-soft leading-relaxed m-0">{notice.content}</p>
-                <div className="flex items-center justify-between pt-2 border-t border-line text-[10px]">
-                  <span className="badge badge-warning">Broadcasted to Parent Portal</span>
-                  <span className="text-ink-subtle">{notice.authorName ? 'Author: ' + notice.authorName : 'Author: Daycare Staff'}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

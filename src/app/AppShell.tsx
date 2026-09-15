@@ -10,7 +10,6 @@ import Toast from '@/components/Toast';
 import OfflineIndicator from '@/components/OfflineIndicator';
 import PupilModal from '@/components/PupilModal';
 import ProgressModal from '@/components/ProgressModal';
-import AnnouncementModal from '@/components/AnnouncementModal';
 import UserModal from '@/components/UserModal';
 import LinkParentModal from '@/components/LinkParentModal';
 import DSWDReportModal from '@/components/DSWDReportModal';
@@ -27,14 +26,13 @@ import ParentView from '@/views/ParentView';
 function AppContent() {
   const {
     currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
-    pupils, attendance, progress, announcements, users, auditLogs,
+    pupils, attendance, progress, users, auditLogs,
     handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
-    handleSaveProgress, handleSaveAnnouncement, handleSaveUser, handleToggleUserStatus,
+    handleSaveProgress, handleSaveUser, handleToggleUserStatus,
     toast, setToast,
     isMobileNavOpen, setIsMobileNavOpen,
     isPupilModalOpen, setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
     isProgressModalOpen, setIsProgressModalOpen,
-    isAnnouncementModalOpen, setIsAnnouncementModalOpen,
     isUserModalOpen, setIsUserModalOpen,
     isLinkParentModalOpen, setIsLinkParentModalOpen,
     linkParentOpenCount, setLinkParentOpenCount,
@@ -79,11 +77,9 @@ function AppContent() {
                 pupils={pupils}
                 attendance={attendance}
                 progress={progress}
-                announcements={announcements}
                 searchQuery={searchQuery}
                 onOpenPupilModal={() => { setPupilToEdit(null); setIsPupilModalOpen(true); }}
                 onOpenProgressModal={() => setIsProgressModalOpen(true)}
-                onOpenAnnouncementModal={() => setIsAnnouncementModalOpen(true)}
                 onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
                 onSaveAttendance={handleSaveAttendance}
                 onArchivePupil={handleArchivePupil}
@@ -97,7 +93,6 @@ function AppContent() {
                 attendance={attendance}
                 progress={progress}
                 activeTab={activeTab}
-                announcements={announcements}
                 onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
               />
             )}
@@ -107,7 +102,6 @@ function AppContent() {
                 users={users}
                 auditLogs={auditLogs}
                 activeTab={activeTab}
-                announcements={announcements}
                 onOpenUserModal={() => setIsUserModalOpen(true)}
                 onLinkParent={() => {
                   setIsLinkParentModalOpen(true);
@@ -121,8 +115,6 @@ function AppContent() {
               <ParentView
                 pupils={pupils}
                 attendance={attendance}
-                progress={progress}
-                announcements={announcements}
                 activeTab={activeTab}
               />
             )}
@@ -150,12 +142,6 @@ function AppContent() {
         onClose={() => setIsProgressModalOpen(false)}
         onSave={handleSaveProgress}
         pupils={pupils.filter(p => p.enrollmentStatus === 'enrolled')}
-      />
-
-      <AnnouncementModal
-        isOpen={isAnnouncementModalOpen}
-        onClose={() => setIsAnnouncementModalOpen(false)}
-        onSave={handleSaveAnnouncement}
       />
 
       <UserModal

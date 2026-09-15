@@ -5,21 +5,16 @@ import {
   LayoutDashboard, 
   Users, 
   TrendingUp, 
-  CalendarCheck, 
-  Megaphone, 
-  ShieldCheck, 
-  FileText, 
-  UserCheck, 
-  Heart, 
+  CalendarCheck,
+  ShieldCheck,
+  FileText,
+  UserCheck,
+  Heart,
   LogOut,
   BookOpen,
   MessageSquare,
-  Activity,
-  Image,
-  FolderCheck,
   BellRing,
   Shield,
-  Utensils
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -43,25 +38,18 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
           { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard },
           { id: 'reports', label: 'DSWD Form 1 PDF', icon: FileText },
           { id: 'consecutive_absences', label: 'Absence Telemetry Alerts', icon: BellRing },
-          { id: 'feeding_program', label: 'Feeding Program Tracker', icon: Utensils },
-          { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
         ];
       case 'barangay_admin':
         return [
           { id: 'users', label: 'User Provisioning', icon: UserCheck },
           { id: 'audit_logs', label: 'System Security Audit', icon: ShieldCheck },
           { id: 'security', label: 'Data Privacy RLS Audit', icon: Shield },
-          { id: 'announcements', label: 'System Notices', icon: Megaphone },
         ];
       case 'parent':
         return [
           { id: 'child', label: 'My Child Portal', icon: Heart },
           { id: 'eccd_checklist', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Checklist`, icon: BookOpen },
           { id: 'parent_notes', label: 'Teacher Messages & Notes', icon: MessageSquare },
-          { id: 'health_tracker', label: 'Nutritional & Growth Tracker', icon: Activity },
-          { id: 'gallery', label: 'Classroom Moments', icon: Image },
-          { id: 'documents', label: 'Documents & Requirements', icon: FolderCheck },
-          { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
         ];
       case 'worker':
       default:
@@ -71,8 +59,6 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
           { id: 'verify', label: 'Verify Enrollments', icon: ShieldCheck },
           { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
           { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
-          { id: 'health_entry', label: 'Nutritional Growth Log', icon: Activity },
-          { id: 'announcements', label: 'Daycare Notices', icon: Megaphone },
         ];
     }
   };
