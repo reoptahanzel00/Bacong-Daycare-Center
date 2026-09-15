@@ -50,7 +50,7 @@ export default function ParentView({
   attendance,
   activeTab = 'child'
 }: ParentViewProps) {
-  const { showToast, logAuditAction, settings } = useDaycare();
+  const { showToast, settings } = useDaycare();
 
   // Multi-child selection state
   const [selectedChildId, setSelectedChildId] = useState<string>(pupils[0]?.id || 'PUP-2026-001');
@@ -179,7 +179,6 @@ export default function ParentView({
     if (res.success) {
       setChildBackground({ pupil_id: child.id, ...fields, updated_at: new Date().toISOString() });
       showToast('Child & family background saved. The teacher can review it before assessments.', 'success');
-      logAuditAction('Updated Child & Family Background', child.id, `${child.firstName} ${child.lastName}`);
     } else {
       showToast(res.error || 'Could not save background info.', 'danger');
     }
@@ -205,7 +204,6 @@ export default function ParentView({
   const handleAcknowledgeAlert = (alertId: string) => {
     setAcknowledgedAlerts(prev => ({ ...prev, [alertId]: true }));
     showToast('Absence alert acknowledgment registered with the Daycare Worker.', 'info');
-    logAuditAction('Acknowledged Attendance Advisory', child?.id || 'PUP-001', 'Parent acknowledged automated absence alert.');
   };
 
   const handleSendAbsenceNote = async (e: React.FormEvent) => {
@@ -241,7 +239,6 @@ export default function ParentView({
     }, ...prev]);
     setGuardianNotes('');
     showToast(`Absence note for ${absenceDate} sent to the Daycare Worker.`, 'success');
-    logAuditAction('Submitted Absence Note', child.id, `Reason: ${absenceReason} for date ${absenceDate}`);
   };
 
   // ECCD Checklist active domain

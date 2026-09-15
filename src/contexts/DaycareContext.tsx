@@ -22,7 +22,7 @@ import {
 import { fetchAttendance, saveBulkAttendance } from '@/services/attendanceService';
 import { fetchProgress, recordObservation, type ProgressPayload, type ProgressRow } from '@/services/progressService';
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
-import { logAuditEntry, fetchAuditLogs } from '@/services/auditService';
+import { fetchAuditLogs } from '@/services/auditService';
 import { fetchSettings, updateSettings, EMPTY_SETTINGS, type CenterSettingsRow } from '@/services/settingsService';
 
 // Local-compatible types (matching mockData shape).
@@ -88,7 +88,8 @@ export interface MockAuditLog {
   details?: string;
 }
 
-export type UserRole = 'worker' | 'official' | 'barangay_admin' | 'parent';
+/** The paper's three roles. Account management and the audit trail belong to the Daycare Worker. */
+export type UserRole = 'worker' | 'official' | 'parent';
 
 interface ToastState {
   message: string;
@@ -119,7 +120,6 @@ interface DaycareContextValue {
   handleSaveProgress: (progressData: MockProgress) => void;
   handleSaveUser: (userData: MockUser) => void;
   handleToggleUserStatus: (userId: string) => void;
-  logAuditAction: (action: string, target: string, details: string) => void;
   showToast: (message: string, type?: string) => void;
 
   // Modal state lifted to context so any component can open modals
@@ -206,7 +206,6 @@ function errorText(error: unknown, fallback: string): string {
  *  paint and the client's post-sign-in routing cannot disagree. */
 function defaultTabFor(role: UserRole): string {
   if (role === 'official') return 'overview';
-  if (role === 'barangay_admin') return 'users';
   if (role === 'parent') return 'child';
   return 'dashboard';
 }
@@ -243,7 +242,7 @@ export function DaycareProvider({
     if (initial?.role) return initial.role;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bacong_auth_role');
-      if (saved && ['worker', 'official', 'barangay_admin', 'parent'].includes(saved)) {
+      if (saved && ['worker', 'official', 'parent'].includes(saved)) {
         return saved as UserRole;
       }
     }
@@ -255,7 +254,6 @@ export function DaycareProvider({
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bacong_auth_role');
       if (saved === 'official') return 'overview';
-      if (saved === 'barangay_admin') return 'users';
       if (saved === 'parent') return 'child';
     }
     return 'dashboard';
@@ -328,9 +326,9 @@ export function DaycareProvider({
    */
   const syncFromServer = useCallback(async (role: UserRole | null = null) => {
     try {
-      // Admin-only endpoints (user directory, audit trail) are only fetched for
-      // the barangay_admin to avoid firing 401/403 requests for every other role.
-      const isAdmin = role === 'barangay_admin';
+      // The user directory and audit trail are the Daycare Worker's (the paper's
+      // three roles), so only that role fetches them; others would get 403.
+      const isAdmin = role === 'worker';
       // Officials work from the summary endpoint only; they hold no child rows.
       const readsChildren = role !== 'official';
       const skip = { ok: false } as const;
@@ -433,7 +431,7 @@ export function DaycareProvider({
         // still fetched below for the one role that needs it.
         if (hasServerData && initialRole) {
           localStorage.setItem('bacong_auth_role', initialRole);
-          if (initialRole === 'barangay_admin') await syncFromServer(initialRole);
+          if (initialRole === 'worker') await syncFromServer(initialRole);
           return;
         }
 
@@ -455,7 +453,7 @@ export function DaycareProvider({
             .eq('id', session.user.id)
             .single();
 
-          if (profile?.role && ['worker', 'official', 'barangay_admin', 'parent'].includes(profile.role)) {
+          if (profile?.role && ['worker', 'official', 'parent'].includes(profile.role)) {
             resolvedRole = profile.role as UserRole;
           }
           if (profile?.full_name) setCurrentUserName(profile.full_name);
@@ -470,7 +468,7 @@ export function DaycareProvider({
           isDemoMode &&
           !resolvedRole &&
           savedRole &&
-          ['worker', 'official', 'barangay_admin', 'parent'].includes(savedRole)
+          ['worker', 'official', 'parent'].includes(savedRole)
         ) {
           resolvedRole = savedRole;
         }
@@ -511,26 +509,6 @@ export function DaycareProvider({
     setToast({ message, type });
   }, []);
 
-  const logAuditAction = useCallback((action: string, target: string, details: string) => {
-    // The optimistic local entry must name the real signed-in user. The server
-    // resolves the actor from the verified session independently, so a wrong
-    // name here would make the admin's on-screen trail disagree with the
-    // immutable record it claims to show.
-    const newLog: MockAuditLog = {
-      id: `AUD-${Date.now().toString().slice(-6)}`,
-      timestamp: new Date().toLocaleString('sv').replace('T', ' '),
-      userName: currentUserName || 'System User',
-      role: currentRole.toUpperCase(),
-      action,
-      target,
-      details,
-    };
-    setAuditLogs(prev => [newLog, ...prev.slice(0, 499)]); // Cap at 500 entries
-    // Persist to the immutable server-side trail (fire-and-forget; the local
-    // entry keeps the UI responsive even when the write is delayed/fails).
-    logAuditEntry(action, target, details).catch(() => {});
-  }, [currentRole, currentUserName]);
-
   const handleSavePupil = useCallback(async (pupilData: MockPupil) => {
     const isEdit = !!pupilToEdit;
 
@@ -542,7 +520,6 @@ export function DaycareProvider({
         return;
       }
       setPupils(prev => prev.map(p => p.id === pupilData.id ? pupilData : p));
-      logAuditAction('Updated Pupil Profile', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, 'Modified pupil demographic / guardian information.');
       showToast(`Pupil profile for ${pupilData.firstName} updated.`);
     } else {
       // New pupil: let the server generate the authoritative id.
@@ -566,16 +543,14 @@ export function DaycareProvider({
           guardian: res.pupil.guardian,
         };
         setPupils(prev => [serverPupil, ...prev]);
-        logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${serverPupil.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
       } else {
         // Demo mode (no database configured): the pupil lives in this browser only.
         setPupils(prev => [pupilData, ...prev]);
-        logAuditAction('Enrolled New Pupil', `${pupilData.firstName} ${pupilData.lastName} (${pupilData.id})`, `Enrolled under guardian ${pupilData.guardian?.fullName}.`);
       }
       showToast(`Pupil ${pupilData.firstName} ${pupilData.lastName} enrolled successfully!`);
     }
     setPupilToEdit(null);
-  }, [pupilToEdit, toEnrollPayload, logAuditAction, showToast, hasServerData]);
+  }, [pupilToEdit, toEnrollPayload, showToast, hasServerData]);
 
   /** Local-only update after a worker approves/rejects a parent enrollment. */
   const updatePupilEnrollment = useCallback((
@@ -601,9 +576,8 @@ export function DaycareProvider({
       }
     }
     setPupils(prev => prev.map(p => p.id === pupilId ? { ...p, enrollmentStatus: 'archived' } : p));
-    logAuditAction('Archived Pupil Record', pupilId, `Soft-archived record for ${targetPupil?.firstName} ${targetPupil?.lastName}.`);
     showToast(`Record for ${targetPupil?.firstName || pupilId} archived.`, 'danger');
-  }, [pupils, toEnrollPayload, logAuditAction, showToast, hasServerData]);
+  }, [pupils, toEnrollPayload, showToast, hasServerData]);
 
   const handleEditPupil = useCallback((pupil: MockPupil) => {
     setPupilToEdit(pupil);
@@ -642,7 +616,6 @@ export function DaycareProvider({
 
     if (!hasServerData) {
       // Demo mode (no database configured): the register lives in this browser only.
-      logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
       showToast(`Attendance register for ${dateStr} saved (demo mode).`);
       return;
     }
@@ -654,12 +627,11 @@ export function DaycareProvider({
       records.map(({ pupil_id, status, notes }) => ({ pupil_id, status, notes })),
     );
     if (res.success) {
-      logAuditAction('Saved Daily Attendance', `Register Date: ${dateStr}`, `Marked attendance for ${records.length} pupils.`);
       showToast(`Attendance register for ${dateStr} saved!`);
     } else {
       showToast(errorText(res.error, `The register for ${dateStr} was not saved — check your connection and try again.`), 'danger');
     }
-  }, [attendance, logAuditAction, showToast, hasServerData]);
+  }, [attendance, showToast, hasServerData]);
 
   const handleSaveProgress = useCallback(async (progressData: MockProgress) => {
     const payload: ProgressPayload = {
@@ -680,29 +652,25 @@ export function DaycareProvider({
       }
     }
     setProgress(prev => [progressData, ...prev]);
-    logAuditAction('Recorded Progress Observation', `${targetPupil?.firstName || progressData.pupil_id}`, `Added milestone observation under ${progressData.domain}.`);
     showToast(`Development milestone recorded for ${targetPupil?.firstName || 'pupil'}.`);
-  }, [pupils, logAuditAction, showToast, hasServerData]);
+  }, [pupils, showToast, hasServerData]);
 
 
   const handleSaveUser = useCallback((userData: MockUser) => {
     setUsers(prev => [userData, ...prev]);
-    logAuditAction('Created User Account', `${userData.name} (${userData.role})`, `Provisioned account with email ${userData.email}.`);
     showToast(`User account created for ${userData.name}.`);
-  }, [logAuditAction, showToast]);
+  }, [showToast]);
 
   const saveSettings = useCallback(async (next: CenterSettingsRow) => {
     const res = await updateSettings(next);
     if (res?.success) {
       setSettings(res.settings ?? next);
-      logAuditAction('Updated Centre Settings', next.center_name,
-        'Changed the centre name or the officials named on DSWD Form 1.');
       showToast('Centre settings saved.');
     } else {
       showToast(res?.error || 'Could not save centre settings.', 'danger');
     }
     return res;
-  }, [logAuditAction, showToast]);
+  }, [showToast]);
 
   const handleToggleUserStatus = useCallback(async (userId: string) => {
     const targetUser = users.find(u => u.id === userId);
@@ -714,9 +682,8 @@ export function DaycareProvider({
     await updateUserStatus(userId, nextStatus);
 
     setUsers(prev => prev.map(u => (u.id === userId ? { ...u, status: nextStatus } : u)));
-    logAuditAction('Toggled Account Status', targetUser.email, `Changed account status to ${nextStatus}.`);
     showToast(`Account ${targetUser.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
-  }, [users, logAuditAction, showToast]);
+  }, [users, showToast]);
 
   // Memoised so consumers only re-render when a value actually changes.
   // Without this, the object identity changes on every provider render and
@@ -726,7 +693,6 @@ export function DaycareProvider({
     pupils, attendance, progress, users, auditLogs,
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveUser, handleToggleUserStatus,
-    logAuditAction,
     settings, saveSettings, currentUserName,
     showToast,
     toast,
@@ -746,7 +712,7 @@ export function DaycareProvider({
     pupils, attendance, progress, users, auditLogs,
     handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil,
     handleSaveAttendance, handleSaveProgress, handleSaveUser,
-    handleToggleUserStatus, logAuditAction, settings, saveSettings, currentUserName, showToast, toast,
+    handleToggleUserStatus, settings, saveSettings, currentUserName, showToast, toast,
     isMobileNavOpen, isPupilModalOpen, pupilToEdit,
     isProgressModalOpen, isUserModalOpen,
     isLinkParentModalOpen, linkParentOpenCount, isDSWDReportModalOpen,

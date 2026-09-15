@@ -3,11 +3,12 @@ import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { recordAudit } from '@/lib/audit';
 
 const CreateUserSchema = z.object({
   fullName: z.string().min(1, 'Full name is required').max(100),
   email: z.string().email('Invalid email address'),
-  role: z.enum(['worker', 'official', 'barangay_admin', 'parent']),
+  role: z.enum(['worker', 'official', 'parent']),
   phone: z.string().max(20).optional(),
   password: passwordSchema,
 });
@@ -18,9 +19,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Barangay Admins can provision new system accounts.' },
+        { error: 'Unauthorized: Only Daycare Workers can provision new system accounts.' },
         { status: 403 }
       );
     }
@@ -66,6 +67,8 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    await recordAudit(adminSupabase, session, 'Created user account', `User ${authData.user.id}`, `Role: ${parsed.role}`);
 
     return NextResponse.json({
       success: true,

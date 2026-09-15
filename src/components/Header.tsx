@@ -69,8 +69,6 @@ export default function Header({
     switch (role) {
       case 'official':
         return 'bg-blue-50 text-blue-800 border-blue-200';
-      case 'barangay_admin':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       case 'parent':
         return 'bg-danger-light text-danger border-danger-border';
       case 'worker':

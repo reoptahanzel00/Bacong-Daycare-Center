@@ -43,8 +43,8 @@ test.describe('API Security & Health Check Automated Tests', () => {
     const response = await request.post('/api/auth/signup', {
       headers: freshIpHeaders(),
       data: {
-        role: 'barangay_admin',
-        fullName: 'Sneaky Admin',
+        role: 'worker',
+        fullName: 'Sneaky Worker',
         email: 'sneaky@example.com',
         password: 'Str0ng!Pass',
       },
@@ -176,13 +176,30 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect((await request.get('/api/eccd/report?pupil_id=PUP-1&format=json')).status()).toBe(401);
   });
 
+  test('the audit trail has no client write path', async ({ request }) => {
+    // Entries are written by the routes that make each change (src/lib/audit.ts).
+    const res = await request.post('/api/audit-log', { data: { action: 'x', target: 'y' } });
+    expect(res.status()).toBe(405);
+  });
+
+  test('sign-in accepts a Student ID without revealing whether it exists', async ({ request }) => {
+    const res = await request.post('/api/auth/login', {
+      headers: freshIpHeaders(),
+      data: { identifier: 'PUP-2026-00000000', password: 'Wrong!Pass1' },
+    });
+    expect([401, 500]).toContain(res.status());
+    if (res.status() === 401) {
+      expect((await res.json()).error).toMatch(/Invalid email, Student ID or password/);
+    }
+  });
+
   test('unauthenticated GET /api/reports/summary should be rejected with 401', async ({ request }) => {
     expect((await request.get('/api/reports/summary')).status()).toBe(401);
   });
 
   test('unauthenticated POST /api/users/create should be rejected with 401', async ({ request }) => {
     const response = await request.post('/api/users/create', {
-      data: { fullName: 'Test', email: 'test@test.com', role: 'barangay_admin', password: 'Str0ng!Pass' }
+      data: { fullName: 'Test', email: 'test@test.com', role: 'worker', password: 'Str0ng!Pass' }
     });
     expect(response.status()).toBe(401);
   });

@@ -67,7 +67,7 @@ export default function WorkerView({
   onArchivePupil,
   onEditPupil
 }: WorkerViewProps) {
-  const { showToast, logAuditAction, updatePupilEnrollment } = useDaycare();
+  const { showToast, updatePupilEnrollment } = useDaycare();
 
   const [selectedDate, setSelectedDate] = useState(todayLocalISO());
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
@@ -253,7 +253,6 @@ export default function WorkerView({
     } else {
       showToast(`Marked locally — could not reach the server.`, 'warning');
     }
-    logAuditAction('Acknowledged Parent Absence Note', pupilId, `Marked the absence note for ${pupilName} as excused.`);
   };
 
   const handleToggleECCDItem = (pupilId: string, itemId: string) => {
@@ -300,7 +299,6 @@ export default function WorkerView({
     if (res.success) {
       const presentCount = ratings.filter((r) => r.present).length;
       showToast(`Saved ${presentCount} ✓ item(s) for ${pupil.firstName} (round ${selectedRound}).`);
-      logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted round ${selectedRound} checklist ratings, comments + scores.`);
       // Auto-open the pupil's ECCD Child's Record 2 after grading is saved.
       setReportPupil(pupil);
     } else {
@@ -328,11 +326,6 @@ export default function WorkerView({
         [backgroundPupil.id]: { pupil_id: backgroundPupil.id, ...fields, updated_at: new Date().toISOString() },
       }));
       showToast(`Child & family background saved for ${backgroundPupil.firstName}.`, 'success');
-      logAuditAction(
-        'Updated Child & Family Background',
-        backgroundPupil.id,
-        `${backgroundPupil.firstName} ${backgroundPupil.lastName}`
-      );
     } else {
       showToast(res.error || 'Could not save background info.', 'danger');
     }
@@ -375,11 +368,6 @@ export default function WorkerView({
           ? `${pupil.firstName} ${pupil.lastName} is now enrolled.`
           : `Enrollment for ${pupil.firstName} ${pupil.lastName} was rejected.`,
         verifyAction === 'approve' ? 'success' : 'info'
-      );
-      logAuditAction(
-        verifyAction === 'approve' ? 'Approved Parent Enrollment' : 'Rejected Parent Enrollment',
-        pupil.id,
-        `${pupil.firstName} ${pupil.lastName}${verifyAction === 'reject' ? ` — ${rejectReason.trim()}` : ''}`
       );
     } else {
       showToast(res.error ? String(res.error) : 'Could not verify this enrollment.', 'danger');

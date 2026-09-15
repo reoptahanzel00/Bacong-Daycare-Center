@@ -15,7 +15,7 @@ interface UserModalProps {
 export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'worker' | 'official' | 'barangay_admin' | 'parent'>('worker');
+  const [role, setRole] = useState<'worker' | 'official' | 'parent'>('worker');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -112,7 +112,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
             <div>
               <h3 className="text-base font-extrabold text-ink m-0">Provision User Account</h3>
               <p className="text-xs text-ink-muted m-0">
-                Barangay Admin User Management & RBAC Access Provisioning
+                Create an account for a Daycare Worker, Barangay Official or Parent
               </p>
             </div>
           </div>
@@ -140,7 +140,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
             <input id="srccomponentsusermodal-full-name-1"
               type="text"
               className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
-              placeholder="e.g. Admin Josephine Mercado"
+              placeholder="e.g. Josephine Mercado"
               value={name}
               onChange={(e) => setName(e.target.value)}
               suppressHydrationWarning
@@ -152,7 +152,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
             <input id="srccomponentsusermodal-email-address-2"
               type="email"
               className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
-              placeholder="e.g. admin.bacong@gmail.com"
+              placeholder="e.g. josephine.mercado@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               suppressHydrationWarning
@@ -169,7 +169,6 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
             >
               <option value="worker">Lead Daycare Worker (Teacher)</option>
               <option value="official">Barangay Official (Council Oversight)</option>
-              <option value="barangay_admin">Barangay Admin (System Provisioner)</option>
               <option value="parent">Parent / Guardian</option>
             </select>
           </div>

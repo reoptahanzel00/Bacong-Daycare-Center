@@ -12,13 +12,13 @@ All test accounts use the password set at creation (`Password123!` unless change
 | Role | Email | Sees |
 |---|---|---|
 | Daycare Worker | `worker@bacong.gov.ph` | All 6 pupils, attendance register, ECCD tool |
-| Barangay Official | `official@bacong.gov.ph` | Read-only oversight dashboards |
-| Barangay Admin | `admin@bacong.gov.ph` | User management, audit trail, parent linking |
+| Daycare Worker (2nd) | `admin@bacong.gov.ph` | Same as the worker (former admin account) |
+| Barangay Official | `official@bacong.gov.ph` | Summarized figures only (no child records) |
 | Parent (Mateo) | `parent@bacong.gov.ph` | Only Mateo Santos (PUP-2026-001) |
 | Parent (Sophia) | `juan.reyes@bacong.gov.ph` | Only Sophia Reyes (PUP-2026-002) |
 
 If a password is forgotten: Supabase Dashboard → **Authentication → Users** → the account →
-**Reset password** (or use the admin "Reset Pass" button in the app, which returns a link).
+**Reset password** (or use the "Reset Pass" button in the worker's User Accounts tab, which returns a link).
 
 ## 2. Per-Role Walkthrough
 
@@ -55,16 +55,18 @@ If a password is forgotten: Supabase Dashboard → **Authentication → Users** 
    seeded history + today's register).
 2. Confirm there are no edit/save controls.
 
-### Barangay Admin
+### Daycare Worker — accounts & audit trail
 
-1. Sign in — user list shows the real accounts with correct roles/status.
+The paper has three roles; account management belongs to the Daycare Worker.
+
+1. **User Accounts** tab — user list shows the real accounts with correct roles/status.
 2. **Provision User Account** — create an account, then verify it can sign in.
 3. **Link Parent Accounts** — link a guardian (existing account or create new), then confirm the
    parent sees only their child.
 4. **Reset Pass** — generates a real recovery link (opens the Supabase password page).
 5. **Status toggle** — disable a user, confirm they can no longer sign in / get authorized.
-6. **Security Audit tab** — real audit entries for the actions above (attendance saves, enrollments,
-   account toggles, resets).
+6. **Audit Trail** tab — server-written entries for the actions above (attendance saves, enrollments,
+   ECCD saves, account toggles, resets, sign-ins).
 
 ## 3. Data Verification (Supabase Table Editor)
 
@@ -74,7 +76,7 @@ If a password is forgotten: Supabase Dashboard → **Authentication → Users** 
 | `guardians` | 6 guardians; `user_id` set for Maria Santos + Juan Reyes |
 | `attendance` | ~66 rows (10 school days × 6 pupils + today) |
 | `progress_observations` | Any observations recorded during UAT |
-| `users` | 5 accounts (worker, official, admin, 2 parents), all `active` |
+| `users` | Accounts with only the roles worker, official and parent, all `active` |
 | `audit_log` | Growing; entries have real `user_name`/`role` |
 | `notifications` | Absence/milestone alerts for linked parents |
 

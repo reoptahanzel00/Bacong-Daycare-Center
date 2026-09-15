@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 const LinkParentSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -19,9 +20,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Barangay Admins can link parent accounts.' },
+        { error: 'Unauthorized: Only Daycare Workers can link parent accounts.' },
         { status: 403 }
       );
     }
@@ -103,6 +104,8 @@ export async function POST(request: Request) {
     if (linkError) {
       return NextResponse.json({ error: linkError.message }, { status: 400 });
     }
+
+    await recordAudit(admin, session, 'Linked parent account to pupil', parsed.pupil_id, `User ${parentUserId}`);
 
     return NextResponse.json({
       success: true,

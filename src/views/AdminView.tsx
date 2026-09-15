@@ -34,7 +34,7 @@ export default function AdminView({
   onLinkParent,
   onToggleUserStatus 
 }: AdminViewProps) {
-  const { showToast, logAuditAction, settings, saveSettings } = useDaycare();
+  const { showToast, settings, saveSettings } = useDaycare();
 
   // Local draft of the centre settings so typing does not write on every key.
   const [settingsDraft, setSettingsDraft] = useState(settings);
@@ -63,13 +63,12 @@ export default function AdminView({
     [auditLogs, auditPage]
   );
 
-  const handleResetPassword = async (userId: string, userEmail: string, userName: string) => {
+  const handleResetPassword = async (userId: string, userEmail: string) => {
     const res = await resetUserPassword(userId);
     if (res.success) {
       setResetLinks(prev => ({ ...prev, [userId]: res.reset_link || '' }));
       setResetSent(prev => ({ ...prev, [userId]: true }));
       showToast(`Reset link generated for ${userEmail}!`, 'success');
-      logAuditAction('Generated Password Reset', userEmail, `Created recovery link for ${userName}.`);
       setTimeout(() => setResetSent(prev => ({ ...prev, [userId]: false })), 6000);
     } else {
       showToast(`Could not reset ${userEmail}: ${res.error || 'unknown error'}`, 'danger');
@@ -84,10 +83,10 @@ export default function AdminView({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl md:text-2xl font-extrabold text-white m-0 tracking-tight">
-              Barangay Admin Governance & RLS Audit Hub 🛡️
+              User Accounts & Audit Trail 🛡️
             </h1>
             <p className="text-xs md:text-sm text-white/90 mt-1.5 leading-relaxed max-w-2xl m-0">
-              Provision user accounts, inspect security mutation audit trails, and verify Data Privacy Act (RA 10173) Row-Level Security policies.
+              Create and manage user accounts, review the audit trail, and set the centre details printed on DSWD Form 1.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -144,7 +143,6 @@ export default function AdminView({
                 <option value="all">All System Roles</option>
                 <option value="worker">Daycare Worker</option>
                 <option value="official">Barangay Official</option>
-                <option value="barangay_admin">Barangay Admin</option>
                 <option value="parent">Parent / Guardian</option>
               </select>
             </div>
@@ -182,7 +180,7 @@ export default function AdminView({
                     <td>
                       <div className="flex flex-col items-start gap-1">
                         <button
-                          onClick={() => handleResetPassword(u.id, u.email, u.fullName || u.name)}
+                          onClick={() => handleResetPassword(u.id, u.email)}
                           className={`btn btn-sm gap-1.5 transition-all ${
                             resetSent[u.id]
                               ? 'bg-primary-light text-primary border-primary-display/30'
@@ -347,72 +345,32 @@ export default function AdminView({
       )}
 
       {activeTab === 'security' && (
-        <div className="card bg-white p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Shield size={18} className="text-primary" />
-                <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                  Data Privacy Act of 2012 (RA 10173) Audit
-                </span>
-              </div>
-              <h3 className="text-lg font-extrabold text-ink m-0">
-                Row-Level Security & Cryptographic Compliance Panel
-              </h3>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                Verifying Supabase database RLS policies, encrypted SSR session tokens, and privacy controls.
-              </p>
+        <div className="card bg-white p-5 space-y-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Shield size={18} className="text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                Data Privacy Act of 2012 (RA 10173)
+              </span>
             </div>
-            <span className="badge badge-success font-bold text-xs">Compliance Score: 98/100</span>
+            <h3 className="text-lg font-extrabold text-ink m-0">Who can see what</h3>
+            <p className="text-xs text-ink-muted mt-1 m-0">
+              The system has three roles. These rules are enforced by the database (Row-Level Security)
+              and checked again by the server on every request.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="font-bold text-primary">Row-Level Security (RLS)</span>
-              <div className="font-extrabold text-ink text-sm">Enforced on PostgreSQL Tables ✅</div>
-              <span className="text-[10px] text-ink-subtle">Pupils, Attendance, Progress, Users</span>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="font-bold text-[#2B6CB0]">Session JWT Encryption</span>
-              <div className="font-extrabold text-ink text-sm">HS256 SSR Token Encrypted ✅</div>
-              <span className="text-[10px] text-ink-subtle">Next.js Middleware HttpOnly Cookies</span>
-            </div>
-
-            <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
-              <span className="font-bold text-warn">Database Backup Strategy</span>
-              <div className="font-extrabold text-ink text-sm">Daily Automated Snapshots ✅</div>
-              <span className="text-[10px] text-ink-subtle">Point-in-time recovery active</span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-3xl border border-line bg-canvas space-y-3 text-xs">
-            <h4 className="text-sm font-bold text-ink m-0">PostgreSQL RLS Policy Audit Matrix</h4>
-            <div className="space-y-2">
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <div>
-                  <strong className="text-ink">pupils table RLS</strong>
-                  <div className="text-[11px] text-ink-muted">Parents restricted to linked child IDs; Workers & Officials read active roster.</div>
-                </div>
-                <span className="badge badge-success shrink-0">Policy Active ✅</span>
+          <div className="space-y-2 text-xs">
+            {[
+              { role: 'Daycare Worker', rule: 'Enrolls, records attendance and ECCD evaluations, and sees every child’s record. Manages user accounts, the audit trail and these settings.' },
+              { role: 'Barangay Official', rule: 'Sees summarized enrollment and attendance figures only — never an individual child’s record.' },
+              { role: 'Parent / Guardian', rule: 'Sees only the records of their own linked children.' },
+            ].map((row) => (
+              <div key={row.role} className="p-3 rounded-2xl bg-canvas border border-line">
+                <strong className="text-ink">{row.role}</strong>
+                <div className="text-[11px] text-ink-muted mt-0.5">{row.rule}</div>
               </div>
-
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <div>
-                  <strong className="text-ink">attendance table RLS</strong>
-                  <div className="text-[11px] text-ink-muted">Write access restricted to Daycare Worker role (`worker`).</div>
-                </div>
-                <span className="badge badge-success shrink-0">Policy Active ✅</span>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-white border border-line flex items-center justify-between">
-                <div>
-                  <strong className="text-ink">users table RLS</strong>
-                  <div className="text-[11px] text-ink-muted">Write access restricted to Barangay Admin role (`barangay_admin`).</div>
-                </div>
-                <span className="badge badge-success shrink-0">Policy Active ✅</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}

@@ -23,6 +23,9 @@ import ParentView from '@/views/ParentView';
  * AppContent — consumes DaycareContext and renders the role-based view.
  * All state is managed by DaycareProvider — this component is purely presentational.
  */
+/** Worker tabs rendered by AdminView (accounts, audit trail, centre settings). */
+const ACCOUNT_TABS = ['users', 'audit_logs', 'security'];
+
 function AppContent() {
   const {
     currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
@@ -71,7 +74,7 @@ function AppContent() {
         <main className="flex-1 min-w-0 p-6 overflow-y-auto">
           {/* ErrorBoundary prevents full-app crash if a view throws */}
           <ErrorBoundary>
-            {currentRole === 'worker' && (
+            {currentRole === 'worker' && !ACCOUNT_TABS.includes(activeTab) && (
               <WorkerView
                 activeTab={activeTab}
                 pupils={pupils}
@@ -91,7 +94,9 @@ function AppContent() {
               <OfficialView activeTab={activeTab} />
             )}
 
-            {currentRole === 'barangay_admin' && (
+            {/* Account management, audit trail and centre settings: the paper has
+                three roles, so these belong to the Daycare Worker. */}
+            {currentRole === 'worker' && ACCOUNT_TABS.includes(activeTab) && (
               <AdminView
                 users={users}
                 auditLogs={auditLogs}

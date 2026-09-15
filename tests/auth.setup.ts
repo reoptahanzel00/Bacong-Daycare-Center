@@ -15,7 +15,6 @@ const STATE_DIR = path.join(process.cwd(), 'playwright', '.auth');
 const ROLES = [
   { role: 'worker',   email: 'e2e-worker@example.test' },
   { role: 'official', email: 'e2e-official@example.test' },
-  { role: 'admin',    email: 'e2e-admin@example.test' },
   { role: 'parent',   email: 'e2e-parent@example.test' },
 ] as const;
 
@@ -25,7 +24,7 @@ for (const { role, email } of ROLES) {
     expect(password, 'E2E_PASSWORD must be set for authenticated tests').toBeTruthy();
 
     await page.goto('/login');
-    await page.getByLabel(/email address/i).fill(email);
+    await page.getByLabel(/email or student id/i).fill(email);
     await page.getByLabel(/^password$/i).fill(password!);
     await page.getByRole('button', { name: /sign in/i }).click();
 

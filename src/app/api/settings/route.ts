@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 // A route handler may only export HTTP methods, so the shape and its fallback
 // live with the service that both sides already import.
 import { EMPTY_SETTINGS } from '@/services/settingsService';
+import { recordAudit } from '@/lib/audit';
 
 /**
  * Centre settings — the names that appear on DSWD Form 1 and across the portals.
@@ -53,9 +54,9 @@ export async function PATCH(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Barangay Admins can change centre settings.' },
+        { error: 'Unauthorized: Only Daycare Workers can change centre settings.' },
         { status: 403 }
       );
     }
@@ -78,17 +79,8 @@ export async function PATCH(request: Request) {
     }
 
     // Who signs the barangay's official reports is worth an audit entry.
-    const { error: auditError } = await admin.from('audit_log').insert({
-      user_id: session.userId,
-      user_name: session.email || 'unknown',
-      role: session.role,
-      action: 'Updated Centre Settings',
-      target: parsed.center_name,
-      details: `Daycare worker: ${parsed.daycare_worker_name || 'not set'}; Barangay captain: ${parsed.barangay_captain_name || 'not set'}.`,
-    });
-    if (auditError) {
-      console.warn('[Settings API] Audit insert warning:', auditError.message);
-    }
+    await recordAudit(admin, session, 'Updated centre settings', parsed.center_name,
+      `Daycare worker: ${parsed.daycare_worker_name || 'not set'}; Barangay captain: ${parsed.barangay_captain_name || 'not set'}.`);
 
     return NextResponse.json({ success: true, settings: data });
   } catch (error) {

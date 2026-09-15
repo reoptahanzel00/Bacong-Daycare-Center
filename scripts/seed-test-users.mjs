@@ -79,7 +79,6 @@ const admin = createClient(url, serviceKey, {
 const ACCOUNTS = [
   { email: 'e2e-worker@example.test',   role: 'worker',         fullName: 'E2E Daycare Worker' },
   { email: 'e2e-official@example.test', role: 'official',       fullName: 'E2E Barangay Official' },
-  { email: 'e2e-admin@example.test',    role: 'barangay_admin', fullName: 'E2E Barangay Admin' },
   { email: 'e2e-parent@example.test',   role: 'parent',         fullName: 'E2E Parent' },
   // Used to prove a disabled account is refused even with valid credentials.
   { email: 'e2e-disabled@example.test', role: 'worker',         fullName: 'E2E Disabled Worker', status: 'disabled' },

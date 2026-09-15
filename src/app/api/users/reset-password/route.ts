@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 const ResetPasswordSchema = z.object({
   user_id: z.string().uuid('User ID must be a valid UUID'),
@@ -17,9 +18,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Barangay Admins can reset passwords.' },
+        { error: 'Unauthorized: Only Daycare Workers can reset passwords.' },
         { status: 403 }
       );
     }
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
     if (linkError) {
       return NextResponse.json({ error: linkError.message }, { status: 400 });
     }
+
+    await recordAudit(admin, session, 'Generated password reset link', `User ${parsed.user_id}`);
 
     return NextResponse.json({
       success: true,

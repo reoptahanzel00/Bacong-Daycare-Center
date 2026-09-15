@@ -1,7 +1,7 @@
 /**
- * Audit Service — abstraction over the /api/audit-log endpoint.
- * Entries are immutable: the server derives the actor from the verified
- * session, so client payloads only carry action/target/details.
+ * Audit Service — reads the audit trail via GET /api/audit-log.
+ * Entries are written by the server routes that make each change
+ * (src/lib/audit.ts), never by the browser.
  */
 
 export interface AuditLogRow {
@@ -13,19 +13,6 @@ export interface AuditLogRow {
   target: string;
   details?: string | null;
   created_at?: string;
-}
-
-export async function logAuditEntry(action: string, target: string, details?: string) {
-  try {
-    const res = await fetch('/api/audit-log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, target, details }),
-    });
-    return await res.json();
-  } catch {
-    return { success: false, error: 'Network error' };
-  }
 }
 
 export async function fetchAuditLogs() {

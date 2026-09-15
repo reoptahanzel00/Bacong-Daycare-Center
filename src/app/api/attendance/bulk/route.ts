@@ -14,6 +14,7 @@ const BulkAttendanceSchema = z.object({
 });
 
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
         { error: 'Unauthorized: Only Daycare Workers can record attendance registers.' },
         { status: 403 }
@@ -97,6 +98,11 @@ export async function POST(request: Request) {
         { success: false, error: 'The attendance register could not be saved. Please try again.' },
         { status: 503 }
       );
+    }
+
+    {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      await recordAudit(createAdminClient(), session, 'Saved attendance register', `Register ${parsed.date}`, `${records.length} pupils marked`);
     }
 
     return NextResponse.json({

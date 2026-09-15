@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 const UpdateUserSchema = z.object({
   status: z.enum(['active', 'disabled']),
@@ -12,9 +13,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Barangay Admins can manage system accounts.' },
+        { error: 'Unauthorized: Only Daycare Workers can manage system accounts.' },
         { status: 403 }
       );
     }
@@ -61,6 +62,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             : 'Account re-enabled, but the sign-in block could not be lifted. The user may still be unable to sign in.',
       });
     }
+
+    await recordAudit(admin, session, parsed.status === 'disabled' ? 'Disabled user account' : 'Enabled user account', `User ${id}`);
 
     return NextResponse.json({ success: true, user: data });
   } catch (error) {

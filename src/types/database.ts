@@ -1,4 +1,4 @@
-export type UserRole = 'worker' | 'official' | 'barangay_admin' | 'parent';
+export type UserRole = 'worker' | 'official' | 'parent';
 export type EnrollmentStatus = 'enrolled' | 'archived';
 export type AttendanceStatus = 'present' | 'absent' | 'late';
 export type ECDDomain = 'motor' | 'language' | 'socio-emotional' | 'self-help';

@@ -140,7 +140,7 @@ rather than reintroducing a client-side reporting SDK.
 
 - [ ] Replace the placeholder text at `/privacy` with wording approved by the Barangay's
       Data Protection Officer, and bump `PRIVACY_NOTICE_VERSION` in `src/lib/privacyNotice.ts`.
-- [ ] Fill in the Centre &amp; Signatories panel (Admin portal -> Security) so DSWD Form 1
+- [ ] Fill in the Centre &amp; Signatories panel (Daycare Worker -> Centre & Privacy) so DSWD Form 1
       carries the real barangay captain rather than an empty field.
 - [ ] Provision the Upstash rate-limit store (see above) -- the in-process fallback is not
       a real limit on serverless.
@@ -239,9 +239,9 @@ Set these in: GitHub repo â†’ Settings â†’ Secrets and variables â†
 ## Post-Deployment Checklist
 
 - [ ] Supabase tables created and RLS enabled
-- [ ] At least one admin user provisioned via Supabase Auth
+- [ ] At least one Daycare Worker account provisioned (it manages all other accounts)
 - [ ] `.env.local` / Vercel environment variables set
-- [ ] Test login flow as each role (worker, official, admin, parent)
+- [ ] Test login flow as each role (worker, official, parent) — parents with email and with a Student ID
 - [ ] Test attendance save and verify Supabase row created
 - [ ] Test pupil enrollment and verify Supabase row created
 - [ ] Verify parent can only see their own child's data

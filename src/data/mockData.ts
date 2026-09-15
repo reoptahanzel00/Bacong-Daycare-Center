@@ -217,9 +217,9 @@ export const INITIAL_USERS = [
   },
   {
     id: 'USR-03',
-    name: 'Admin Josephine Mercado',
-    email: 'admin.mercado@bacong.gov.ph',
-    role: 'barangay_admin',
+    name: 'Josephine Mercado',
+    email: 'josephine.mercado@bacong.gov.ph',
+    role: 'worker',
     phone: '0920-000-5566',
     status: 'active'
   },
