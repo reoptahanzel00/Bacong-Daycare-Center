@@ -1,5 +1,5 @@
 -- ==========================================================================
--- 20260916_02 — Barangay officials see summarized figures only
+-- 20260917_01 — Barangay officials see summarized figures only
 --
 -- The capstone paper defines the Barangay Official's use of the system as
 -- viewing "summarized enrollment and attendance reports" on a dashboard of
