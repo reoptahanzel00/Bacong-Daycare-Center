@@ -50,6 +50,21 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
   try {
     const supabase = await createClient();
 
+    // Officials see the dashboard's counts (/api/reports/summary), never
+    // children's rows, so there is nothing of that kind to preload for them.
+    if (session.role === 'official') {
+      const [profileRes, settingsRes] = await Promise.all([
+        supabase.from('users').select('full_name').eq('id', session.userId).maybeSingle(),
+        supabase.from('center_settings').select('center_name, daycare_worker_name, barangay_captain_name').maybeSingle(),
+      ]);
+      return {
+        ...EMPTY,
+        role: session.role,
+        userName: profileRes.data?.full_name ?? null,
+        settings: (settingsRes.data as CenterSettingsRow | null) ?? EMPTY_SETTINGS,
+      };
+    }
+
     const [profileRes, pupilsRes, attendanceRes, progressRes, settingsRes] =
       await Promise.all([
         supabase.from('users').select('full_name').eq('id', session.userId).maybeSingle(),

@@ -32,6 +32,11 @@ export async function GET(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    // The capstone paper gives barangay officials summarized figures only
+    // (/api/reports/summary), never individual children's records.
+    if (session.role === 'official') {
+      return NextResponse.json({ error: 'Barangay officials see summarized figures only.' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const round = EccdRoundSchema.parse(searchParams.get('round') || '1');

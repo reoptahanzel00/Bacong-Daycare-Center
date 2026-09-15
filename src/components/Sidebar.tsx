@@ -7,7 +7,6 @@ import {
   TrendingUp, 
   CalendarCheck,
   ShieldCheck,
-  FileText,
   UserCheck,
   Heart,
   LogOut,
@@ -36,8 +35,7 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
       case 'official':
         return [
           { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard },
-          { id: 'reports', label: 'DSWD Form 1 PDF', icon: FileText },
-          { id: 'consecutive_absences', label: 'Absence Telemetry Alerts', icon: BellRing },
+          { id: 'consecutive_absences', label: 'Frequent Absences', icon: BellRing },
         ];
       case 'barangay_admin':
         return [

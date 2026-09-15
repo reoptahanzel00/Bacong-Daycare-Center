@@ -341,7 +341,7 @@ CREATE POLICY "Pupils SELECT Policy" ON pupils
   FOR SELECT TO authenticated
   USING (
     id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'barangay_admin')
   );
 
 DROP POLICY IF EXISTS "Pupils INSERT Policy" ON pupils;
@@ -362,7 +362,7 @@ CREATE POLICY "Guardians SELECT Policy" ON guardians
   FOR SELECT TO authenticated
   USING (
     user_id = auth.uid()
-    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'barangay_admin')
   );
 
 DROP POLICY IF EXISTS "Guardians INSERT Policy" ON guardians;
@@ -384,7 +384,7 @@ CREATE POLICY "Sociodemographic SELECT Policy" ON sociodemographic_profiles
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'barangay_admin')
   );
 
 -- Centre settings: readable by anyone signed in (the DSWD report needs it).
@@ -404,7 +404,7 @@ CREATE POLICY "Parent Notes SELECT Own" ON parent_notes
 DROP POLICY IF EXISTS "Parent Notes SELECT Staff" ON parent_notes;
 CREATE POLICY "Parent Notes SELECT Staff" ON parent_notes
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
 
 -- ECCD scores: parents read linked children only; staff read all.
 DROP POLICY IF EXISTS "ECCD Scores SELECT Own" ON eccd_scores;
@@ -414,7 +414,7 @@ CREATE POLICY "ECCD Scores SELECT Own" ON eccd_scores
 DROP POLICY IF EXISTS "ECCD Scores SELECT Staff" ON eccd_scores;
 CREATE POLICY "ECCD Scores SELECT Staff" ON eccd_scores
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
 
 -- ECCD evaluations & item comments: parents read linked children only; staff read all.
 DROP POLICY IF EXISTS "ECCD Evaluations SELECT Own" ON eccd_evaluations;
@@ -424,7 +424,7 @@ CREATE POLICY "ECCD Evaluations SELECT Own" ON eccd_evaluations
 DROP POLICY IF EXISTS "ECCD Evaluations SELECT Staff" ON eccd_evaluations;
 CREATE POLICY "ECCD Evaluations SELECT Staff" ON eccd_evaluations
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
 DROP POLICY IF EXISTS "ECCD Item Comments SELECT Own" ON eccd_item_comments;
 CREATE POLICY "ECCD Item Comments SELECT Own" ON eccd_item_comments
   FOR SELECT TO authenticated
@@ -432,7 +432,7 @@ CREATE POLICY "ECCD Item Comments SELECT Own" ON eccd_item_comments
 DROP POLICY IF EXISTS "ECCD Item Comments SELECT Staff" ON eccd_item_comments;
 CREATE POLICY "ECCD Item Comments SELECT Staff" ON eccd_item_comments
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
 
 -- Child backgrounds: parents read linked children only; staff read all.
 DROP POLICY IF EXISTS "Child Backgrounds SELECT Own" ON child_backgrounds;
@@ -442,7 +442,7 @@ CREATE POLICY "Child Backgrounds SELECT Own" ON child_backgrounds
 DROP POLICY IF EXISTS "Child Backgrounds SELECT Staff" ON child_backgrounds;
 CREATE POLICY "Child Backgrounds SELECT Staff" ON child_backgrounds
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'official', 'barangay_admin'));
+  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
 
 -- Attendance RLS: Parents view attendance of linked children only.
 -- UPDATE exists so workers/admins can correct registers; matching the API.
@@ -451,7 +451,7 @@ CREATE POLICY "Attendance SELECT Policy" ON attendance
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'official', 'barangay_admin')
+    OR public.current_user_role() IN ('worker', 'barangay_admin')
   );
 
 DROP POLICY IF EXISTS "Attendance INSERT Policy" ON attendance;

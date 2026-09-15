@@ -16,10 +16,9 @@ A comprehensive daycare management system built for **Barangay Bacong, San Luis,
 - Archive graduated/withdrawn pupils
 
 ### 🏛️ Barangay Official
-- Read-only oversight dashboard
-- Real-time enrollment & attendance statistics
-- Consecutive absence alerts (3+ days auto-notification)
-- Monthly trend reports
+- Barangay Executive Dashboard: summarized enrollment and attendance figures with charts (counts only, no individual records)
+- Number of children with frequent absences (3+ consecutive)
+- ECCD assessments completed per round
 
 ### 🔐 Barangay Admin
 - User account management (create, disable, reset password)

@@ -88,13 +88,7 @@ function AppContent() {
             )}
 
             {currentRole === 'official' && (
-              <OfficialView
-                pupils={pupils}
-                attendance={attendance}
-                progress={progress}
-                activeTab={activeTab}
-                onOpenDSWDReportModal={() => setIsDSWDReportModalOpen(true)}
-              />
+              <OfficialView activeTab={activeTab} />
             )}
 
             {currentRole === 'barangay_admin' && (

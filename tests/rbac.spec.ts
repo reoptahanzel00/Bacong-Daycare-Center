@@ -29,7 +29,9 @@ test.describe('Role-Based Access Control (RBAC) & Scope Isolation', () => {
   test('should render the Barangay Official portal for the official role', async ({ page }) => {
     await seedRole(page, 'official');
     await page.goto('/');
-    await expect(page.getByText('Executive Governance & Telemetry Hub')).toBeVisible();
+    await expect(page.getByText('Barangay Executive Dashboard')).toBeVisible();
+    // Summaries only: officials get no DSWD roster and no child-record tabs.
+    await expect(page.getByRole('button', { name: /dswd/i })).toHaveCount(0);
   });
 
   test('should render the Barangay Admin portal for the admin role', async ({ page }) => {
