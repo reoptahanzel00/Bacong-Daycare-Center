@@ -1,5 +1,5 @@
 -- ==========================================================================
--- 20260916_03 — Three roles, as the capstone paper defines
+-- 20260918_01 — Three roles, as the capstone paper defines
 --
 -- The paper's Role-Based Access Control has three roles: Daycare Worker,
 -- Barangay Official and Parent/Guardian. The system had a fourth, Barangay
@@ -12,7 +12,7 @@
 --      directory and audit trail policies are the worker's.
 --
 -- Nothing else about access changes: officials stay on summaries only
--- (20260916_02) and parents on their own children.
+-- (20260917_01) and parents on their own children.
 --
 -- Safe to re-run: the update is idempotent, the constraint is dropped before it
 -- is re-added, and each policy is dropped and recreated.
