@@ -331,10 +331,13 @@ export function DaycareProvider({
       // Admin-only endpoints (user directory, audit trail) are only fetched for
       // the barangay_admin to avoid firing 401/403 requests for every other role.
       const isAdmin = role === 'barangay_admin';
+      // Officials work from the summary endpoint only; they hold no child rows.
+      const readsChildren = role !== 'official';
+      const skip = { ok: false } as const;
       const [pupilRes, attendanceRes, progressRes, usersRes, auditRes] = await Promise.all([
-        fetchPupils(['pending', 'enrolled', 'rejected']),
-        fetchAttendance(),
-        fetchProgress(),
+        readsChildren ? fetchPupils(['pending', 'enrolled', 'rejected']) : Promise.resolve({ ...skip, pupils: [] }),
+        readsChildren ? fetchAttendance() : Promise.resolve({ ...skip, records: [] }),
+        readsChildren ? fetchProgress() : Promise.resolve({ ...skip, observations: [] }),
         isAdmin ? fetchUsers() : Promise.resolve({ ok: false, users: [] }),
         isAdmin ? fetchAuditLogs() : Promise.resolve({ ok: false, logs: [] }),
       ]);

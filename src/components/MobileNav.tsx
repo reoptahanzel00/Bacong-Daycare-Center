@@ -53,8 +53,7 @@ export default function MobileNav({
       badge: 'Oversight View',
       items: [
         { id: 'overview', label: 'Executive Overview', icon: Shield },
-        { id: 'reports', label: 'DSWD Form 1 PDF', icon: FileText },
-        { id: 'consecutive_absences', label: 'Absence Telemetry', icon: BellRing },
+        { id: 'consecutive_absences', label: 'Frequent Absences', icon: BellRing },
       ]
     },
     barangay_admin: {

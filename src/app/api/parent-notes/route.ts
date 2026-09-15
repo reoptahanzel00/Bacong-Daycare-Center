@@ -18,6 +18,11 @@ export async function GET() {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
+    // The capstone paper gives barangay officials summarized figures only
+    // (/api/reports/summary), never individual children's records.
+    if (session.role === 'official') {
+      return NextResponse.json({ error: 'Barangay officials see summarized figures only.' }, { status: 403 });
+    }
 
     // RLS-bound session client: parents select their own notes; staff select
     // all (policies in schema.sql). No service role needed for this read.

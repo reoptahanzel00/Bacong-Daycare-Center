@@ -69,6 +69,20 @@ test.describe('Official scope', () => {
     expect(body.observations ?? []).toEqual([]);
   });
 
+  test('an official sees summarized figures, never child records', async ({ request }) => {
+    // The paper: officials view summarized enrollment and attendance reports.
+    for (const url of ['/api/pupils?status=enrolled', '/api/attendance/bulk', '/api/eccd?round=1',
+      '/api/eccd/scores?round=1', '/api/parent-notes', '/api/eccd/report?pupil_id=PUP-2026-001&format=json']) {
+      expect((await request.get(url)).status(), url).toBe(403);
+    }
+    const res = await request.get('/api/reports/summary');
+    expect(res.status()).toBe(200);
+    const summary = await res.json();
+    expect(typeof summary.enrollment.enrolled).toBe('number');
+    // Counts only: no pupil ids or names anywhere in the payload.
+    expect(JSON.stringify(summary)).not.toMatch(/PUP-|first_name|last_name/);
+  });
+
   test('an official cannot list system accounts', async ({ request }) => {
     expect((await request.get('/api/users')).status()).toBe(403);
   });
