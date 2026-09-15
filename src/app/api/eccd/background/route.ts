@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole, type AuthSession } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { recordAudit } from '@/lib/audit';
 
 const NoteField = z.string().max(2000, 'Max 2000 characters').trim().optional().nullable();
 
@@ -74,9 +75,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['parent', 'worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['parent', 'worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: only Parents, Daycare Workers, or Admins can save background info.' },
+        { error: 'Unauthorized: only Parents or Daycare Workers can save background info.' },
         { status: 403 }
       );
     }
@@ -111,6 +112,8 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+    await recordAudit(admin, session, 'Updated child & family background', parsed.pupil_id);
+
     return NextResponse.json({ success: true, background: data });
   } catch (error) {
     if (error instanceof z.ZodError) {

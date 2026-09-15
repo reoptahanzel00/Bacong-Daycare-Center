@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { UserRole } from '@/contexts/DaycareContext';
 
-const VALID_ROLES: UserRole[] = ['worker', 'official', 'barangay_admin', 'parent'];
+const VALID_ROLES: UserRole[] = ['worker', 'official', 'parent'];
 
 export interface AuthSession {
   userId: string | null;

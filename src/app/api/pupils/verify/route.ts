@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 const VerifySchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -19,9 +20,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers or Barangay Admins can verify enrollments.' },
+        { error: 'Unauthorized: Only Daycare Workers can verify enrollments.' },
         { status: 403 }
       );
     }
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
         title: parsed.action === 'approve' ? 'Enrollment approved' : 'Enrollment needs attention',
         message:
           parsed.action === 'approve'
-            ? `${pupil.first_name} ${pupil.last_name}'s enrollment has been approved by the Daycare Worker.`
+            ? `${pupil.first_name} ${pupil.last_name}'s enrollment has been approved by the Daycare Worker. Student ID: ${parsed.pupil_id} — you can also sign in with it.`
             : `The Daycare Worker could not approve ${pupil.first_name} ${pupil.last_name}'s enrollment: ${parsed.reason}`,
         channel: 'PORTAL',
         severity: parsed.action === 'approve' ? 'info' : 'medium',
@@ -85,17 +86,7 @@ export async function POST(request: Request) {
     }
 
     // Audit trail (immutable RA 10173 record).
-    const { error: auditError } = await admin.from('audit_log').insert({
-      user_id: session.userId,
-      user_name: session.email || 'unknown',
-      role: session.role,
-      action: `Enrollment ${parsed.action === 'approve' ? 'Approved' : 'Rejected'}`,
-      target: parsed.pupil_id,
-      details: parsed.reason || `${pupil.first_name} ${pupil.last_name}`,
-    });
-    if (auditError) {
-      console.warn('[Verify API] Audit insert warning:', auditError.message);
-    }
+    await recordAudit(admin, session, `Enrollment ${parsed.action === 'approve' ? 'approved' : 'rejected'}`, parsed.pupil_id, parsed.reason || null);
 
     return NextResponse.json({
       success: true,

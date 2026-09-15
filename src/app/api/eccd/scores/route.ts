@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { todayLocalISO } from '@/lib/dates';
+import { recordAudit } from '@/lib/audit';
 
 const EccdRoundSchema = z.coerce.number().int().min(1).max(3).default(1);
 
@@ -76,9 +77,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers or Admins can save scores.' },
+        { error: 'Unauthorized: Only Daycare Workers can save scores.' },
         { status: 403 }
       );
     }
@@ -119,6 +120,8 @@ export async function POST(request: Request) {
     if (evaluationError) {
       return NextResponse.json({ error: evaluationError.message }, { status: 400 });
     }
+
+    await recordAudit(admin, session, 'Saved ECCD scores', parsed.pupil_id, `Round ${parsed.round}${parsed.standard_score != null ? `, standard score ${parsed.standard_score}` : ''}`);
 
     return NextResponse.json({ success: true, saved: rows.length, round: parsed.round });
   } catch (error) {

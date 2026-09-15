@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
 import { todayLocalISO } from '@/lib/dates';
+import { recordAudit } from '@/lib/audit';
 
 const SignupSchema = z.object({
-  role: z.enum(['worker', 'official', 'barangay_admin', 'parent']).default('parent'),
+  role: z.enum(['worker', 'official', 'parent']).default('parent'),
   fullName: z.string().min(2, 'Full name is required').max(100),
   email: z.string().email('Invalid email address'),
   password: passwordSchema,
@@ -74,14 +75,14 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Checked before the body is validated. Public self-registration is for
-    // parents only; worker, official and admin accounts are provisioned by a
-    // Barangay Admin and are never self-assignable. An attempt to claim one is
+    // parents only; worker and official accounts are provisioned by a
+    // Daycare Worker and are never self-assignable. An attempt to claim one is
     // a refusal, not a validation problem — answering 400 because some other
     // field was also malformed would report privilege escalation as a typo.
     const requestedRole = (body as { role?: unknown })?.role;
     if (typeof requestedRole === 'string' && requestedRole !== 'parent') {
       return NextResponse.json(
-        { error: `${requestedRole} accounts are created by the Barangay Admin. Please contact the IT Administration.` },
+        { error: `${requestedRole} accounts are created by the Daycare Worker.` },
         { status: 403 }
       );
     }
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
       // whether an email address is already registered (account enumeration).
       console.warn('[Signup API] Auth error:', authError.message);
       return NextResponse.json(
-        { error: 'Unable to create the account. Please check your details or contact the Barangay Admin.' },
+        { error: 'Unable to create the account. Please check your details or contact the Daycare Worker.' },
         { status: 400 }
       );
     }
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
       console.error('[Signup API] Profile insert failed, rolling back auth user:', profileError.message);
       await admin.auth.admin.deleteUser(authData.user.id).catch(() => {});
       return NextResponse.json(
-        { error: 'Unable to create the account. Please try again or contact the Barangay Admin.' },
+        { error: 'Unable to create the account. Please try again or contact the Daycare Worker.' },
         { status: 500 }
       );
     }
@@ -240,12 +241,14 @@ export async function POST(request: Request) {
       console.warn('[Signup API] Child profile insert warning:', pupilCreateError);
     }
 
+    await recordAudit(admin, { userId: authData.user.id, email, role: 'parent' }, 'Registered parent account', createdPupilIds.join(', ') || 'No child profile saved');
+
     return NextResponse.json({
       success: true,
       message:
         createdPupilIds.length > 0
           ? `Account created. ${createdPupilIds.length} child profile(s) submitted for verification by the Daycare Worker.`
-          : 'Account created, but your child profile could not be saved. Please contact the Barangay Admin.',
+          : 'Account created, but your child profile could not be saved. Please contact the Daycare Worker.',
       linked: createdPupilIds.length > 0,
       pupilIds: createdPupilIds,
     });

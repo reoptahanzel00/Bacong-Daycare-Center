@@ -34,10 +34,21 @@ test.describe('Role-Based Access Control (RBAC) & Scope Isolation', () => {
     await expect(page.getByRole('button', { name: /dswd/i })).toHaveCount(0);
   });
 
-  test('should render the Barangay Admin portal for the admin role', async ({ page }) => {
+  test('the paper has three roles: the Daycare Worker manages accounts and the audit trail', async ({ page }) => {
+    await seedRole(page, 'worker');
+    await page.goto('/');
+    const accounts = page.getByRole('button', { name: 'User Accounts' }).first();
+    await expect(async () => {
+      await accounts.click();
+      await expect(page.getByText('User Accounts & Audit Trail')).toBeVisible({ timeout: 5000 });
+    }).toPass({ timeout: 30000 });
+    await expect(page.getByRole('button', { name: 'Audit Trail' }).first()).toBeVisible();
+  });
+
+  test('a stale barangay_admin role falls back to the worker portal', async ({ page }) => {
     await seedRole(page, 'barangay_admin');
     await page.goto('/');
-    await expect(page.getByText('Barangay Admin Governance & RLS Audit Hub')).toBeVisible();
+    await expect(page.getByText(/daily register/i).first()).toBeVisible();
   });
 
   test('should render the Parent portal for the parent role and hide admin controls', async ({ page }) => {

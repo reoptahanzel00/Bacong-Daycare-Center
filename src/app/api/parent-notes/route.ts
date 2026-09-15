@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { recordAudit } from '@/lib/audit';
 
 const ParentNoteSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -93,6 +94,8 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+    await recordAudit(admin, session, 'Submitted absence note', parsed.pupil_id, `For ${parsed.date}`);
+
     return NextResponse.json({ success: true, note: data });
   } catch (error) {
     if (error instanceof z.ZodError) {

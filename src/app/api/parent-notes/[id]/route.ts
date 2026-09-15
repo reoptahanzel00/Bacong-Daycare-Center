@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 /** PATCH — worker/admin acknowledges an absence note. */
 export async function PATCH(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -8,9 +9,9 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers or Admins can acknowledge notes.' },
+        { error: 'Unauthorized: Only Daycare Workers can acknowledge notes.' },
         { status: 403 }
       );
     }
@@ -32,6 +33,8 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
     if (!data) {
       return NextResponse.json({ error: 'Note not found.' }, { status: 404 });
     }
+    await recordAudit(admin, session, 'Acknowledged absence note', `Note ${id}`);
+
     return NextResponse.json({ success: true, note: data });
   } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

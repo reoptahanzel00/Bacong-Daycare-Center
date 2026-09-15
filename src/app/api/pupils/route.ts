@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { resolveEnrollmentStatus } from '@/lib/enrollment';
 import { todayLocalISO } from '@/lib/dates';
+import { recordAudit } from '@/lib/audit';
 
 const PupilSchema = z.object({
   // Only an id this API previously issued may be supplied (edit path).
@@ -67,9 +68,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers or Admins can enroll or modify pupil records.' },
+        { error: 'Unauthorized: Only Daycare Workers can enroll or modify pupil records.' },
         { status: 403 }
       );
     }
@@ -160,6 +161,12 @@ export async function POST(request: Request) {
         { success: false, error: 'The pupil record could not be saved. Please try again.' },
         { status: 503 }
       );
+    }
+
+    {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const action = !parsed.id ? 'Enrolled pupil' : resolvedStatus === 'archived' ? 'Archived pupil record' : 'Updated pupil record';
+      await recordAudit(createAdminClient(), session, action, pupilId, `Status: ${resolvedStatus}`);
     }
 
     return NextResponse.json({

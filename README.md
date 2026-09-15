@@ -14,20 +14,17 @@ A comprehensive daycare management system built for **Barangay Bacong, San Luis,
 - Parent notifications (absence alerts, enrollment decisions)
 - DSWD Form 1 PDF report generation
 - Archive graduated/withdrawn pupils
+- User account management (create, disable, reset password, link parents)
+- Audit trail (written by the server for every change) and centre settings
 
 ### 🏛️ Barangay Official
 - Barangay Executive Dashboard: summarized enrollment and attendance figures with charts (counts only, no individual records)
 - Number of children with frequent absences (3+ consecutive)
 - ECCD assessments completed per round
 
-### 🔐 Barangay Admin
-- User account management (create, disable, reset password)
-- Role-based access control (Worker / Official / Admin / Parent)
-- System-wide audit log with search & pagination
-- School year management
-
 ### 👨‍👩‍👧 Parent / Guardian
-- View child's attendance history & calendar
+- Sign in with email or the child's Student ID
+- View child's attendance history
 - Receive notifications (absence alerts, enrollment decisions)
 - Download the child's ECCD Child's Record 2 (Word form, filled from the worker's evaluations)
 

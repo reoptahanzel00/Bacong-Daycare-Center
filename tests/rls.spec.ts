@@ -98,12 +98,12 @@ test.describe('Official scope', () => {
 test.describe('Worker scope', () => {
   test.use({ storageState: state('worker') });
 
-  test('a worker sees the full roster but cannot list accounts', async ({ request }) => {
+  test('a worker sees the full roster and manages accounts (three roles)', async ({ request }) => {
     const pupilsRes = await request.get('/api/pupils?status=enrolled');
     const { pupils } = await pupilsRes.json();
     expect(pupils.length).toBeGreaterThan(1);
 
-    expect((await request.get('/api/users')).status()).toBe(403);
+    expect((await request.get('/api/users')).status()).toBe(200);
   });
 
   test("a worker can download any pupil's ECCD Child's Record 2", async ({ request }) => {
@@ -144,10 +144,10 @@ test.describe('Worker scope', () => {
   });
 });
 
-test.describe('Admin scope', () => {
-  test.use({ storageState: state('admin') });
+test.describe('Account management (worker)', () => {
+  test.use({ storageState: state('worker') });
 
-  test('an admin can read the directory and the audit trail', async ({ request }) => {
+  test('the Daycare Worker can read the directory and the audit trail', async ({ request }) => {
     expect((await request.get('/api/users')).status()).toBe(200);
     expect((await request.get('/api/audit-log')).status()).toBe(200);
   });
@@ -157,7 +157,7 @@ test.describe('Disabled accounts', () => {
   test('a disabled account cannot sign in even with the right password', async ({ page }) => {
     const password = process.env.E2E_PASSWORD;
     await page.goto('/login');
-    await page.getByLabel(/email address/i).fill('e2e-disabled@example.test');
+    await page.getByLabel(/email or student id/i).fill('e2e-disabled@example.test');
     await page.getByLabel(/^password$/i).fill(password!);
     await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByText(/disabled|invalid email or password/i)).toBeVisible();

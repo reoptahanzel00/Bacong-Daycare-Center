@@ -8,7 +8,7 @@ import { checkPassword } from '@/lib/password';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 import { clearStoredData } from '@/data/mockData';
 
-type UserRole = 'worker' | 'official' | 'barangay_admin' | 'parent';
+type UserRole = 'worker' | 'official' | 'parent';
 type AuthMode = 'signin' | 'create';
 
 
@@ -75,7 +75,6 @@ const ROLE_OPTIONS: Array<{ id: UserRole; label: string; hint: string; isPublic:
   { id: 'parent', label: 'Parent / Guardian', hint: 'For parents and guardians of enrolled pupils.', isPublic: true },
   { id: 'worker', label: 'Daycare Worker', hint: 'Daycare staff who manage registers and evaluations.', isPublic: false },
   { id: 'official', label: 'Barangay Official', hint: 'Read-only oversight for barangay officials.', isPublic: false },
-  { id: 'barangay_admin', label: 'Barangay Admin', hint: 'System administrators who provision accounts.', isPublic: false },
 ];
 
 export default function AuthPage() {
@@ -159,6 +158,11 @@ export default function AuthPage() {
       setErrorMessage('Enter your email address first.');
       return;
     }
+    if (!email.includes('@')) {
+      // A Student ID signs in, but reset links go to the account's email.
+      setErrorMessage('To reset your password, enter your email address instead of the Student ID.');
+      return;
+    }
     setLoading(true);
     try {
       const supabase = createClient();
@@ -192,7 +196,7 @@ export default function AuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim(),
+          identifier: email.trim(),
           password: password,
         }),
       });
@@ -200,7 +204,7 @@ export default function AuthPage() {
 
       if (!res.ok) {
         localStorage.removeItem('bacong_auth_role');
-        setErrorMessage(data.error || 'Invalid email or password. Please check your credentials.');
+        setErrorMessage(data.error || 'Invalid email, Student ID or password. Please check your credentials.');
         setLoading(false);
         return;
       }
@@ -346,7 +350,7 @@ export default function AuthPage() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 size={16} className="text-warn-fill" />
-              <span>4 DSWD ECCD Developmental Domains</span>
+              <span>7-domain DSWD ECCD Checklist (109 items)</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 size={16} className="text-warn-fill" />
@@ -399,15 +403,22 @@ export default function AuthPage() {
 
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
                 <div>
-                  <label htmlFor="srcapploginpage-email-address-1" className="block text-xs font-bold text-ink mb-1.5">Email Address</label>
+                  <label htmlFor="srcapploginpage-email-address-1" className="block text-xs font-bold text-ink mb-1.5">Email or Student ID</label>
                   <input id="srcapploginpage-email-address-1"
-                    type="email"
+                    type="text"
                     required
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@bacong.gov.ph"
+                    placeholder="name@example.com or PUP-2026-XXXXXXXX"
+                    aria-describedby="signin-identifier-hint"
                     className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-primary-display"
                   />
+                  <p id="signin-identifier-hint" className="text-[11px] text-ink-muted mt-1.5 mb-0">
+                    Parents may sign in with their child&apos;s Student ID. Staff use their email address.
+                  </p>
                 </div>
 
                 <div>
@@ -945,12 +956,11 @@ export default function AuthPage() {
                     <div className="p-4 rounded-2xl bg-warn-light border border-warn-border text-xs space-y-2">
                       <div className="flex items-center gap-2 font-bold text-warn">
                         <AlertCircle size={16} className="shrink-0" />
-                        <span>This account type is created by the Barangay Admin</span>
+                        <span>This account type is created by the Daycare Worker</span>
                       </div>
                       <p className="text-[11px] text-warn leading-relaxed m-0">
-                        {selectedRole.label} accounts are provisioned by the Barangay Admin to protect
-                        system access. Please contact the Barangay IT Administration to have your
-                        account created.
+                        {selectedRole.label} accounts are created by the Daycare Worker to protect
+                        system access. Please contact the Daycare Worker to have your account created.
                       </p>
                       <button
                         type="button"
@@ -969,7 +979,7 @@ export default function AuthPage() {
 
           <div className="text-center pt-4 border-t border-line">
             <p className="text-[11px] text-ink-subtle m-0">
-              Need account assistance? Contact <strong className="text-ink">Barangay Bacong IT Administration</strong>.
+              Need account assistance? Contact the <strong className="text-ink">Daycare Worker</strong>.
             </p>
           </div>
         </div>

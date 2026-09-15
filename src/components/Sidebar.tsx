@@ -37,12 +37,6 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
           { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard },
           { id: 'consecutive_absences', label: 'Frequent Absences', icon: BellRing },
         ];
-      case 'barangay_admin':
-        return [
-          { id: 'users', label: 'User Provisioning', icon: UserCheck },
-          { id: 'audit_logs', label: 'System Security Audit', icon: ShieldCheck },
-          { id: 'security', label: 'Data Privacy RLS Audit', icon: Shield },
-        ];
       case 'parent':
         return [
           { id: 'child', label: 'My Child Portal', icon: Heart },
@@ -57,6 +51,9 @@ export default function Sidebar({ currentRole, activeTab, onTabChange }: Sidebar
           { id: 'verify', label: 'Verify Enrollments', icon: ShieldCheck },
           { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
           { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
+          { id: 'users', label: 'User Accounts', icon: UserCheck },
+          { id: 'audit_logs', label: 'Audit Trail', icon: ShieldCheck },
+          { id: 'security', label: 'Centre & Privacy', icon: Shield },
         ];
     }
   };

@@ -17,7 +17,7 @@ const quicksand = Quicksand({
 
 export const metadata: Metadata = {
   title: 'Barangay Bacong Daycare Center Tracker',
-  description: 'Student Progress, Enrollment, and Daily Attendance Tracker with 4-Domain ECCD Evaluation & DSWD PDF Reporting.',
+  description: 'Student Progress, Enrollment, and Daily Attendance Tracker with the 109-item DSWD ECCD Checklist and DSWD Form 1 reporting.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

@@ -46,6 +46,9 @@ export default function MobileNav({
         { id: 'verify', label: 'Verify Enrollments', icon: ShieldCheck },
         { id: 'progress', label: `${ECCD_TOTAL_ITEMS}-Item ECCD Tool`, icon: TrendingUp },
         { id: 'parent_notes_inbox', label: 'Parent Notes Inbox', icon: MessageSquare },
+        { id: 'users', label: 'User Accounts', icon: UserCheck },
+        { id: 'audit_logs', label: 'Audit Trail', icon: FileText },
+        { id: 'security', label: 'Centre & Privacy', icon: Shield },
       ]
     },
     official: {
@@ -54,15 +57,6 @@ export default function MobileNav({
       items: [
         { id: 'overview', label: 'Executive Overview', icon: Shield },
         { id: 'consecutive_absences', label: 'Frequent Absences', icon: BellRing },
-      ]
-    },
-    barangay_admin: {
-      title: 'Barangay Admin',
-      badge: 'System Governance',
-      items: [
-        { id: 'users', label: 'User Provisioning', icon: UserCheck },
-        { id: 'audit_logs', label: 'Security Audit Trail', icon: FileText },
-        { id: 'security', label: 'Data Privacy RLS Audit', icon: Shield },
       ]
     },
     parent: {

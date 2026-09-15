@@ -30,7 +30,7 @@ export async function GET() {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['official', 'worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['official', 'worker'])) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 403 });
     }
 

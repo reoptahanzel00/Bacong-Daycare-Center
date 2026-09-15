@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('worker', 'official', 'barangay_admin', 'parent')),
+  role TEXT NOT NULL CHECK (role IN ('worker', 'official', 'parent')),
   phone TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
   -- RA 10173: recorded per account so consent is provable, and versioned so a
@@ -329,10 +329,10 @@ CREATE POLICY "Users SELECT Own Policy" ON users
   FOR SELECT TO authenticated
   USING (id = auth.uid());
 
-DROP POLICY IF EXISTS "Users Admin SELECT Policy" ON users;
-CREATE POLICY "Users Admin SELECT Policy" ON users
+DROP POLICY IF EXISTS "Users Worker SELECT Policy" ON users;
+CREATE POLICY "Users Worker SELECT Policy" ON users
   FOR SELECT TO authenticated
-  USING (public.current_user_role() = 'barangay_admin');
+  USING (public.current_user_role() = 'worker');
 
 -- Pupil RLS: Parents see linked children only; Staff sees all enrolled pupils.
 -- No DELETE policy: records are soft-archived via enrollment_status.
@@ -341,19 +341,19 @@ CREATE POLICY "Pupils SELECT Policy" ON pupils
   FOR SELECT TO authenticated
   USING (
     id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'barangay_admin')
+    OR public.current_user_role() = 'worker'
   );
 
 DROP POLICY IF EXISTS "Pupils INSERT Policy" ON pupils;
 CREATE POLICY "Pupils INSERT Policy" ON pupils
   FOR INSERT TO authenticated
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  WITH CHECK (public.current_user_role() = 'worker');
 
 DROP POLICY IF EXISTS "Pupils UPDATE Policy" ON pupils;
 CREATE POLICY "Pupils UPDATE Policy" ON pupils
   FOR UPDATE TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'))
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker')
+  WITH CHECK (public.current_user_role() = 'worker');
 
 -- Guardians RLS: parents see their own guardianship rows; staff sees all.
 -- (This also lets the pupils/attendance JOINs resolve linked children.)
@@ -362,19 +362,19 @@ CREATE POLICY "Guardians SELECT Policy" ON guardians
   FOR SELECT TO authenticated
   USING (
     user_id = auth.uid()
-    OR public.current_user_role() IN ('worker', 'barangay_admin')
+    OR public.current_user_role() = 'worker'
   );
 
 DROP POLICY IF EXISTS "Guardians INSERT Policy" ON guardians;
 CREATE POLICY "Guardians INSERT Policy" ON guardians
   FOR INSERT TO authenticated
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  WITH CHECK (public.current_user_role() = 'worker');
 
 DROP POLICY IF EXISTS "Guardians UPDATE Policy" ON guardians;
 CREATE POLICY "Guardians UPDATE Policy" ON guardians
   FOR UPDATE TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'))
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker')
+  WITH CHECK (public.current_user_role() = 'worker');
 
 -- Sociodemographic profiles RLS: parents read their linked children's profile;
 -- staff reads all. Writes happen ONLY through the server API (service role),
@@ -384,7 +384,7 @@ CREATE POLICY "Sociodemographic SELECT Policy" ON sociodemographic_profiles
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'barangay_admin')
+    OR public.current_user_role() = 'worker'
   );
 
 -- Centre settings: readable by anyone signed in (the DSWD report needs it).
@@ -404,7 +404,7 @@ CREATE POLICY "Parent Notes SELECT Own" ON parent_notes
 DROP POLICY IF EXISTS "Parent Notes SELECT Staff" ON parent_notes;
 CREATE POLICY "Parent Notes SELECT Staff" ON parent_notes
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker');
 
 -- ECCD scores: parents read linked children only; staff read all.
 DROP POLICY IF EXISTS "ECCD Scores SELECT Own" ON eccd_scores;
@@ -414,7 +414,7 @@ CREATE POLICY "ECCD Scores SELECT Own" ON eccd_scores
 DROP POLICY IF EXISTS "ECCD Scores SELECT Staff" ON eccd_scores;
 CREATE POLICY "ECCD Scores SELECT Staff" ON eccd_scores
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker');
 
 -- ECCD evaluations & item comments: parents read linked children only; staff read all.
 DROP POLICY IF EXISTS "ECCD Evaluations SELECT Own" ON eccd_evaluations;
@@ -424,7 +424,7 @@ CREATE POLICY "ECCD Evaluations SELECT Own" ON eccd_evaluations
 DROP POLICY IF EXISTS "ECCD Evaluations SELECT Staff" ON eccd_evaluations;
 CREATE POLICY "ECCD Evaluations SELECT Staff" ON eccd_evaluations
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker');
 DROP POLICY IF EXISTS "ECCD Item Comments SELECT Own" ON eccd_item_comments;
 CREATE POLICY "ECCD Item Comments SELECT Own" ON eccd_item_comments
   FOR SELECT TO authenticated
@@ -432,7 +432,7 @@ CREATE POLICY "ECCD Item Comments SELECT Own" ON eccd_item_comments
 DROP POLICY IF EXISTS "ECCD Item Comments SELECT Staff" ON eccd_item_comments;
 CREATE POLICY "ECCD Item Comments SELECT Staff" ON eccd_item_comments
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker');
 
 -- Child backgrounds: parents read linked children only; staff read all.
 DROP POLICY IF EXISTS "Child Backgrounds SELECT Own" ON child_backgrounds;
@@ -442,7 +442,7 @@ CREATE POLICY "Child Backgrounds SELECT Own" ON child_backgrounds
 DROP POLICY IF EXISTS "Child Backgrounds SELECT Staff" ON child_backgrounds;
 CREATE POLICY "Child Backgrounds SELECT Staff" ON child_backgrounds
   FOR SELECT TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker');
 
 -- Attendance RLS: Parents view attendance of linked children only.
 -- UPDATE exists so workers/admins can correct registers; matching the API.
@@ -451,19 +451,19 @@ CREATE POLICY "Attendance SELECT Policy" ON attendance
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'barangay_admin')
+    OR public.current_user_role() = 'worker'
   );
 
 DROP POLICY IF EXISTS "Attendance INSERT Policy" ON attendance;
 CREATE POLICY "Attendance INSERT Policy" ON attendance
   FOR INSERT TO authenticated
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  WITH CHECK (public.current_user_role() = 'worker');
 
 DROP POLICY IF EXISTS "Attendance UPDATE Policy" ON attendance;
 CREATE POLICY "Attendance UPDATE Policy" ON attendance
   FOR UPDATE TO authenticated
-  USING (public.current_user_role() IN ('worker', 'barangay_admin'))
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  USING (public.current_user_role() = 'worker')
+  WITH CHECK (public.current_user_role() = 'worker');
 
 -- Progress Observations RLS: Exclude non-staff officials from individual private notes per RA 10173
 DROP POLICY IF EXISTS "Progress SELECT Policy" ON progress_observations;
@@ -471,13 +471,13 @@ CREATE POLICY "Progress SELECT Policy" ON progress_observations
   FOR SELECT TO authenticated
   USING (
     pupil_id IN (SELECT pupil_id FROM guardians WHERE user_id = auth.uid())
-    OR public.current_user_role() IN ('worker', 'barangay_admin')
+    OR public.current_user_role() = 'worker'
   );
 
 DROP POLICY IF EXISTS "Progress INSERT Policy" ON progress_observations;
 CREATE POLICY "Progress INSERT Policy" ON progress_observations
   FOR INSERT TO authenticated
-  WITH CHECK (public.current_user_role() IN ('worker', 'barangay_admin'));
+  WITH CHECK (public.current_user_role() = 'worker');
 
 -- Audit Log RLS: Immutable. Writes happen ONLY through the server API
 -- (/api/audit-log) using the service-role key, so there is deliberately NO
@@ -485,7 +485,7 @@ CREATE POLICY "Progress INSERT Policy" ON progress_observations
 DROP POLICY IF EXISTS "Audit Log SELECT Policy" ON audit_log;
 CREATE POLICY "Audit Log SELECT Policy" ON audit_log
   FOR SELECT TO authenticated
-  USING (public.current_user_role() = 'barangay_admin');
+  USING (public.current_user_role() = 'worker');
 
 -- Notifications RLS: each user reads/updates their own feed. Inserts happen
 -- ONLY through the server API (service role), so no client INSERT policy.

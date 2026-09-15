@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getServerSession, authorizeRole } from '@/lib/auth';
+import { recordAudit } from '@/lib/audit';
 
 import {
   DOMAIN_LABEL_TO_ID,
@@ -68,9 +69,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers or Admins can record ECCD observations.' },
+        { error: 'Unauthorized: Only Daycare Workers can record ECCD observations.' },
         { status: 403 }
       );
     }
@@ -120,6 +121,11 @@ export async function POST(request: Request) {
         });
       } catch (notifyError) {
         console.warn('[Progress API] Milestone notification skipped:', notifyError);
+      }
+
+      {
+        const { createAdminClient } = await import('@/lib/supabase/admin');
+        await recordAudit(createAdminClient(), session, 'Recorded progress observation', parsed.pupil_id, parsed.domain);
       }
 
       return NextResponse.json({ success: true, observation: data });

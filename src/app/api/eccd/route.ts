@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { todayLocalISO } from '@/lib/dates';
+import { recordAudit } from '@/lib/audit';
 
 const EccdRoundSchema = z.coerce.number().int().min(1).max(3).default(1);
 
@@ -91,9 +92,9 @@ export async function POST(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers or Admins can save evaluations.' },
+        { error: 'Unauthorized: Only Daycare Workers can save evaluations.' },
         { status: 403 }
       );
     }
@@ -159,6 +160,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: commentError.message }, { status: 400 });
       }
     }
+
+    await recordAudit(admin, session, 'Saved ECCD checklist', parsed.pupil_id, `Round ${parsed.round}: ${presentItems.length} items present, ${commentRows.length} comments`);
 
     return NextResponse.json({ success: true, saved: presentItems.length, round: parsed.round });
   } catch (error) {

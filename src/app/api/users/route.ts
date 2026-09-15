@@ -7,9 +7,9 @@ export async function GET() {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['barangay_admin'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Barangay Admins can list system accounts.' },
+        { error: 'Unauthorized: Only Daycare Workers can list system accounts.' },
         { status: 403 }
       );
     }
