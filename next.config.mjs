@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The ECCD Child's Record 2 route fills this Word template at request time;
+  // it is read from disk, so it must be traced into that serverless bundle.
+  outputFileTracingIncludes: {
+    '/api/eccd/report': ['./src/templates/eccd-child-record-2.docx'],
+  },
   images: {
     remotePatterns: [
       {

@@ -13,6 +13,8 @@ const SaveEccdSchema = z.object({
       milestone_code: z.string().min(1, 'Milestone code is required'),
       domain_id: z.string().min(1, 'Domain ID is required'),
       present: z.boolean(),
+      // The form's Comments column, e.g. why the child could not show the skill.
+      comment: z.string().trim().max(300, 'Comments are limited to 300 characters').optional(),
     })
   ),
 });
@@ -21,6 +23,7 @@ const SaveEccdSchema = z.object({
  * GET — checklist ratings for a given evaluation round.
  * Only PRESENT (✓) items are stored; absence is implied by a missing row,
  * so the raw score per domain is simply the count of returned rows.
+ * The round's per-item comments come back alongside.
  * Parents see only their linked children; staff see all.
  */
 export async function GET(request: Request) {
@@ -41,6 +44,10 @@ export async function GET(request: Request) {
       .select('pupil_id, milestone_code, status_rating, evaluation_round')
       .not('milestone_code', 'is', null)
       .eq('evaluation_round', round);
+    let commentQuery = admin
+      .from('eccd_item_comments')
+      .select('pupil_id, milestone_code, comment')
+      .eq('evaluation_round', round);
 
     if (session.role === 'parent') {
       const { data: guardians } = await admin
@@ -49,23 +56,27 @@ export async function GET(request: Request) {
         .eq('user_id', session.userId);
       const pupilIds = (guardians || []).map((g) => g.pupil_id);
       if (pupilIds.length === 0) {
-        return NextResponse.json({ ratings: [] });
+        return NextResponse.json({ ratings: [], comments: [] });
       }
       query = query.in('pupil_id', pupilIds);
+      commentQuery = commentQuery.in('pupil_id', pupilIds);
     }
 
-    const { data, error } = await query.limit(5000);
+    const [{ data, error }, { data: comments }] = await Promise.all([
+      query.limit(5000),
+      commentQuery.limit(5000),
+    ]);
     if (error) {
-      return NextResponse.json({ ratings: [], warning: error.message });
+      return NextResponse.json({ ratings: [], comments: [], warning: error.message });
     }
-    return NextResponse.json({ ratings: data || [] });
+    return NextResponse.json({ ratings: data || [], comments: comments || [] });
   } catch {
-    return NextResponse.json({ ratings: [], warning: 'Ratings unavailable.' });
+    return NextResponse.json({ ratings: [], comments: [], warning: 'Ratings unavailable.' });
   }
 }
 
 /**
- * POST — replaces a pupil's ✓/– checklist for the given round.
+ * POST — replaces a pupil's ✓/– checklist and item comments for the given round.
  * Delete + insert of milestone-code rows scoped to (pupil, round);
  * milestone-modal observations (milestone_code NULL) are untouched.
  */
@@ -116,6 +127,31 @@ export async function POST(request: Request) {
       const { error: insertError } = await admin.from('progress_observations').insert(rows);
       if (insertError) {
         return NextResponse.json({ error: insertError.message }, { status: 400 });
+      }
+    }
+
+    // 3. Replace this round's comments the same way.
+    const { error: commentDeleteError } = await admin
+      .from('eccd_item_comments')
+      .delete()
+      .eq('pupil_id', parsed.pupil_id)
+      .eq('evaluation_round', parsed.round);
+    if (commentDeleteError) {
+      return NextResponse.json({ error: commentDeleteError.message }, { status: 400 });
+    }
+    const commentRows = parsed.ratings
+      .filter((r) => r.comment)
+      .map((r) => ({
+        pupil_id: parsed.pupil_id,
+        evaluation_round: parsed.round,
+        milestone_code: r.milestone_code,
+        comment: r.comment,
+        updated_by: session.userId,
+      }));
+    if (commentRows.length > 0) {
+      const { error: commentError } = await admin.from('eccd_item_comments').insert(commentRows);
+      if (commentError) {
+        return NextResponse.json({ error: commentError.message }, { status: 400 });
       }
     }
 

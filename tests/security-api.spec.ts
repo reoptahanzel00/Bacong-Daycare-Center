@@ -171,6 +171,11 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(401);
   });
 
+  test('unauthenticated GET /api/eccd/report should be rejected with 401', async ({ request }) => {
+    expect((await request.get('/api/eccd/report?pupil_id=PUP-1')).status()).toBe(401);
+    expect((await request.get('/api/eccd/report?pupil_id=PUP-1&format=json')).status()).toBe(401);
+  });
+
   test('unauthenticated POST /api/users/create should be rejected with 401', async ({ request }) => {
     const response = await request.post('/api/users/create', {
       data: { fullName: 'Test', email: 'test@test.com', role: 'barangay_admin', password: 'Str0ng!Pass' }

@@ -1024,7 +1024,7 @@ export default function ParentView({
               suppressHydrationWarning
             >
               <Download size={16} />
-              <span>Download Report Card PDF</span>
+              <span>Download Report Card (Word)</span>
             </button>
           </div>
 
@@ -1102,7 +1102,7 @@ export default function ParentView({
         childName={child ? `${child.firstName} ${child.lastName}` : undefined}
       />
 
-      {/* ECCD Pupil Evaluation Report — per-student PDF for the linked child */}
+      {/* ECCD Child's Record 2 — the linked child's filled Word form */}
       <ECCDReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}

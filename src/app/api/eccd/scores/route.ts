@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { todayLocalISO } from '@/lib/dates';
 
 const EccdRoundSchema = z.coerce.number().int().min(1).max(3).default(1);
 
@@ -15,9 +16,15 @@ const SaveScoresSchema = z.object({
       scaled_score: z.number().int().min(0).max(100).nullable().optional(),
     })
   ),
+  // Read off the official Sum-of-Scaled-Scores table by the examiner; the
+  // form's Interpretation row is derived from it.
+  standard_score: z.number().int().min(0).max(200).nullable().optional(),
 });
 
-/** GET — per-domain raw/scaled scores for a round. Parents scoped, staff all. */
+/**
+ * GET — per-domain raw/scaled scores for a round, plus each pupil's round
+ * record (date tested, standard score). Parents scoped, staff all.
+ */
 export async function GET(request: Request) {
   try {
     const session = await getServerSession();
@@ -32,26 +39,36 @@ export async function GET(request: Request) {
     // all (policies in schema.sql). No service role needed for this read.
     const supabase = await createClient();
 
-    const { data, error } = await supabase
-      .from('eccd_scores')
-      .select('pupil_id, domain_id, evaluation_round, raw_score, scaled_score')
-      .eq('evaluation_round', round)
-      .limit(2000);
+    const [{ data, error }, { data: evaluations }] = await Promise.all([
+      supabase
+        .from('eccd_scores')
+        .select('pupil_id, domain_id, evaluation_round, raw_score, scaled_score')
+        .eq('evaluation_round', round)
+        .limit(2000),
+      supabase
+        .from('eccd_evaluations')
+        .select('pupil_id, evaluation_round, evaluated_on, standard_score')
+        .eq('evaluation_round', round)
+        .limit(2000),
+    ]);
 
     if (error) {
-      return NextResponse.json({ scores: [], warning: error.message });
+      return NextResponse.json({ scores: [], evaluations: [], warning: error.message });
     }
-    return NextResponse.json({ scores: data || [] });
+    return NextResponse.json({ scores: data || [], evaluations: evaluations || [] });
   } catch {
-    return NextResponse.json({ scores: [], warning: 'Scores unavailable.' });
+    return NextResponse.json({ scores: [], evaluations: [], warning: 'Scores unavailable.' });
   }
 }
 
-/** POST — upsert raw/scaled scores per domain per round (worker/admin). */
+/**
+ * POST — upsert raw/scaled scores per domain per round (worker/admin), and
+ * stamp the round as tested today by the signed-in examiner.
+ */
 export async function POST(request: Request) {
   try {
     const session = await getServerSession();
-    if (!session.isAuthenticated) {
+    if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
     if (!authorizeRole(session.role, ['worker', 'barangay_admin'])) {
@@ -82,6 +99,22 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
+    const { error: evaluationError } = await admin.from('eccd_evaluations').upsert(
+      {
+        pupil_id: parsed.pupil_id,
+        evaluation_round: parsed.round,
+        evaluated_on: todayLocalISO(),
+        examiner_id: session.userId,
+        standard_score: parsed.standard_score ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'pupil_id,evaluation_round' }
+    );
+    if (evaluationError) {
+      return NextResponse.json({ error: evaluationError.message }, { status: 400 });
+    }
+
     return NextResponse.json({ success: true, saved: rows.length, round: parsed.round });
   } catch (error) {
     if (error instanceof z.ZodError) {
