@@ -42,6 +42,7 @@ import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { verifyPupil } from '@/services/pupilService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockAnnouncement, type MockProgress } from '@/contexts/DaycareContext';
+import { todayLocalISO } from '@/lib/dates';
 
 interface WorkerViewProps {
   activeTab: string;
@@ -76,7 +77,7 @@ export default function WorkerView({
 }: WorkerViewProps) {
   const { showToast, logAuditAction, updatePupilEnrollment } = useDaycare();
 
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(todayLocalISO());
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
   const [selectedPupilDetail, setSelectedPupilDetail] = useState<MockPupil | null>(null);
   const [archiveTargetPupil, setArchiveTargetPupil] = useState<MockPupil | null>(null);
@@ -92,6 +93,10 @@ export default function WorkerView({
   const [selectedRound, setSelectedRound] = useState<EccdRound>(1);
   const [evaluations, setEvaluations] = useState<Record<string, Record<string, boolean>>>({});
   const [eccdScores, setEccdScores] = useState<Record<string, Record<string, { raw: number; scaled?: string }>>>({});
+  // The form's Comments column (per pupil, per item) and Standard Score (per pupil) for the round.
+  const [eccdComments, setEccdComments] = useState<Record<string, Record<string, string>>>({});
+  const [standardScores, setStandardScores] = useState<Record<string, string>>({});
+  const [openCommentKey, setOpenCommentKey] = useState<string | null>(null);
   const [savingEvalPupil, setSavingEvalPupil] = useState<string | null>(null);
   const [reportPupil, setReportPupil] = useState<MockPupil | null>(null);
 
@@ -112,6 +117,20 @@ export default function WorkerView({
         seeded[row.pupil_id][row.milestone_code] = true;
       }
       setEvaluations(seeded);
+
+      const commentMap: Record<string, Record<string, string>> = {};
+      for (const row of ratingsRes.ok ? ratingsRes.comments : []) {
+        if (!commentMap[row.pupil_id]) commentMap[row.pupil_id] = {};
+        commentMap[row.pupil_id][row.milestone_code] = row.comment;
+      }
+      setEccdComments(commentMap);
+
+      const standardMap: Record<string, string> = {};
+      for (const row of scoresRes.ok ? scoresRes.evaluations : []) {
+        if (row.standard_score != null) standardMap[row.pupil_id] = String(row.standard_score);
+      }
+      setStandardScores(standardMap);
+      setOpenCommentKey(null);
 
       const scoreMap: Record<string, Record<string, { raw: number; scaled?: string }>> = {};
       for (const s of scoresRes.ok ? scoresRes.scores : []) {
@@ -268,14 +287,21 @@ export default function WorkerView({
     });
   };
 
+  const handleEccdCommentChange = (pupilId: string, itemId: string, comment: string) => {
+    setEccdComments(prev => ({ ...prev, [pupilId]: { ...(prev[pupilId] || {}), [itemId]: comment } }));
+  };
+
   const handleSaveEvaluation = async (pupil: MockPupil) => {
     const pupilRatings = evaluations[pupil.id] || {};
-    const ratings: Array<{ milestone_code: string; domain_id: string; present: boolean }> = [];
-    for (const [itemId, present] of Object.entries(pupilRatings)) {
-      const domain = ECCD_DOMAINS.find((d) => d.items.some((i) => i.id === itemId));
-      if (!domain) continue;
-      ratings.push({ milestone_code: itemId, domain_id: domain.id, present });
-    }
+    const pupilComments = eccdComments[pupil.id] || {};
+    const ratings = ECCD_DOMAINS.flatMap((d) =>
+      d.items.map((i) => ({
+        milestone_code: i.id,
+        domain_id: d.id,
+        present: !!pupilRatings[i.id],
+        comment: pupilComments[i.id]?.trim() || undefined,
+      }))
+    );
 
     setSavingEvalPupil(pupil.id);
     const res = await saveEccdRatings(pupil.id, selectedRound, ratings);
@@ -290,14 +316,15 @@ export default function WorkerView({
         scaled_score: scaledRaw && scaledRaw.trim() !== '' ? Number(scaledRaw) : null,
       };
     });
-    await saveEccdScores(pupil.id, selectedRound, scores);
+    const standardRaw = standardScores[pupil.id]?.trim();
+    await saveEccdScores(pupil.id, selectedRound, scores, standardRaw ? Number(standardRaw) : null);
 
     setSavingEvalPupil(null);
     if (res.success) {
       const presentCount = ratings.filter((r) => r.present).length;
       showToast(`Saved ${presentCount} ✓ item(s) for ${pupil.firstName} (round ${selectedRound}).`);
-      logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted round ${selectedRound} checklist ratings + scores.`);
-      // Auto-open the printable ECCD pupil report after grading is saved.
+      logAuditAction('Saved ECCD Evaluation', `${pupil.firstName} ${pupil.lastName} (${pupil.id})`, `Persisted round ${selectedRound} checklist ratings, comments + scores.`);
+      // Auto-open the pupil's ECCD Child's Record 2 after grading is saved.
       setReportPupil(pupil);
     } else {
       showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
@@ -912,11 +939,11 @@ export default function WorkerView({
                       <button
                         onClick={() => setReportPupil(pupil)}
                         className="btn btn-secondary btn-sm font-bold"
-                        title="Download printable ECCD evaluation report PDF"
+                        title="Preview and download the ECCD Child's Record 2 (Word)"
                         suppressHydrationWarning
                       >
                         <FileDown size={14} />
-                        <span>Report PDF</span>
+                        <span>ECCD Record</span>
                       </button>
                       <button
                         onClick={() => handleSaveEvaluation(pupil)}
@@ -954,17 +981,52 @@ export default function WorkerView({
                       placeholder="1–19"
                       className="w-16 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
                     />
+                    <span className="text-ink-subtle">•</span>
+                    <label htmlFor={`standard-score-${pupil.id}`} className="text-ink-muted font-semibold">
+                      Standard Score (all domains):
+                    </label>
+                    <input id={`standard-score-${pupil.id}`}
+                      type="number"
+                      min={0}
+                      max={200}
+                      value={standardScores[pupil.id] ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setStandardScores(prev => ({ ...prev, [pupil.id]: value }));
+                      }}
+                      placeholder="e.g. 100"
+                      className="w-20 px-2 py-1 rounded-xl border border-line text-xs font-semibold"
+                    />
                   </div>
 
                   <div className="max-h-80 overflow-y-auto pr-1">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                       {activeDomain.items.map((item) => {
                         const present = !!pupilRatings[item.id];
+                        const comment = eccdComments[pupil.id]?.[item.id] ?? '';
+                        const commentKey = `${pupil.id}:${item.id}`;
+                        const commentOpen = openCommentKey === commentKey;
                         return (
-                          <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-line flex items-center justify-between gap-2">
-                            <span className="text-[11px] text-ink font-semibold truncate flex-1" title={item.procedure || item.description}>
+                          <div key={item.id} className="p-2.5 rounded-2xl bg-white border border-line space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-ink font-semibold truncate flex-1" title={comment ? `${item.description}\nComment: ${comment}` : item.procedure || item.description}>
                               {item.number}. {item.description}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => setOpenCommentKey(commentOpen ? null : commentKey)}
+                              aria-label={`${comment ? 'Edit' : 'Add'} comment for item ${item.number}`}
+                              aria-expanded={commentOpen}
+                              className={`w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer border-none shrink-0 transition-all ${
+                                comment
+                                  ? 'bg-primary-light text-primary'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-primary-light hover:text-primary'
+                              }`}
+                              title={comment ? `Comment: ${comment}` : 'Add a comment (e.g. why the child could not do it)'}
+                              suppressHydrationWarning
+                            >
+                              <MessageSquare size={14} />
+                            </button>
                             <button
                               onClick={() => handleToggleECCDItem(pupil.id, item.id)}
                               className={`w-8 h-8 rounded-xl text-sm font-extrabold cursor-pointer border-none shrink-0 transition-all ${
@@ -977,6 +1039,20 @@ export default function WorkerView({
                             >
                               ✓
                             </button>
+                          </div>
+                          {commentOpen && (
+                            <input
+                              type="text"
+                              autoFocus
+                              maxLength={300}
+                              value={comment}
+                              onChange={(e) => handleEccdCommentChange(pupil.id, item.id, e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setOpenCommentKey(null); }}
+                              aria-label={`Comment for item ${item.number}: ${item.description}`}
+                              placeholder="Comment for the form (e.g. why the child could not do it)"
+                              className="w-full px-2.5 py-1.5 rounded-xl border border-line text-[11px]"
+                            />
+                          )}
                           </div>
                         );
                       })}
@@ -1005,8 +1081,8 @@ export default function WorkerView({
               ))}
             </div>
             <p className="text-[10px] text-ink-subtle m-0 pt-1">
-              Raw Score = number of ✓ items. Scaled Score is entered manually from the official
-              raw-to-scaled conversion tables (age-based). Standard Score conversion is a future step.
+              Raw Score = number of ✓ items. Scaled Scores and the Standard Score are entered from the
+              official conversion tables (age-based); the Child&apos;s Record 2 fills itself from what you save.
             </p>
           </div>
         </div>
@@ -1216,7 +1292,7 @@ export default function WorkerView({
         childName={backgroundPupil ? `${backgroundPupil.firstName} ${backgroundPupil.lastName}` : undefined}
       />
 
-      {/* ECCD Pupil Evaluation Report — PDF / print after grading */}
+      {/* ECCD Child's Record 2 — preview + Word download after grading */}
       <ECCDReportModal
         isOpen={!!reportPupil}
         onClose={() => setReportPupil(null)}
@@ -1244,6 +1320,7 @@ export default function WorkerView({
                 </div>
               </div>
               <button
+                aria-label="Close"
                 onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
                 className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
                 suppressHydrationWarning

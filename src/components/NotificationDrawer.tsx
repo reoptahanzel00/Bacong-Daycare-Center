@@ -46,7 +46,7 @@ export default function NotificationDrawer({
           >
             Mark all as read
           </button>
-          <button onClick={onClose} className="text-ink-subtle hover:text-ink p-1 border-none bg-transparent cursor-pointer">
+          <button onClick={onClose} aria-label="Close" className="text-ink-subtle hover:text-ink p-1 border-none bg-transparent cursor-pointer">
             <X size={16} />
           </button>
         </div>

@@ -159,7 +159,13 @@ Run the two SQL files in this order in the Supabase SQL Editor
    trigger, and RLS policies. This file is the single source of truth; the app's
    API routes are written against its exact column names.
 2. `supabase/seed.sql` - seeds the current school year (SY 2026-2027), the ECCD
-   progress domains, and optional demo pupils/guardians/announcements.
+   progress domains, and the blank centre-settings row. Reference data only, and
+   safe to run against production.
+
+> **Do not run `supabase/seed.demo.sql` against production.** It holds six
+> fictional children with an `enrolled` status, so they are counted by the roster,
+> the monthly summary, and DSWD Form 1 - a document the barangay captain signs and
+> submits. It is for staging and UAT only.
 
 > The schema uses a `current_user_role()` SECURITY DEFINER helper so RLS policies
 > can check roles without recursive policy evaluation on the `users` table.

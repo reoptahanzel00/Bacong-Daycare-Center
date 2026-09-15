@@ -35,6 +35,10 @@ If a password is forgotten: Supabase Dashboard → **Authentication → Users** 
    (`enrollment_status = archived`).
 6. **ECCD tool** — open a pupil, rate a few items; **Record Milestone Observation** saves to
    `progress_observations` and notifies the parent's feed.
+7. **ECCD Child's Record 2** — in the 109-item ECCD tool, tick a few items, add a comment to one
+   item and a scaled score, then **Save Evaluation**. The report preview opens; click
+   **Download ECCD Record (.docx)** and open the file in Word: it must be the centre's own form
+   with the name, profile, ✔ / - marks, the comment, totals and the date tested filled in.
 
 ### Parent
 
@@ -43,6 +47,7 @@ If a password is forgotten: Supabase Dashboard → **Authentication → Users** 
 2. Verify attendance history shows Mateo's records only.
 3. Open the notification bell — should show the absence alert if the worker triggered one.
 4. Sign in as `juan.reyes@bacong.gov.ph` — **must see only Sophia**.
+5. **Download Report Card (Word)** as `parent@bacong.gov.ph` — the file must be Mateo's record only.
 
 ### Barangay Official
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { resolveEnrollmentStatus } from '@/lib/enrollment';
+import { todayLocalISO } from '@/lib/dates';
 
 const PupilSchema = z.object({
   // Only an id this API previously issued may be supplied (edit path).
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     // The status actually persisted — may differ from the request when the
     // record is still awaiting worker verification (see below).
     let resolvedStatus: string = parsed.enrollmentStatus;
-    let resolvedEnrollmentDate = new Date().toISOString().split('T')[0];
+    let resolvedEnrollmentDate = todayLocalISO();
     let resolvedAbsences = 0;
 
     // Attempt to persist to Supabase
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
         sex: parsed.sex,
         address: parsed.address,
         enrollment_status: resolveEnrollmentStatus(existing?.enrollment_status, parsed.enrollmentStatus),
-        enrollment_date: existing?.enrollment_date || new Date().toISOString().split('T')[0],
+        enrollment_date: existing?.enrollment_date || todayLocalISO(),
         // Never reset a live absence streak on a demographic edit.
         consecutive_absences: existing?.consecutive_absences ?? 0,
       };

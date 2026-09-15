@@ -46,7 +46,11 @@ export default function Toast({ toast, onClose }: ToastProps) {
         {toast.message}
       </span>
 
-      <button onClick={onClose} style={{ marginLeft: '0.5rem', color: 'var(--text-light)', cursor: 'pointer' }}>
+      <button
+        onClick={onClose}
+        aria-label="Dismiss notification"
+        style={{ marginLeft: '0.5rem', color: 'var(--text-light)', cursor: 'pointer' }}
+      >
         <X size={16} />
       </button>
     </div>

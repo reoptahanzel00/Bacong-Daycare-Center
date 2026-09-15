@@ -35,6 +35,18 @@ test.describe('Parent scope', () => {
     expect((await request.get('/api/audit-log')).status()).toBe(403);
   });
 
+  test("a parent can download their own child's ECCD record and no one else's", async ({ request }) => {
+    const { pupils } = await (await request.get('/api/pupils?status=enrolled')).json();
+    const own = await request.get(`/api/eccd/report?pupil_id=${encodeURIComponent(pupils[0].id)}`);
+    expect(own.status()).toBe(200);
+    expect(own.headers()['content-type']).toContain('wordprocessingml');
+
+    // The link check runs before any lookup, so an unlinked id is refused
+    // whether or not that pupil exists.
+    expect((await request.get('/api/eccd/report?pupil_id=PUP-0000-000')).status()).toBe(403);
+    expect((await request.get('/api/eccd/report?pupil_id=PUP-0000-000&format=json')).status()).toBe(403);
+  });
+
   test('a parent cannot enrol or edit a pupil', async ({ request }) => {
     const res = await request.post('/api/pupils', {
       data: {
@@ -78,6 +90,15 @@ test.describe('Worker scope', () => {
     expect(pupils.length).toBeGreaterThan(1);
 
     expect((await request.get('/api/users')).status()).toBe(403);
+  });
+
+  test("a worker can download any pupil's ECCD Child's Record 2", async ({ request }) => {
+    const { pupils } = await (await request.get('/api/pupils?status=enrolled')).json();
+    const res = await request.get(`/api/eccd/report?pupil_id=${encodeURIComponent(pupils[1].id)}`);
+    expect(res.status()).toBe(200);
+    expect(res.headers()['content-disposition']).toMatch(/ECCD_Record2_.+.docx/);
+    // A .docx is a zip archive.
+    expect((await res.body()).subarray(0, 2).toString()).toBe('PK');
   });
 
   test('editing a pending pupil does not approve it', async ({ request }) => {

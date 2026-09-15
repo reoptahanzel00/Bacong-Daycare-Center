@@ -4,6 +4,8 @@ import { useDaycare } from '@/contexts/DaycareContext';
 import React, { useState } from 'react';
 import { X, Megaphone, Send, AlertCircle } from 'lucide-react';
 import type { MockAnnouncement } from '@/contexts/DaycareContext';
+import { todayLocalISO } from '@/lib/dates';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface AnnouncementModalProps {
   isOpen: boolean;
@@ -18,8 +20,10 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
   const { currentUserName } = useDaycare();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(todayLocalISO());
   const [error, setError] = useState('');
+
+  const dialogProps = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -46,7 +50,7 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
+    <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
@@ -63,6 +67,7 @@ export default function AnnouncementModal({ isOpen, onClose, onSave }: Announcem
             </div>
           </div>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
             suppressHydrationWarning
