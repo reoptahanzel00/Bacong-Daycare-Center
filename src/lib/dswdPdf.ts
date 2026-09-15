@@ -55,7 +55,7 @@ function drawHeader(doc: jsPDF, data: DswdReportData) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-  doc.text('REPUBLIC OF THE PHILIPPINES • REGION V • PROVINCE OF ALBAY', centre, 16, { align: 'center' });
+  doc.text('REPUBLIC OF THE PHILIPPINES • REGION III • PROVINCE OF AURORA • MUNICIPALITY OF SAN LUIS', centre, 16, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);

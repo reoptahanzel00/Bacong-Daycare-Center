@@ -109,7 +109,7 @@ export default function DSWDReportModal({
             <div>
               <h3 className="text-base font-extrabold text-ink m-0">DSWD Form 1 Official Report PDF Generator</h3>
               <p className="text-xs text-ink-muted m-0">
-                Republic of the Philippines • Department of Social Welfare and Development Region V
+                Republic of the Philippines • Department of Social Welfare and Development Region III
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function DSWDReportModal({
             {/* Government Header */}
             <div className="text-center border-b-2 border-primary-display pb-4 space-y-1">
               <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
-                Republic of the Philippines • Region V • Province of Albay
+                Republic of the Philippines • Region III • Province of Aurora • Municipality of San Luis
               </div>
               <h2 className="text-lg font-black text-primary-hover uppercase tracking-tight m-0">
                 BARANGAY BACONG DAYCARE CENTER
