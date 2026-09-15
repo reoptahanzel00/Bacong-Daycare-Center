@@ -10,7 +10,7 @@
  * Vercel functions run in UTC, so every API default was wrong for those eight
  * hours regardless of who called.
  *
- * The centre is in Negros Oriental and does not move, so the zone is fixed
+ * The centre is in San Luis, Aurora and does not move, so the zone is fixed
  * rather than read from the browser: a parent checking attendance while abroad
  * should still see the school day the record belongs to.
  */

@@ -1,7 +1,7 @@
 # 🤝 Contributing & Handoff Guide — Barangay Bacong Daycare Center Tracker
 
 Welcome to the **Barangay Bacong Daycare Center Tracker** repository!  
-This project is developed as an official thesis/capstone daycare management platform for **Barangay Bacong, Negros Oriental, Philippines**.
+This project is developed as an official thesis/capstone daycare management platform for **Barangay Bacong, San Luis, Aurora, Philippines**.
 
 ---
 

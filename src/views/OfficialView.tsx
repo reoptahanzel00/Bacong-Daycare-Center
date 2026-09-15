@@ -339,7 +339,7 @@ export default function OfficialView({
 
             <div className="p-4 rounded-3xl border border-line bg-canvas space-y-1">
               <span className="text-xs font-bold text-ink-muted uppercase">Compliance Status</span>
-              <div className="text-sm font-extrabold text-[#2B6CB0]">DSWD Region 7 Compliant ✅</div>
+              <div className="text-sm font-extrabold text-[#2B6CB0]">DSWD Region III Compliant ✅</div>
               <span className="text-[10px] text-ink-subtle">7-Domain Checklist Complete</span>
             </div>
           </div>

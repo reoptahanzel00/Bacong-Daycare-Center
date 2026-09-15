@@ -1,6 +1,6 @@
 # 🏫 Barangay Bacong Daycare Center Tracker
 
-A comprehensive daycare management system built for **Barangay Bacong, Negros Oriental** — tracking pupil enrollment, daily attendance, ECCD milestone evaluations, and generating DSWD-compliant reports.
+A comprehensive daycare management system built for **Barangay Bacong, San Luis, Aurora** — tracking pupil enrollment, daily attendance, ECCD milestone evaluations, and generating DSWD-compliant reports.
 
 ---
 
