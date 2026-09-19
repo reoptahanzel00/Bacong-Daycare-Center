@@ -51,3 +51,6 @@ yarn-error.log*
 
 # Marketplace agent skill content (restored from skills-lock.json)
 .agents/
+
+# Supabase CLI temp files (L3 fix)
+supabase/.temp/

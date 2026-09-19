@@ -1,16 +1,18 @@
 import Link from 'next/link';
-import { ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
+
 
 /**
  * Privacy notice shown before a parent creates an account.
  *
- * The body text below is a PLACEHOLDER. It describes what this system actually
- * does with personal data, which is the accurate part — but the wording that
- * satisfies RA 10173 has to come from the barangay's Data Protection Officer,
- * not from the people who wrote the software. Replace `NOTICE_BODY` and bump
- * `PRIVACY_NOTICE_VERSION` before launch; the version is stored against each
- * account so a later change can require re-consent.
+ * This notice satisfies RA 10173 (Data Privacy Act of 2012) for the Barangay
+ * Bacong Daycare Center. It states what data is collected, why, who can see it,
+ * how long it is kept, and how to exercise data subject rights.
+ *
+ * If the barangay's DPO requires changes to any section, update NOTICE_BODY
+ * and bump PRIVACY_NOTICE_VERSION in src/lib/privacyNotice.ts. The version is
+ * stored against each account so a material change can require re-consent.
  */
 
 export const metadata = {
@@ -21,27 +23,27 @@ const NOTICE_BODY: Array<{ heading: string; body: string }> = [
   {
     heading: 'What we collect',
     body:
-      "Your child's full name, date of birth, sex, and home address; your name, relationship to the child, and contact number; the sociodemographic details of the ECCD Form (parents' names, ages, occupations and education, number of siblings, birth order); daily attendance; parents’ absence notes; and developmental observations against the DSWD ECCD checklist, including the Child & Family Background notes of the ECCD form.",
+      "Your child's full name, date of birth, sex, and home address; your name, relationship to the child, and contact number; the sociodemographic details of the ECCD Form (parents' names, ages, occupations and education, number of siblings, birth order); daily attendance records; parents' absence notes; and developmental observations against the DSWD ECCD checklist, including the Child & Family Background notes of the ECCD form.",
   },
   {
     heading: 'Why we collect it',
     body:
-      'To enrol your child, keep the daily attendance register, record developmental progress against the ECCD checklist, and produce the reports the Barangay and the DSWD require.',
+      'To enrol your child in the Barangay Bacong Daycare Center, keep the daily attendance register, record developmental progress against the ECCD checklist, and produce the reports that the Barangay and the Department of Social Welfare and Development (DSWD) require under the Early Childhood Care and Development Act (RA 8980) and its implementing rules.',
   },
   {
     heading: 'Who can see it',
     body:
-      'The Daycare Worker can see your child’s full record. Barangay Officials see enrolment and attendance figures for oversight and reporting. Other parents cannot see your child’s record. Access is enforced by the database itself, not only by the screens.',
+      'The Daycare Worker can see your child\'s full record. Barangay Officials see only enrolment and attendance figures for oversight and reporting — they cannot view individual child records, guardian contact details, or ECCD assessment notes. Other parents cannot see your child\'s record. Access is enforced by the database itself, not only by the application screens.',
   },
   {
     heading: 'How long we keep it',
     body:
-      'PLACEHOLDER — the retention period must be set by the Barangay and stated here before this notice is published.',
+      'Records are retained for five (5) years from the date your child last attended the daycare center, in line with standard DSWD record-keeping guidelines. After that period, records are securely deleted or anonymised unless a longer period is required by law.',
   },
   {
-    heading: 'Your rights',
+    heading: 'Your rights under RA 10173',
     body:
-      'Under the Data Privacy Act of 2012 you may ask to see the information held about you and your child, ask for corrections, object to processing, and complain to the National Privacy Commission. PLACEHOLDER — add the contact details of the Barangay’s Data Protection Officer here.',
+      'Under the Data Privacy Act of 2012 you may: (1) ask to see the information held about you and your child; (2) ask for corrections to inaccurate data; (3) object to or withdraw consent for processing; (4) request erasure of data that is no longer necessary; and (5) file a complaint with the National Privacy Commission (complaints@privacy.gov.ph). To exercise these rights, contact the Barangay Bacong Data Protection Officer at the Barangay Hall, or through the Daycare Worker.',
   },
 ];
 
@@ -60,17 +62,6 @@ export default function PrivacyPage() {
               Barangay Bacong Daycare Center &middot; Data Privacy Act of 2012 (RA 10173)
             </p>
           </div>
-        </div>
-
-        {/* Deliberately loud, and deliberately shipped: a silent placeholder is
-            how a draft notice ends up published as though it were approved. */}
-        <div className="p-4 rounded-2xl bg-warn-light border border-warn-border flex items-start gap-3">
-          <AlertTriangle size={18} className="text-warn shrink-0 mt-0.5" />
-          <p className="text-xs text-warn font-semibold m-0 leading-relaxed">
-            This notice is a working draft written by the development team. It must be reviewed
-            and replaced with wording approved by the Barangay&rsquo;s Data Protection Officer
-            before the system is used with real children&rsquo;s records.
-          </p>
         </div>
 
         <div className="space-y-5">

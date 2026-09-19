@@ -107,10 +107,13 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
 
     // 1. Create the auth account.
+    // L4 fix: do not auto-confirm the email. Supabase sends a verification link
+    // so the address is proven before password recovery is possible. Enrollment
+    // still requires worker approval regardless, so no data is exposed either way.
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
       email,
       password: parsed.password,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: {
         full_name: parsed.fullName,
         role: 'parent',

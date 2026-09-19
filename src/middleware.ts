@@ -9,25 +9,32 @@ export async function middleware(request: NextRequest) {
   // Reachable without a session: sign-in and registration, the auth callback
   // that exchanges a recovery code, the page that then sets the new password,
   // and the privacy notice a prospective parent reads before consenting.
+  //
+  // L1 fix: use exact match OR trailing-slash prefix so that /auth never
+  // accidentally matches /author, and /privacy never matches /privacy-policy.
   const { pathname } = request.nextUrl;
-  const isPublicPath =
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/reset-password') ||
-    pathname.startsWith('/privacy');
+  const PUBLIC_PATHS = ['/login', '/register', '/auth', '/reset-password', '/privacy'];
+  const isPublicPath = PUBLIC_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + '/')
+  );
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Fail loudly if environment is misconfigured — never silently use a placeholder
+  // L2 fix: in production, missing env vars must fail closed — never pass through
+  // to a demo shell that looks authenticated. In development, pass through so the
+  // app can render a config-error UI.
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error(
       '[Middleware] CRITICAL: Missing Supabase environment variables.\n' +
       'Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local\n' +
       'Copy .env.example → .env.local and fill in your project credentials.'
     );
-    // Allow pass-through so the app can render a config-error UI instead of a blank crash
+    if (process.env.NODE_ENV === 'production') {
+      return new NextResponse('Service misconfigured. Please contact the administrator.', {
+        status: 503,
+      });
+    }
     return response;
   }
 
