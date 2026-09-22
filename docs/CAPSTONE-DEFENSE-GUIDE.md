@@ -61,6 +61,11 @@ To replace paper-based processes at the Barangay Bacong Daycare Center with a di
 8. **Administration Module** — user management, settings, audit log
 9. **Officials Dashboard** — aggregate statistics only
 
+### Operational Workflow Diagram
+The end-to-end operational flow across all actors (Super Admin, Daycare Teacher, Security Gate, Barangay Officials, Parents, and Center Management) is mapped in the system design board:
+- Visual Board: [docs/diagrams/system-workflow-board.png](file:///C:/Bacong%20Daycare/docs/diagrams/system-workflow-board.png)
+- Full Mermaid Architecture: See Section 2.C in [docs/SYSTEM-ARCHITECTURE-GUIDE.md](file:///C:/Bacong%20Daycare/docs/SYSTEM-ARCHITECTURE-GUIDE.md#c-operational--role-based-workflow-flowchart)
+
 ### "Explain it like I'm presenting to the panel"
 
 *"Our system is a web-based management tool for the Barangay Bacong Daycare Center. Before this system, the teacher had to fill out attendance registers, ECCD checklists, and DSWD reports all on paper — which was time-consuming and hard to organize.*

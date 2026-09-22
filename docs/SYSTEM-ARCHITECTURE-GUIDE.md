@@ -134,6 +134,130 @@ flowchart TD
 
 ---
 
+### C. Operational & Role-Based Workflow Flowchart
+
+The following flowchart maps the system's operational workflow and actor interactions based on the system design board (omitting branding sheets), covering Super Admin controls, Teacher/Worker operations, Security/Gate verification with punch deduplication, daily classroom entry, cohort archiving, Barangay Official oversight, Parent monitoring, and Child Development Center operations:
+
+![Operational Workflow Diagram](file:///C:/Bacong%20Daycare/docs/diagrams/system-workflow-board.png)
+
+```mermaid
+flowchart TD
+    %% Core Pillars
+    subgraph CorePillars ["System Operational Pillars"]
+        direction LR
+        CP1["🔔 Notify System"]
+        CP2["📋 Log Attendance"]
+        CP3["💾 Manage Data"]
+    end
+
+    %% Super Admin Subgraph
+    subgraph SuperAdmin ["Super Admin"]
+        direction TB
+        SA1["Create, Edit, Disable Accounts"]
+        SA2["Manage RFID Cards & Student Profiles"]
+        SA3["System Config (Time, Date, Session Rules)"]
+        SA4["System Logs, Analytics & Reports"]
+        SA5["User Administration"]
+        SA6["Data Import"]
+        SA7["Backups & Restore"]
+    end
+
+    %% Admin (Teacher) Subgraph
+    subgraph AdminTeacher ["Admin (Teacher / Daycare Worker)"]
+        direction TB
+        AT1["Create, Edit, Disable Accounts"]
+        AT2["Request Correction"]
+        AT3["Student Profile Viewing"]
+        subgraph AT_Dash ["Early Intervention Analytics (Scoped Real-Time Dashboard)"]
+            AT4["Mark Student Status:<br/>• Present<br/>• Absent<br/>• Late<br/>• Missing"]
+            AT5["NOTIFY (Absence & Milestone Alerts)"]
+        end
+        AT6["Class-Level Reporting"]
+    end
+
+    %% Security & Gate Monitoring
+    subgraph SecurityGate ["Security & Entry Verification"]
+        direction TB
+        SG1["Live Gate Monitoring"]
+        SG2["Manual Entry Logging"]
+        SG3["Unauthorized Exit Alerts"]
+        SG4{"Duplication Error Check:<br/>If check-in > once?"}
+        SG5["Flag Duplicated Punch"]
+        SG1 --> SG4
+        SG4 -- Yes --> SG5
+    end
+
+    %% Daily Entry & Attendance Pipeline
+    subgraph DailyFlow ["Daily Attendance & Classroom Pipeline"]
+        direction LR
+        DF_Entry["[ENTRY] Gate Check-in"]
+        DF_Log["[LOG FOR TODAY] Daily Register"]
+        DF_Class["[CLASSROOM] Distribution"]
+        DF_Entry --> DF_Log
+        DF_Log --> DF_Class
+    end
+
+    %% Archiving & Batch Tracking
+    subgraph Archiving ["Archiving & Cohort Tracking"]
+        direction TB
+        Batch2026["Batch 2026 (Section: gr5 | Juan Dela Cruz)"]
+        Batch2027["Batch 2027 (Section: gr6 | Juan Dela Cruz)"]
+        Batch2028["Batch 2028"]
+        Batch2029["Batch 2029"]
+    end
+
+    %% Barangay Official
+    subgraph BrgyOfficial ["Barangay Official (BRGY / OFF)"]
+        direction TB
+        BO1["Executive Dashboard (Aggregated Insights)"]
+        BO2["Export Summary Reports"]
+        BO3["Backup & Restore Access"]
+        BO4["Audit Logs Review"]
+        BO5["Import Records"]
+        BO6["Manage Account / Profile"]
+        BO1 --> BO6
+    end
+
+    %% Parent / User
+    subgraph ParentUser ["Parent / User Portal"]
+        direction TB
+        P_Enroll["Enrollment: Upload Requirements"]
+        subgraph P_Monitor ["Monitoring"]
+            P_Status["View Child Status"]
+            P_Report["View Child Report (ECCD)"]
+            P_Notif["Receive System Notifications"]
+        end
+        P_Feedback["Parent Feedback & Inquiries (Image Report)"]
+    end
+
+    %% Child Development Center Operations
+    subgraph ChildDevCenter ["Child Development Center Management"]
+        direction TB
+        CDC1["Monitoring & Supervision"]
+        CDC2["Manage Student Profiles"]
+        CDC3["Log Daily Activities"]
+        CDC4["Export Administrative Reports"]
+        CDC5["Manage Student Attendance<br/>(Visual Attendance Monitoring Graph)"]
+        CDC6["Enrollment Import"]
+        subgraph CDC_Feedback ["Parent Feedback Dispatch"]
+            CDC7["Notify Parent"]
+            CDC8["Image Report Attachment"]
+        end
+        CDC9["Monthly Reporting"]
+        CDC10["Financial Tracking (Invoice / Other Fee)"]
+    end
+
+    %% Inter-subgraph Connections
+    DF_Entry -.-> SG1
+    SG4 -- Valid Entry --> DF_Log
+    DF_Log --> AT4
+    AT5 --> P_Notif
+    CDC_Feedback --> P_Feedback
+    DF_Class --> Archiving
+```
+
+---
+
 ## 3. TIER-BY-TIER ARCHITECTURAL BREAKDOWN
 
 ### Tier 1: Presentation & Client Tier
