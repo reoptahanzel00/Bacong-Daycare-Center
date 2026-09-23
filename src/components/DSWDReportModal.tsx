@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { X, FileText, Download, ShieldCheck } from 'lucide-react';
-import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
+import { useDaycare, type MockPupil, type MockAttendance, type MockProgress } from '@/contexts/DaycareContext';
 import type { CenterSettingsRow } from '@/services/settingsService';
 import { buildDswdPdf, type DswdPupilRow } from '@/lib/dswdPdf';
 import { todayLocalISO } from '@/lib/dates';
@@ -29,6 +29,7 @@ export default function DSWDReportModal({
   settings,
   preparedBy,
 }: DSWDReportModalProps) {
+  const { showToast } = useDaycare();
   const [isExporting, setIsExporting] = useState(false);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2026-2027');
   const reportRef = useRef<HTMLDivElement>(null);
@@ -38,15 +39,20 @@ export default function DSWDReportModal({
   if (!isOpen) return null;
 
   const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
+  const enrolledIds = new Set(enrolledPupils.map(p => p.id));
   const maleCount = enrolledPupils.filter(p => p.sex === 'Male').length;
   const femaleCount = enrolledPupils.filter(p => p.sex === 'Female').length;
 
-  const totalAttendance = attendance.length;
-  const totalPresent = attendance.filter(a => a.status === 'present' || a.status === 'late').length;
+  // Scoped to the children this form reports on. It previously averaged every
+  // attendance row on hand, including rows belonging to archived and pending
+  // pupils, so the percentage printed on a signed DSWD form described a
+  // different population than the roster printed beneath it.
+  const enrolledAttendance = attendance.filter(a => enrolledIds.has(a.pupil_id));
+  const totalAttendance = enrolledAttendance.length;
+  const totalPresent = enrolledAttendance.filter(a => a.status === 'present' || a.status === 'late').length;
   const avgAttendance = totalAttendance ? Math.round((totalPresent / totalAttendance) * 100) : null;
 
   // Enrolled children with at least one ECCD checklist rating on record.
-  const enrolledIds = new Set(enrolledPupils.map(p => p.id));
   const eccdAssessed = new Set(progress.filter(p => enrolledIds.has(p.pupil_id)).map(p => p.pupil_id)).size;
 
   const handleExportPDF = async () => {
@@ -89,7 +95,10 @@ export default function DSWDReportModal({
       doc.save(`DSWD_Form_1_Barangay_Bacong_${selectedSchoolYear.replace(' ', '_')}.pdf`);
     } catch (err) {
       console.error('PDF export failed:', err);
-      alert('Failed to generate PDF. Printing native report format instead.');
+      // A blocking window.alert() suspends the page until it is dismissed, and
+      // the print dialog was being opened behind it. The app has one way of
+      // telling the user something went wrong; use it.
+      showToast('Could not generate the PDF. Opening the printable report instead.', 'danger');
       window.print();
     } finally {
       setIsExporting(false);

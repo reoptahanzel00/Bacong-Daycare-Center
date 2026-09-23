@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { todayLocalISO } from '@/lib/dates';
 import { computeAgeYMD } from '@/lib/eccdRecord';
+import { ABSENCE_ALERT_THRESHOLD } from '@/lib/absences';
 
 export const dynamic = 'force-dynamic';
 
-/** How many consecutive absences count as "frequent" (the alert threshold). */
-const FREQUENT_ABSENCE_THRESHOLD = 3;
 
 const AGE_BRACKETS: Array<{ label: string; min: number; max: number }> = [
   { label: 'Under 3', min: 0, max: 2 },
@@ -99,8 +98,8 @@ export async function GET() {
           today: { date: today, ...tally(yearRows.filter((r) => r.date === today)) },
         },
         absences: {
-          threshold: FREQUENT_ABSENCE_THRESHOLD,
-          frequent: enrolled.filter((p) => (p.consecutive_absences || 0) >= FREQUENT_ABSENCE_THRESHOLD).length,
+          threshold: ABSENCE_ALERT_THRESHOLD,
+          frequent: enrolled.filter((p) => (p.consecutive_absences || 0) >= ABSENCE_ALERT_THRESHOLD).length,
         },
         eccd: { round1: assessed(1), round2: assessed(2), round3: assessed(3) },
       },

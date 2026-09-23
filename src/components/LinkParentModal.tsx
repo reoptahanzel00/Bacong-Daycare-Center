@@ -5,6 +5,7 @@ import { X, Link2, UserPlus, Save, AlertCircle, RefreshCw } from 'lucide-react';
 import { useDaycare } from '@/contexts/DaycareContext';
 import { fetchPupils, type PupilRow } from '@/services/pupilService';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { errorText } from '@/lib/apiError';
 
 interface LinkParentModalProps {
   isOpen: boolean;
@@ -99,7 +100,7 @@ export default function LinkParentModal({ isOpen, onClose }: LinkParentModalProp
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || 'Failed to link parent account.');
+        setError(errorText(data.error, 'Failed to link parent account.'));
         return;
       }
       showToast(data.message || 'Parent account linked!', 'success');

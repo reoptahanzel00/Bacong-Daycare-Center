@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useDaycare, type MockUser, type MockAuditLog } from '@/contexts/DaycareContext';
 import { resetUserPassword } from '@/services/usersService';
+import { errorText } from '@/lib/apiError';
 
 interface AdminViewProps {
   users: MockUser[];
@@ -37,7 +38,21 @@ export default function AdminView({
   const { showToast, settings, saveSettings } = useDaycare();
 
   // Local draft of the centre settings so typing does not write on every key.
+  //
+  // The draft has to follow the settings it was seeded from. It used to be
+  // seeded once at mount and never again: when the centre row had not arrived
+  // yet (a failed read during the server render, say) the admin got a form of
+  // empty boxes that stayed empty after the real values loaded - and saving it
+  // wrote those blanks over the worker and barangay-captain names that every
+  // signed DSWD Form 1 is printed with. Re-syncing during render rather than in
+  // an effect is React's documented way to adjust state when an input changes,
+  // and avoids the extra pass an effect would cost.
   const [settingsDraft, setSettingsDraft] = useState(settings);
+  const [syncedSettings, setSyncedSettings] = useState(settings);
+  if (settings !== syncedSettings) {
+    setSyncedSettings(settings);
+    setSettingsDraft(settings);
+  }
   const [savingSettings, setSavingSettings] = useState(false);
 
   const [filterRole, setFilterRole] = useState('all');
@@ -71,7 +86,7 @@ export default function AdminView({
       showToast(`Reset link generated for ${userEmail}!`, 'success');
       setTimeout(() => setResetSent(prev => ({ ...prev, [userId]: false })), 6000);
     } else {
-      showToast(`Could not reset ${userEmail}: ${res.error || 'unknown error'}`, 'danger');
+      showToast(`Could not reset ${userEmail}: ${errorText(res.error, 'unknown error')}`, 'danger');
     }
   };
 

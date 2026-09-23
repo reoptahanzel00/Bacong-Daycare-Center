@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { checkPassword } from '@/lib/password';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 import { clearStoredData } from '@/data/mockData';
+import { errorText } from '@/lib/apiError';
 
 type UserRole = 'worker' | 'official' | 'parent';
 type AuthMode = 'signin' | 'create';
@@ -204,7 +205,7 @@ export default function AuthPage() {
 
       if (!res.ok) {
         localStorage.removeItem('bacong_auth_role');
-        setErrorMessage(data.error || 'Invalid email, Student ID or password. Please check your credentials.');
+        setErrorMessage(errorText(data.error, 'Invalid email, Student ID or password. Please check your credentials.'));
         setLoading(false);
         return;
       }
@@ -311,7 +312,7 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setCreateError(data.error || 'Unable to create your account. Please try again.');
+        setCreateError(errorText(data.error, 'Unable to create your account. Please try again.'));
         return;
       }
       setCreateSuccess({ message: data.message, linked: !!data.linked });

@@ -34,11 +34,13 @@ import {
   type EccdRound,
 } from '@/services/eccdService';
 import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
+import { fetchAttendance } from '@/services/attendanceService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { verifyPupil } from '@/services/pupilService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress } from '@/contexts/DaycareContext';
 import { todayLocalISO } from '@/lib/dates';
+import { errorText } from '@/lib/apiError';
 
 interface WorkerViewProps {
   activeTab: string;
@@ -150,7 +152,12 @@ export default function WorkerView({
     submittedAt: string;
   }
 
-  const [inboxNotes, setInboxNotes] = useState<ParentNote[]>([]);
+  // The inbox is held as the raw rows it arrived as, and pupil names are
+  // resolved at render time. Resolving them inside the effect made the effect
+  // depend on `pupils`, so the inbox was refetched on every roster change -
+  // and each refetch discarded any acknowledgement made since it loaded.
+  const [inboxRows, setInboxRows] = useState<ParentNoteRow[]>([]);
+  const [acknowledgedNoteIds, setAcknowledgedNoteIds] = useState<Record<string, boolean>>({});
 
   // Load the real parent-notes inbox once on mount.
   useEffect(() => {
@@ -158,27 +165,30 @@ export default function WorkerView({
     (async () => {
       const notesRes = await fetchParentNotes();
       if (cancelled) return;
-
-      if (notesRes.ok && notesRes.notes.length > 0) {
-        const pupilName = (row: ParentNoteRow) => {
-          const p = pupils.find(x => x.id === row.pupil_id);
-          return p ? `${p.firstName} ${p.lastName}` : row.pupil_id;
-        };
-        setInboxNotes(notesRes.notes.map((row) => ({
-          id: row.id,
-          pupilId: row.pupil_id,
-          pupilName: pupilName(row),
-          date: row.note_date,
-          reason: row.reason,
-          notes: row.notes,
-          phone: row.phone || '',
-          status: row.status === 'acknowledged' ? 'Excused & Acknowledged' : 'Pending Teacher Review',
-          submittedAt: row.submitted_at ? new Date(row.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
-        })));
-      }
+      if (notesRes.ok) setInboxRows(notesRes.notes);
     })();
     return () => { cancelled = true; };
-  }, [pupils]);
+  }, []);
+
+  const inboxNotes: ParentNote[] = useMemo(
+    () => inboxRows.map((row) => {
+      const p = pupils.find(x => x.id === row.pupil_id);
+      return {
+        id: row.id,
+        pupilId: row.pupil_id,
+        pupilName: p ? `${p.firstName} ${p.lastName}` : row.pupil_id,
+        date: row.note_date,
+        reason: row.reason,
+        notes: row.notes,
+        phone: row.phone || '',
+        status: row.status === 'acknowledged' || acknowledgedNoteIds[row.id]
+          ? 'Excused & Acknowledged'
+          : 'Pending Teacher Review',
+        submittedAt: row.submitted_at ? new Date(row.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
+      };
+    }),
+    [inboxRows, pupils, acknowledgedNoteIds]
+  );
 
   const enrolledPupils = useMemo(
     () => pupils.filter(p => p.enrollmentStatus === 'enrolled'),
@@ -197,7 +207,40 @@ export default function WorkerView({
     );
   }, [enrolledPupils, searchQuery]);
 
+  // The saved register for the selected date, fetched for that date alone.
+  //
+  // The `attendance` prop carries only the newest 500 rows across the whole
+  // roster - about twelve school days for a full class - so any date older
+  // than that is simply missing from it. getAttendanceStatus would then report
+  // every pupil as Present for that day, and saving would upsert a full class
+  // of falsified 'present' marks over the register actually on file.
+  // Without a configured backend there is no stored register to load and
+  // nothing that could be overwritten, so the prop fallback is the whole story.
+  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const [savedRegister, setSavedRegister] = useState<Record<string, { status: string; notes?: string }> | null>(null);
+  // Starts true so the very first render is already treated as 'not loaded
+  // yet' rather than as a register that came back empty.
+  const [isRegisterLoading, setIsRegisterLoading] = useState(!isDemoMode);
+
+  useEffect(() => {
+    if (isDemoMode) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchAttendance({ date: selectedDate });
+      if (cancelled) return;
+      if (res.ok) {
+        const map: Record<string, { status: string; notes?: string }> = {};
+        for (const row of res.records) map[row.pupil_id] = { status: row.status, notes: row.notes };
+        setSavedRegister(map);
+      }
+      setIsRegisterLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedDate, isDemoMode]);
+
   const getAttendanceStatus = (pupilId: string) => {
+    const saved = savedRegister?.[pupilId];
+    if (saved) return saved;
     const record = attendance.find(a => a.pupil_id === pupilId && a.date === selectedDate);
     return record || { status: 'present', notes: '' };
   };
@@ -221,6 +264,19 @@ export default function WorkerView({
   };
 
   const handleSaveRegister = () => {
+    // Never save a register that was rendered from defaults: if the day's saved
+    // rows have not arrived, every pupil the worker did not touch would be
+    // written as Present over whatever is really on file for that date.
+    if (!isDemoMode && (isRegisterLoading || savedRegister === null)) {
+      showToast(
+        isRegisterLoading
+          ? `Still loading the register for ${selectedDate} — please wait a moment.`
+          : `The register for ${selectedDate} could not be loaded, so it cannot be saved safely. Check your connection and reselect the date.`,
+        'danger'
+      );
+      return;
+    }
+
     const records: MockAttendance[] = enrolledPupils.map(pupil => {
       const rec = dailyAttendanceState[pupil.id] || getAttendanceStatus(pupil.id);
       return {
@@ -246,12 +302,21 @@ export default function WorkerView({
   };
 
   const handleAcknowledgeParentNote = async (noteId: string, pupilId: string, pupilName: string) => {
-    setInboxNotes(prev => prev.map(n => n.id === noteId ? { ...n, status: 'Excused & Acknowledged' } : n));
+    // Optimistic, then rolled back if the server did not take it. Leaving the
+    // note showing as Excused after a failed call told the worker the parent
+    // had been answered when nothing had been recorded, and the parent's own
+    // portal still showed the note as pending.
+    setAcknowledgedNoteIds(prev => ({ ...prev, [noteId]: true }));
     const res = await acknowledgeParentNote(noteId);
     if (res.success) {
       showToast(`Absence note for ${pupilName} marked as Excused!`, 'success');
     } else {
-      showToast(`Marked locally — could not reach the server.`, 'warning');
+      setAcknowledgedNoteIds(prev => {
+        const next = { ...prev };
+        delete next[noteId];
+        return next;
+      });
+      showToast(`Could not mark the note for ${pupilName} as Excused — check your connection and try again.`, 'danger');
     }
   };
 
@@ -302,7 +367,7 @@ export default function WorkerView({
       // Auto-open the pupil's ECCD Child's Record 2 after grading is saved.
       setReportPupil(pupil);
     } else {
-      showToast(`Could not save evaluation: ${res.error || 'unknown error'}`, 'danger');
+      showToast(`Could not save evaluation: ${errorText(res.error, 'unknown error')}`, 'danger');
     }
   };
 
@@ -327,7 +392,7 @@ export default function WorkerView({
       }));
       showToast(`Child & family background saved for ${backgroundPupil.firstName}.`, 'success');
     } else {
-      showToast(res.error || 'Could not save background info.', 'danger');
+      showToast(errorText(res.error, 'Could not save background info.'), 'danger');
     }
     setIsBackgroundModalOpen(false);
     setBackgroundPupil(null);
@@ -370,7 +435,7 @@ export default function WorkerView({
         verifyAction === 'approve' ? 'success' : 'info'
       );
     } else {
-      showToast(res.error ? String(res.error) : 'Could not verify this enrollment.', 'danger');
+      showToast(errorText(res.error, 'Could not verify this enrollment.'), 'danger');
     }
     setIsVerifyModalOpen(false);
     setVerifyPupilRecord(null);
@@ -454,17 +519,27 @@ export default function WorkerView({
                     setSelectedDate(e.target.value);
                     // Reset the edit overlay so the register reflects saved records.
                     setDailyAttendanceState({});
+                    // Drop the previous day's saved register in the same event
+                    // that changes the date. Clearing it in the effect instead
+                    // would leave one painted frame showing the old day's marks
+                    // under the new date - and saving during that frame would
+                    // copy them onto it.
+                    if (!isDemoMode) {
+                      setSavedRegister(null);
+                      setIsRegisterLoading(true);
+                    }
                   }}
                   className="px-3 py-1.5 rounded-full border border-line bg-white text-xs font-semibold focus:outline-none"
                   suppressHydrationWarning
                 />
                 <button
                   onClick={handleSaveRegister}
-                  className="btn btn-primary btn-sm font-bold shadow-md"
+                  disabled={!isDemoMode && isRegisterLoading}
+                  className="btn btn-primary btn-sm font-bold shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                   suppressHydrationWarning
                 >
                   <CheckCircle2 size={16} />
-                  <span>Save Today Register</span>
+                  <span>{!isDemoMode && isRegisterLoading ? 'Loading register…' : 'Save Today Register'}</span>
                 </button>
               </div>
             </div>

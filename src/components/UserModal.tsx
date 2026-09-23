@@ -5,6 +5,7 @@ import { X, UserCheck, Save, AlertCircle } from 'lucide-react';
 import type { MockUser, UserRole } from '@/contexts/DaycareContext';
 import { todayLocalISO } from '@/lib/dates';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { errorText } from '@/lib/apiError';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -67,7 +68,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
       const resData = await response.json();
 
       if (!response.ok) {
-        setError(resData.error || 'Failed to create user in Supabase Auth.');
+        setError(errorText(resData.error, 'Failed to create user in Supabase Auth.'));
         return;
       }
 

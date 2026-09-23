@@ -31,6 +31,8 @@ import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { useDaycare, type MockPupil, type MockAttendance } from '@/contexts/DaycareContext';
 import { todayLocalISO } from '@/lib/dates';
+import { ABSENCE_ALERT_THRESHOLD } from '@/lib/absences';
+import { errorText } from '@/lib/apiError';
 import {
   ROUND_ORDINAL,
   computeAgeYMD,
@@ -180,7 +182,7 @@ export default function ParentView({
       setChildBackground({ pupil_id: child.id, ...fields, updated_at: new Date().toISOString() });
       showToast('Child & family background saved. The teacher can review it before assessments.', 'success');
     } else {
-      showToast(res.error || 'Could not save background info.', 'danger');
+      showToast(errorText(res.error, 'Could not save background info.'), 'danger');
     }
     setIsBackgroundModalOpen(false);
   };
@@ -201,15 +203,23 @@ export default function ParentView({
 
   const rate = totalAtt ? Math.round(((presentCount + lateCount) / totalAtt) * 100) : null;
 
+  // The unbroken run of absent days ending at the child's most recent record,
+  // as maintained by the database trigger - not a total of absences this year.
+  const consecutiveAbsences = child?.consecutiveAbsences ?? 0;
+  const absenceAlertKey = `ABS-${child?.id ?? 'none'}`;
+
+  // Dismisses the advisory for this child in this session only. Nothing is sent
+  // to the centre, so the toast must not say it was: the parent's reply to an
+  // absence advisory is the note they send from the Teacher Messages tab.
   const handleAcknowledgeAlert = (alertId: string) => {
     setAcknowledgedAlerts(prev => ({ ...prev, [alertId]: true }));
-    showToast('Absence alert acknowledgment registered with the Daycare Worker.', 'info');
+    showToast('Advisory dismissed. Send the Daycare Worker a note to explain the absence.', 'info');
   };
 
   const handleSendAbsenceNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guardianNotes.trim()) {
-      alert('Please enter a brief note explaining the absence or special request.');
+      showToast('Please enter a brief note explaining the absence or special request.', 'danger');
       return;
     }
     if (!child?.id) return;
@@ -409,21 +419,27 @@ export default function ParentView({
             )}
           </div>
 
-          {/* Interactive Consecutive Absence Alert Warning */}
-          {absentCount >= 2 && !acknowledgedAlerts['ABS-001'] && (
+          {/* Consecutive-absence advisory. Keyed off the pupil's consecutive
+              streak (maintained by the database trigger) at the same threshold
+              the worker's dashboard and the guardian alert use - it previously
+              counted every absence on record and fired at 2, so a parent saw an
+              advisory for absences that were neither consecutive nor flagged
+              anywhere else. The dismissal key carries the pupil id so
+              dismissing it for one child does not hide it for a sibling. */}
+          {consecutiveAbsences >= ABSENCE_ALERT_THRESHOLD && !acknowledgedAlerts[absenceAlertKey] && (
             <div className="p-4 rounded-3xl bg-danger-light border border-danger-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
               <div className="flex items-start gap-3">
                 <AlertTriangle size={22} className="text-danger shrink-0 mt-0.5" />
                 <div>
                   <div className="font-bold text-danger text-sm">Attendance Advisory Alert</div>
                   <p className="text-ink-soft m-0 mt-0.5 leading-relaxed">
-                    {child?.firstName} has {absentCount} recorded absences. Please send the Daycare Worker a note
-                    explaining any absence from the Teacher Messages &amp; Notes tab.
+                    {child?.firstName} has {consecutiveAbsences} consecutive absences. Please send the Daycare
+                    Worker a note explaining the absence from the Teacher Messages &amp; Notes tab.
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => handleAcknowledgeAlert('ABS-001')}
+                onClick={() => handleAcknowledgeAlert(absenceAlertKey)}
                 className="btn btn-sm text-white bg-danger hover:bg-[#B71C1C] font-bold shrink-0 shadow-sm"
                 suppressHydrationWarning
               >

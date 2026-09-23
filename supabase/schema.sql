@@ -500,12 +500,15 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
--- Parent notes, ECCD scores & child backgrounds: NO client
--- policies — all access goes through the server API (service role) with
--- session-derived identities, so direct client writes/reads are denied.
--- Sociodemographic profiles are the exception: they carry a SELECT policy so
--- the pupil-roster JOIN (session client) can resolve profiles for parents
--- (linked children) and staff; writes still go through the server API only.
+-- Parent notes, ECCD scores, evaluations, item comments and child backgrounds
+-- carry SELECT policies only (defined above): parents read their own or their
+-- linked children's rows, staff read all, and the read paths in the API use
+-- the RLS-bound session client accordingly. WRITES to all of them go through
+-- the server API on the service role with session-derived identities, so there
+-- is deliberately no client INSERT/UPDATE/DELETE policy for any of them.
+-- Sociodemographic profiles follow the same pattern, which is what lets the
+-- pupil-roster JOIN resolve a profile for parents and staff on the session
+-- client.
 
 -- ==========================================================================
 -- AUTOMATIC CONSECUTIVE ABSENCES TRIGGER FUNCTION

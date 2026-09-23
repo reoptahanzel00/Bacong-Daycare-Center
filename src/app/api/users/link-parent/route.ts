@@ -64,6 +64,18 @@ export async function POST(request: Request) {
       if (profileError || !profile) {
         return NextResponse.json({ error: `No account found for ${parsed.email}. Create the parent account instead.` }, { status: 404 });
       }
+      // Only a parent account may be linked. guardians.user_id is what every
+      // parent-scoped RLS policy resolves against (`pupil_id IN (SELECT
+      // pupil_id FROM guardians WHERE user_id = auth.uid())`), so linking a
+      // worker or official here would quietly grant that account row-level
+      // access to the child - including to an official, who is meant to see
+      // summarised figures only.
+      if (profile.role !== 'parent') {
+        return NextResponse.json(
+          { error: `${parsed.email} is a ${profile.role} account. Only parent accounts can be linked to a child.` },
+          { status: 400 }
+        );
+      }
       parentUserId = profile.id;
     } else {
       // Create the auth account, then the profile row, then link.

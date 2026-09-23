@@ -15,6 +15,7 @@ const BulkAttendanceSchema = z.object({
 
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
+import { ABSENCE_ALERT_THRESHOLD } from '@/lib/absences';
 
 export async function POST(request: Request) {
   try {
@@ -75,19 +76,26 @@ export async function POST(request: Request) {
             .select('id, first_name, consecutive_absences')
             .in('id', pupilIds);
 
-          const alertPupils = (affected || []).filter((p) => p.consecutive_absences >= 3);
+          const alertPupils = (affected || []).filter(
+            (p) => p.consecutive_absences >= ABSENCE_ALERT_THRESHOLD
+          );
           if (alertPupils.length === 0) return;
 
-          const targets = await guardianUserIdsForPupils(admin, alertPupils.map((p) => p.id));
-          await notifyUsers(targets, {
-            type: 'consecutive_absences',
-            title: 'Absence Alert',
-            message: alertPupils
-              .map((p) => `${p.first_name} has ${p.consecutive_absences} consecutive absences.`)
-              .join(' '),
-            channel: 'EMAIL',
-            severity: 'high',
-          });
+          // One notification per child, addressed to that child's own guardians.
+          // A single combined message sent to the union of every alerted child's
+          // guardians told each recipient the first name and the absence count of
+          // every other child in the batch - other people's children.
+          for (const pupil of alertPupils) {
+            const targets = await guardianUserIdsForPupils(admin, [pupil.id]);
+            if (targets.length === 0) continue;
+            await notifyUsers(targets, {
+              type: 'consecutive_absences',
+              title: 'Absence Alert',
+              message: `${pupil.first_name} has ${pupil.consecutive_absences} consecutive absences.`,
+              channel: 'EMAIL',
+              severity: 'high',
+            });
+          }
         } catch (alertError) {
           console.warn('[Attendance API] Absence alert skipped:', alertError);
         }

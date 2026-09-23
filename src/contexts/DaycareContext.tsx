@@ -24,6 +24,7 @@ import { fetchProgress, recordObservation, type ProgressPayload, type ProgressRo
 import { fetchUsers, updateUserStatus } from '@/services/usersService';
 import { fetchAuditLogs } from '@/services/auditService';
 import { fetchSettings, updateSettings, EMPTY_SETTINGS, type CenterSettingsRow } from '@/services/settingsService';
+import { errorText } from '@/lib/apiError';
 
 // Local-compatible types (matching mockData shape).
 // Optional fields cover the loose demo payloads used across the UI.
@@ -197,10 +198,6 @@ function mapProgressRowStatic(r: ProgressRow): MockProgress {
   } as MockProgress;
 }
 
-/** A server error message fit for a toast; validation errors arrive as arrays. */
-function errorText(error: unknown, fallback: string): string {
-  return typeof error === 'string' && error.trim() ? error : fallback;
-}
 
 /** The tab each role lands on. Kept in one place so the server-seeded first
  *  paint and the client's post-sign-in routing cannot disagree. */
@@ -667,7 +664,7 @@ export function DaycareProvider({
       setSettings(res.settings ?? next);
       showToast('Centre settings saved.');
     } else {
-      showToast(res?.error || 'Could not save centre settings.', 'danger');
+      showToast(errorText(res?.error, 'Could not save centre settings.'), 'danger');
     }
     return res;
   }, [showToast]);

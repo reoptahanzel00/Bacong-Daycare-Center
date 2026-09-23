@@ -51,8 +51,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (banError) {
       // The profile is already updated and authorization already fails closed,
       // so this is a degraded success rather than a failure: report it instead
-      // of pretending the session was ended.
+      // of pretending the session was ended. The status change still reached the
+      // database, so it still belongs in the audit trail - returning early
+      // without recording it left the one status change most worth reviewing as
+      // the only one with no entry.
       console.error('[Users API] Could not revoke sessions for', id, banError.message);
+      await recordAudit(
+        admin,
+        session,
+        parsed.status === 'disabled' ? 'Disabled user account' : 'Enabled user account',
+        `User ${id}`,
+        'Sessions could not be revoked'
+      );
       return NextResponse.json({
         success: true,
         user: data,

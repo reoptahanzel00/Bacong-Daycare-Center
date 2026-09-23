@@ -77,6 +77,22 @@ function drawHeader(doc: jsPDF, data: DswdReportData) {
   doc.line(MARGIN, 37, doc.internal.pageSize.getWidth() - MARGIN, 37);
 }
 
+/**
+ * Draws the header on the current page unless it already carries one.
+ *
+ * autoTable's didDrawPage hook fires for every page the table renders on,
+ * including the first - which already had a header drawn before the table
+ * started. The result was two identical headers stacked on page 1: visibly
+ * heavier text, and every header line duplicated in the PDF's text layer, so
+ * copying from the archived form produced each title twice.
+ */
+function headerOnce(doc: jsPDF, data: DswdReportData, drawn: Set<number>) {
+  const page = doc.getCurrentPageInfo().pageNumber;
+  if (drawn.has(page)) return;
+  drawn.add(page);
+  drawHeader(doc, data);
+}
+
 function drawFooter(doc: jsPDF, data: DswdReportData) {
   const pages = doc.getNumberOfPages();
   const width = doc.internal.pageSize.getWidth();
@@ -93,7 +109,8 @@ function drawFooter(doc: jsPDF, data: DswdReportData) {
 
 /** Renders the whole report into `doc`. */
 export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdReportData) {
-  drawHeader(doc, data);
+  const headedPages = new Set<number>();
+  headerOnce(doc, data, headedPages);
 
   // Summary figures, drawn as a table so the columns align on any page size.
   autoTable(doc, {
@@ -122,7 +139,11 @@ export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdRepor
 
   autoTable(doc, {
     startY: y,
-    margin: { left: MARGIN, right: MARGIN, top: 22, bottom: 18 },
+    // The top margin governs where the table resumes on every page after the
+    // first, so it has to clear the header (whose rule sits at y=37). At 22 the
+    // roster began inside the header, and on a class large enough to spill onto
+    // a second page the first rows were printed over the form's own title.
+    margin: { left: MARGIN, right: MARGIN, top: 43, bottom: 18 },
     head: [['Pupil ID', 'Pupil Full Name', 'Sex', 'Birth Date', 'Guardian Contact', 'Status']],
     body: data.pupils.map((p) => [
       p.id, p.name, p.sex, p.birthDate,
@@ -141,7 +162,7 @@ export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdRepor
     },
     // Every page of a multi-page roster carries the form's identity, the way
     // the printed DSWD form does.
-    didDrawPage: () => drawHeader(doc, data),
+    didDrawPage: () => headerOnce(doc, data, headedPages),
   });
 
   // Signature block, kept on the last page below the roster.
@@ -149,7 +170,7 @@ export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdRepor
   let sigY = finalY(doc) + 20;
   if (sigY > height - 40) {
     doc.addPage();
-    drawHeader(doc, data);
+    headerOnce(doc, data, headedPages);
     sigY = 55;
   }
 
