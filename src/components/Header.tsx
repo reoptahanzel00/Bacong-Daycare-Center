@@ -7,12 +7,12 @@ import type { Notification } from '@/services/notificationService';
 import { createClient } from '@/lib/supabase/client';
 import { clearStoredData } from '@/data/mockData';
 import { useRouter } from 'next/navigation';
+import { CENTER_TIMEZONE } from '@/lib/dates';
 
 interface HeaderProps {
   currentRole: string;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  notificationsCount?: number;
   onOpenMobileNav?: () => void;
 }
 
@@ -23,11 +23,15 @@ export default function Header({
   onOpenMobileNav
 }: HeaderProps) {
   const router = useRouter();
+  // The centre's date, not the reader's. Rendered on the server too, where the
+  // runtime is UTC, so without the fixed zone the header announced yesterday
+  // for the eight hours after midnight in Manila.
   const currentDateStr = new Date().toLocaleDateString('en-PH', {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: CENTER_TIMEZONE,
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -126,18 +130,25 @@ export default function Header({
         </div>
 
         {/* Notification Bell */}
-        <div
+        {/* A button, not a div: the bell was unreachable by keyboard and
+            announced as nothing, so notifications - including absence alerts -
+            could only be opened with a mouse. */}
+        <button
+          type="button"
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+          aria-haspopup="dialog"
+          aria-expanded={isDrawerOpen}
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
           className="relative cursor-pointer p-2 rounded-xl bg-canvas hover:bg-line-strong transition-all border border-line"
           title="Notifications"
         >
           <Bell size={18} className="text-ink-muted" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-accent-coral-strong text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+            <span aria-hidden="true" className="absolute -top-1 -right-1 bg-accent-coral-strong text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
               {unreadCount}
             </span>
           )}
-        </div>
+        </button>
 
         {/* Logout Button */}
         <button

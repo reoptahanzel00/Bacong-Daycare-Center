@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
-import { todayLocalISO } from '@/lib/dates';
+import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
+import { sendVerificationEmail, appOrigin } from '@/lib/emailVerification';
 
 const SignupSchema = z.object({
   role: z.enum(['worker', 'official', 'parent']).default('parent'),
@@ -106,14 +107,27 @@ export async function POST(request: Request) {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const admin = createAdminClient();
 
-    // 1. Create the auth account.
-    // L4 fix: do not auto-confirm the email. Supabase sends a verification link
-    // so the address is proven before password recovery is possible. Enrollment
-    // still requires worker approval regardless, so no data is exposed either way.
+    // 1. Create the auth account, confirmed.
+    //
+    // This used to pass email_confirm: false, on the belief that "Supabase sends
+    // a verification link". It does not: admin.createUser() creates the account
+    // directly and sends nothing — a confirmation mail only goes out through the
+    // public signUp() flow, inviteUserByEmail() or generateLink(), none of which
+    // this app calls. So a parent who registered got an account that was never
+    // confirmed and never received a link, and on a project with email
+    // confirmation enabled every later sign-in failed with "Email not confirmed"
+    // — which the sign-in route reports, deliberately, as "Invalid email, Student
+    // ID or password". Registration said success and the account was dead on
+    // arrival, telling the parent their password was wrong.
+    //
+    // Confirming here matches the two paths that already work (users/create and
+    // users/link-parent both pass true). It costs nothing in exposure: a
+    // self-registered account can only ever see children a Daycare Worker has
+    // since approved, and the pupil rows it submits start as 'pending'.
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
       email,
       password: parsed.password,
-      email_confirm: false,
+      email_confirm: true,
       user_metadata: {
         full_name: parsed.fullName,
         role: 'parent',
@@ -162,7 +176,7 @@ export async function POST(request: Request) {
     const createdPupilIds: string[] = [];
     let pupilCreateError: string | null = null;
     for (const child of parsed.children) {
-      const pupilId = `PUP-${new Date().getFullYear()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
+      const pupilId = `PUP-${currentYearLocal()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
       const address = [
         child.barangay.trim(),
         child.municipality.trim(),
@@ -244,16 +258,39 @@ export async function POST(request: Request) {
       console.warn('[Signup API] Child profile insert warning:', pupilCreateError);
     }
 
+    // Prove the address. This does not gate sign-in — the account above is
+    // already usable — it gates outbound email, because absence alerts name the
+    // child and a typo at sign-up would send that to a stranger. Best effort: a
+    // provider outage must not fail a registration that otherwise succeeded, so
+    // the response says what actually happened instead of promising an email.
+    const verification = await sendVerificationEmail(
+      admin,
+      authData.user.id,
+      email,
+      parsed.fullName,
+      appOrigin(request)
+    );
+
     await recordAudit(admin, { userId: authData.user.id, email, role: 'parent' }, 'Registered parent account', createdPupilIds.join(', ') || 'No child profile saved');
+
+    const childMessage =
+      createdPupilIds.length > 0
+        ? `Account created. ${createdPupilIds.length} child profile(s) submitted for verification by the Daycare Worker.`
+        : 'Account created, but your child profile could not be saved. Please contact the Daycare Worker.';
+
+    // Only claim a confirmation email when one was actually handed to the
+    // provider. Telling a parent to check an inbox nothing was sent to is the
+    // same class of mistake as the confirmation link that was never sent.
+    const verificationMessage = verification.sent
+      ? ' Please check your email and confirm your address so we can send you absence alerts.'
+      : '';
 
     return NextResponse.json({
       success: true,
-      message:
-        createdPupilIds.length > 0
-          ? `Account created. ${createdPupilIds.length} child profile(s) submitted for verification by the Daycare Worker.`
-          : 'Account created, but your child profile could not be saved. Please contact the Daycare Worker.',
+      message: `${childMessage}${verificationMessage}`,
       linked: createdPupilIds.length > 0,
       pupilIds: createdPupilIds,
+      verificationEmailSent: verification.sent,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

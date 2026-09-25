@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Save, AlertCircle } from 'lucide-react';
 import type { MockPupil } from '@/contexts/DaycareContext';
-import { todayLocalISO } from '@/lib/dates';
+import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface PupilModalProps {
@@ -13,17 +13,27 @@ interface PupilModalProps {
   pupilToEdit?: MockPupil | null;
 }
 
+/**
+ * A new pupil's form starts empty.
+ *
+ * Date of birth, address and the guardian's phone used to be pre-filled with
+ * sample values - a birth date of 2021-05-10, 'Purok 1, Barangay Bacong' and
+ * the same 0917 number the field already offered as its placeholder. A worker
+ * who filled in the names and saved therefore enrolled a real child carrying a
+ * stranger's invented details, and the birth date is what the DSWD age
+ * brackets and every ECCD 'age at test' are computed from.
+ */
 function buildInitialForm(pupil?: MockPupil | null) {
   return {
     firstName: pupil?.firstName || '',
     lastName: pupil?.lastName || '',
-    birthDate: pupil?.birthDate || '2021-05-10',
+    birthDate: pupil?.birthDate || '',
     sex: pupil?.sex || 'Male',
-    address: pupil?.address || 'Purok 1, Barangay Bacong',
+    address: pupil?.address || '',
     enrollmentStatus: pupil?.enrollmentStatus || 'enrolled',
     guardianName: pupil?.guardian?.fullName || '',
     relationship: pupil?.guardian?.relationship || 'Mother',
-    guardianPhone: pupil?.guardian?.phone || '0917-123-4567'
+    guardianPhone: pupil?.guardian?.phone || ''
   };
 }
 
@@ -43,9 +53,19 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
       setError('Please fill in all required fields (Pupil First/Last Name and Guardian Name).');
       return;
     }
+    if (!formData.birthDate) {
+      setError("Please enter the pupil's date of birth — the ECCD and DSWD reports are age-based.");
+      return;
+    }
 
     const payload = {
-      id: pupilToEdit ? pupilToEdit.id : `PUP-2026-00${Math.floor(Math.random() * 90) + 10}`,
+      // Matches the server's format and entropy. The old value hardcoded 2026
+      // and drew from Math.random() across ninety possible ids - which the
+      // pupils route's own comment rules out - so two children enrolled in the
+      // same session could collide on one id.
+      id: pupilToEdit
+        ? pupilToEdit.id
+        : `PUP-${currentYearLocal()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
       firstName: formData.firstName,
       lastName: formData.lastName,
       birthDate: formData.birthDate,
@@ -131,7 +151,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <label htmlFor="srccomponentspupilmodal-date-of-birth-3" className="text-xs font-bold text-ink-soft">Date of Birth</label>
+              <label htmlFor="srccomponentspupilmodal-date-of-birth-3" className="text-xs font-bold text-ink-soft">Date of Birth *</label>
               <input id="srccomponentspupilmodal-date-of-birth-3"
                 type="date"
                 className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
@@ -173,6 +193,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
             <input id="srccomponentspupilmodal-barangay-address-6"
               type="text"
               className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
+              placeholder="e.g. Purok 1, Barangay Bacong"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               suppressHydrationWarning

@@ -256,6 +256,18 @@ test.describe('API Security & Health Check Automated Tests', () => {
     }
   });
 
+  // The confirmation link is the only credential that route accepts, so a
+  // request without one must never fall through to anything. Every outcome
+  // lands back on sign-in with a message: a blank page after clicking a link
+  // in an email is indistinguishable from a broken system.
+  test("email confirmation without a token redirects to sign-in with a reason", async ({ request }) => {
+    const response = await request.get("/auth/verify-email", { maxRedirects: 0 });
+    expect(response.status()).toBe(307);
+    const location = response.headers()["location"] ?? "";
+    expect(location).toContain("/login");
+    expect(location).toContain("error=");
+  });
+
   // Removed because the capstone paper does not include them: the routes must
   // be gone, not merely locked, so no stale client can write to them.
   test('the removed announcements and health-log routes no longer exist', async ({ request }) => {

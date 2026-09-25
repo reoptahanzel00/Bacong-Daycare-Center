@@ -58,6 +58,10 @@ export default function NotificationDrawer({
           notifications.map((n) => {
             const isAbsence = n.type === 'consecutive_absences';
 
+            // The feed carried `read` all along and rendered every entry the
+            // same, so a parent opening the drawer after an absence alert had
+            // no way to tell the new alert from last month's, and "Mark all as
+            // read" only ever cleared the badge on the bell.
             return (
               <div
                 key={n.id}
@@ -65,7 +69,7 @@ export default function NotificationDrawer({
                   isAbsence
                     ? 'bg-danger-light border-danger-border'
                     : 'bg-canvas border-line'
-                }`}
+                } ${n.read ? 'opacity-60' : ''}`}
               >
                 <div className="flex items-start gap-2.5">
                   <div className="p-2 rounded-xl bg-white shadow-sm flex-shrink-0">
@@ -74,9 +78,18 @@ export default function NotificationDrawer({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-bold text-ink truncate">{n.title}</span>
-                      <span className="text-[10px] text-ink-subtle">{n.timestamp}</span>
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span className={`truncate ${n.read ? 'font-semibold text-ink-soft' : 'font-bold text-ink'}`}>
+                        {!n.read && (
+                          <span
+                            aria-hidden="true"
+                            className="inline-block w-1.5 h-1.5 rounded-full bg-primary align-middle mr-1.5"
+                          />
+                        )}
+                        {n.title}
+                        {!n.read && <span className="sr-only"> (unread)</span>}
+                      </span>
+                      <span className="text-[10px] text-ink-subtle shrink-0">{n.timestamp}</span>
                     </div>
 
                     <p className="text-ink-soft leading-relaxed m-0 text-[11px]">{n.message}</p>
@@ -100,7 +113,7 @@ export default function NotificationDrawer({
         ) : (
           <div className="p-6 text-center text-xs text-ink-subtle">
             <CheckCircle2 size={24} className="mx-auto mb-2 text-primary" />
-            No unread notifications
+            No notifications yet
           </div>
         )}
       </div>

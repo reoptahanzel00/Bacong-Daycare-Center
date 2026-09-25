@@ -30,7 +30,7 @@ import { fetchParentNotes, submitParentNote } from '@/services/parentNotesServic
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { useDaycare, type MockPupil, type MockAttendance } from '@/contexts/DaycareContext';
-import { todayLocalISO } from '@/lib/dates';
+import { todayLocalISO, formatLocalTimestamp } from '@/lib/dates';
 import { ABSENCE_ALERT_THRESHOLD } from '@/lib/absences';
 import { errorText } from '@/lib/apiError';
 import {
@@ -110,7 +110,7 @@ export default function ParentView({
         notes: n.notes,
         phone: n.phone || '',
         acknowledged: n.status === 'acknowledged',
-        submittedAt: n.submitted_at ? new Date(n.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
+        submittedAt: formatLocalTimestamp(n.submitted_at),
       })));
     })();
     return () => { cancelled = true; };
@@ -245,7 +245,7 @@ export default function ParentView({
       notes: guardianNotes,
       phone: notePhone,
       acknowledged: false,
-      submittedAt: new Date().toLocaleString('sv').replace('T', ' '),
+      submittedAt: formatLocalTimestamp(new Date()),
     }, ...prev]);
     setGuardianNotes('');
     showToast(`Absence note for ${absenceDate} sent to the Daycare Worker.`, 'success');
@@ -257,6 +257,28 @@ export default function ParentView({
   const domainMasteryPct = activeDomain.items.length > 0
     ? Math.round((domainPresentCount / activeDomain.items.length) * 100)
     : 0;
+
+  // A parent portal with no child to show. Reachable: the roster the portal
+  // loads covers pending, enrolled and rejected children, so once a worker
+  // archives the last one there is nothing left — and every field below reads
+  // off `child`, which renders the hero card with a blank name, a blank ID and
+  // a blank date of birth. An explanation is not a nicer version of that; it is
+  // the difference between a finished school year and a broken portal.
+  if (pupils.length === 0) {
+    return (
+      <div className="card bg-white p-10 border border-line text-center space-y-3" suppressHydrationWarning>
+        <div className="w-14 h-14 rounded-2xl bg-danger-light text-accent-coral flex items-center justify-center mx-auto">
+          <Heart size={26} />
+        </div>
+        <h3 className="text-base font-bold text-ink m-0">No child records to show yet</h3>
+        <p className="text-xs text-ink-muted m-0 max-w-md mx-auto leading-relaxed">
+          Your account is not linked to a child&apos;s record at the moment. If you have just
+          registered, the Daycare Worker still has to verify your child&apos;s enrollment. If you
+          were expecting a record here, please contact the Daycare Worker.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12" suppressHydrationWarning>
@@ -275,8 +297,12 @@ export default function ParentView({
           </div>
         </div>
 
+        {/* Every linked child, not the first three. Sign-up accepts up to five
+            children per parent, and the switcher showed three — so a parent who
+            registered four had no way to open the fourth child's portal at all.
+            The rail already scrolls horizontally. */}
         <div className="flex items-center gap-2 overflow-x-auto">
-          {pupils.slice(0, 3).map((p) => {
+          {pupils.map((p) => {
             const isSelected = p.id === selectedChildId;
             return (
               <button
@@ -404,7 +430,7 @@ export default function ParentView({
                 ))}
                 {childBackground?.updated_at && (
                   <p className="text-[10px] text-ink-subtle m-0">
-                    Last updated {new Date(childBackground.updated_at).toLocaleString()}
+                    Last updated {formatLocalTimestamp(childBackground.updated_at)}
                   </p>
                 )}
               </div>

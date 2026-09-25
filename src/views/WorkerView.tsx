@@ -39,7 +39,7 @@ import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
 import { verifyPupil } from '@/services/pupilService';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress } from '@/contexts/DaycareContext';
-import { todayLocalISO } from '@/lib/dates';
+import { todayLocalISO, formatLocalTimestamp } from '@/lib/dates';
 import { errorText } from '@/lib/apiError';
 
 interface WorkerViewProps {
@@ -184,7 +184,7 @@ export default function WorkerView({
         status: row.status === 'acknowledged' || acknowledgedNoteIds[row.id]
           ? 'Excused & Acknowledged'
           : 'Pending Teacher Review',
-        submittedAt: row.submitted_at ? new Date(row.submitted_at).toLocaleString('sv').replace('T', ' ') : '',
+        submittedAt: formatLocalTimestamp(row.submitted_at),
       };
     }),
     [inboxRows, pupils, acknowledgedNoteIds]

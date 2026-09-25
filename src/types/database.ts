@@ -11,6 +11,13 @@ export interface UserProfile {
   phone?: string;
   status: 'active' | 'disabled';
   created_at: string;
+  /**
+   * When the address was proven to belong to the account holder. Distinct from
+   * Supabase auth confirmation, which gates sign-in: this gates outbound email
+   * only, because absence alerts name the child. NULL means unproven.
+   */
+  email_verified_at?: string | null;
+  email_verification_sent_at?: string | null;
 }
 
 export interface GuardianInfo {

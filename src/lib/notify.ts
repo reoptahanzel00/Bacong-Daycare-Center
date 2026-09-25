@@ -45,8 +45,15 @@ export async function notifyUsers(targets: NotifyTarget[], payload: NotifyPayloa
     if (payload.channel === 'EMAIL') {
       const { data: profiles } = await admin
         .from('users')
-        .select('id, email')
-        .in('id', targets.map((t) => t.user_id));
+        .select('id, email, email_verified_at')
+        .in('id', targets.map((t) => t.user_id))
+        // Only addresses that have been proven to belong to the account holder.
+        // An absence alert names the child, so an address nobody has confirmed
+        // is an address that may belong to whoever the parent mistyped at
+        // sign-up. The notification row above is inserted either way, so the
+        // parent still sees it in the portal feed - the email is the only part
+        // withheld, because it is the only part that can reach the wrong person.
+        .not('email_verified_at', 'is', null);
       // Dispatch in parallel: a class-wide alert is a handful of addresses, and
       // awaiting each in turn made the total wait the sum of every round trip.
       // allSettled so one bad address cannot stop the rest.

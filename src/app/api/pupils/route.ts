@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { resolveEnrollmentStatus } from '@/lib/enrollment';
-import { todayLocalISO } from '@/lib/dates';
+import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
 
 const PupilSchema = z.object({
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     const parsed = PupilSchema.parse(body);
 
     // Use secure UUID-based IDs — never Math.random()
-    const pupilId = parsed.id || `PUP-${new Date().getFullYear()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
+    const pupilId = parsed.id || `PUP-${currentYearLocal()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
 
     // The status actually persisted — may differ from the request when the
     // record is still awaiting worker verification (see below).

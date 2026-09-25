@@ -44,6 +44,14 @@ CREATE TABLE IF NOT EXISTS users (
   -- changed notice can require re-consent rather than inheriting the old one.
   privacy_consent_at TIMESTAMPTZ,
   privacy_consent_version TEXT,
+  -- Whether this address has been proven to belong to the account holder.
+  -- Separate from Supabase auth confirmation, which gates sign-in: this gates
+  -- outbound email only, because absence alerts name the child. NULL means
+  -- unproven, so the portal feed still delivers but no email is sent.
+  email_verified_at TIMESTAMPTZ,
+  -- SHA-256 of the emailed token, never the token itself.
+  email_verification_token_hash TEXT,
+  email_verification_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

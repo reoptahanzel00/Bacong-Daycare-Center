@@ -12,6 +12,7 @@ import {
   saveStoredData,
 } from '@/data/mockData';
 import { createClient } from '@/lib/supabase/client';
+import { formatLocalTimestamp } from '@/lib/dates';
 import {
   fetchPupils,
   enrollPupil,
@@ -378,7 +379,7 @@ export function DaycareProvider({
       if (auditRes.ok) {
         setAuditLogs(auditRes.logs.map(l => ({
           id: l.id,
-          timestamp: l.created_at ? new Date(l.created_at).toLocaleString('sv').replace('T', ' ') : '',
+          timestamp: formatLocalTimestamp(l.created_at),
           userName: l.user_name,
           role: l.role,
           action: l.action,

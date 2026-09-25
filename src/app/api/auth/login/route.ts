@@ -82,6 +82,13 @@ export async function POST(request: Request) {
         signedInUser = data.user;
         break;
       }
+      // The client is told the same thing for every failure, on purpose, so the
+      // response cannot be used to discover which addresses exist. That also
+      // meant a whole class of accounts could be unable to sign in for a reason
+      // nobody could see: "Email not confirmed" looked exactly like a wrong
+      // password. Log the reason — never the address — so the runtime log can
+      // tell a bad password from a broken account.
+      if (error) console.warn('[Login API] Sign-in rejected:', error.message);
     }
 
     if (!signedInUser) {

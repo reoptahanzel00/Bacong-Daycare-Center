@@ -98,6 +98,8 @@ export default function AuthPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  // Set when /auth/verify-email redirects back after a confirmation attempt.
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   // Create-account state
   const [createRole, setCreateRole] = useState<UserRole>('parent');
@@ -124,9 +126,12 @@ export default function AuthPage() {
     // /auth/callback sends people here with a reason when a recovery link has
     // expired or was already used. Without this it would redirect them to a
     // blank sign-in form and leave them guessing why.
-    const reason = new URLSearchParams(window.location.search).get('error');
-    if (reason) {
-      setErrorMessage(reason);
+    const params = new URLSearchParams(window.location.search);
+    const reason = params.get('error');
+    const notice = params.get('notice');
+    if (reason) setErrorMessage(reason);
+    if (notice) setNoticeMessage(notice);
+    if (reason || notice) {
       window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     }
   }, []);
@@ -395,8 +400,21 @@ export default function AuthPage() {
                 </p>
               </div>
 
+              {noticeMessage && (
+                <div
+                  role="status"
+                  className="mt-4 p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-xs text-emerald-800 font-semibold"
+                >
+                  <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
+                  <span>{noticeMessage}</span>
+                </div>
+              )}
+
               {errorMessage && (
-                <div className="mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-xs text-rose-700 font-semibold animate-shake">
+                <div
+                  role="alert"
+                  className="mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-xs text-rose-700 font-semibold animate-shake"
+                >
                   <AlertCircle size={18} className="shrink-0 text-rose-600" />
                   <span>{errorMessage}</span>
                 </div>

@@ -25,9 +25,13 @@ test.describe('Pupil Enrollment Workflow', () => {
     // Verify modal overlay opens
     await expect(page.getByText('Enroll New Daycare Pupil')).toBeVisible();
 
-    // Fill in pupil details
+    // Fill in pupil details. Date of birth is required: the form used to
+    // pre-fill a sample birth date, so an enrollment saved without touching it
+    // recorded an invented one - and every ECCD age and DSWD age bracket is
+    // computed from that field.
     await page.getByPlaceholder('e.g. Mateo').fill('Juanito');
     await page.getByPlaceholder('e.g. Santos').fill('Dela Rosa');
+    await page.getByLabel(/date of birth/i).fill('2021-05-10');
     await page.getByPlaceholder('e.g. Maria Santos').fill('Rosa Dela Rosa');
 
     // Submit form

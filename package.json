@@ -11,6 +11,7 @@
     "check:rls": "node scripts/check-rls.mjs",
     "test:e2e": "playwright test",
     "db:seed-test-users": "node scripts/seed-test-users.mjs",
+    "db:confirm-parent-emails": "node scripts/confirm-parent-emails.mjs",
     "test:e2e:ui": "playwright test --ui"
   },
   "engines": {
