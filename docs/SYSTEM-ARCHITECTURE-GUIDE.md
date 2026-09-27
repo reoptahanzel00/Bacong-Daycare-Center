@@ -13,7 +13,7 @@ Rather than deploying disparate, decoupled front-end and back-end repositories (
 ### Core Architectural Principles
 1. **Zero Trust at the Client:** The client browser is considered completely untrusted. All authorizations, business rules, and data queries are validated on the server.
 2. **Defense in Depth:** Security is not solely reliant on UI buttons or API checks; it is enforced across 5 distinct tiers (Middleware → Session Verification → RBAC Route Guard → Zod Validation → Database Row Level Security).
-3. **Data Minimization (RA 10173):** Information is scoped strictly to user need. Barangay Officials receive pre-aggregated summary statistics via dedicated server logic, completely isolated from raw child records.
+3. **Data Minimization (RA 10173):** Information is scoped strictly to user need. There are two roles: the Daycare Worker, and Parents who see only their own linked children. The Barangay receives counts only, through the DSWD Form 1 report, never raw child records. Birth certificates sit in a private storage bucket reachable only through short-lived signed URLs the server issues after checking the requester.
 4. **Resilient Non-blocking Operations:** High-latency tasks like email alerts use background scheduling (`after()` hook) so that primary transactions (e.g., taking daily attendance) complete instantly for the daycare worker.
 
 ---
@@ -24,9 +24,9 @@ Rather than deploying disparate, decoupled front-end and back-end repositories (
 
 ```
 ============================== USER TIER ==============================
-   [ Daycare Worker Laptop ]   [ Barangay Official PC ]   [ Parent Smartphone ]
-               \                      |                      /
-                \                     |                     /
+        [ Daycare Worker Laptop / Tablet ]        [ Parent Smartphone ]
+                          \                              /
+                           \                            /
                  --- HTTPS (TLS 1.3) / HTTP-Only Cookies ---
                                       |
 =========================== APPLICATION TIER ==========================
@@ -136,7 +136,9 @@ flowchart TD
 
 ### C. Operational & Role-Based Workflow Flowchart
 
-The following flowchart maps the system's operational workflow and actor interactions based on the system design board (omitting branding sheets), covering Super Admin controls, Teacher/Worker operations, Security/Gate verification with punch deduplication, daily classroom entry, cohort archiving, Barangay Official oversight, Parent monitoring, and Child Development Center operations:
+The following flowchart maps the system's operational workflow and actor interactions based on the system design board (omitting branding sheets), covering Super Admin controls, Teacher/Worker operations, Security/Gate verification with punch deduplication, daily classroom entry, cohort archiving, Parent monitoring, and Child Development Center operations.
+
+> **Note (panel revisions, September 2026):** the design board predates the panel review. The Barangay Official lane has been removed from the system and from this flowchart; the Barangay receives the DSWD Form 1 report instead. Section 4, Flow 2 shows the enrollment, verification and resubmission flow that replaced it.
 
 ![Operational Workflow Diagram](file:///C:/Bacong%20Daycare/docs/diagrams/system-workflow-board.png)
 
@@ -206,22 +208,11 @@ flowchart TD
         Batch2029["Batch 2029"]
     end
 
-    %% Barangay Official
-    subgraph BrgyOfficial ["Barangay Official (BRGY / OFF)"]
-        direction TB
-        BO1["Executive Dashboard (Aggregated Insights)"]
-        BO2["Export Summary Reports"]
-        BO3["Backup & Restore Access"]
-        BO4["Audit Logs Review"]
-        BO5["Import Records"]
-        BO6["Manage Account / Profile"]
-        BO1 --> BO6
-    end
-
     %% Parent / User
     subgraph ParentUser ["Parent / User Portal"]
         direction TB
-        P_Enroll["Enrollment: Upload Requirements"]
+        P_Enroll["Enrollment: Health & Special Needs, Birth Certificate Upload"]
+        P_Resubmit["Returned? Shown as PENDING → Correct & Resubmit"]
         subgraph P_Monitor ["Monitoring"]
             P_Status["View Child Status"]
             P_Report["View Child Report (ECCD)"]
@@ -319,7 +310,7 @@ A critical architectural facet of this project is the **deliberate triage of dat
 
 > [!IMPORTANT]
 > **Why three clients?**
-> A common student mistake is using a single database connection everywhere. In this system, if an API endpoint queries pupil records using the *Server Session Client*, PostgreSQL itself stops a parent from seeing another child's record. The *Admin Client* is only utilized when crossing trust boundaries (such as computing anonymized summaries for Barangay Officials).
+> A common student mistake is using a single database connection everywhere. In this system, if an API endpoint queries pupil records using the *Server Session Client*, PostgreSQL itself stops a parent from seeing another child's record. The *Admin Client* is only utilized when crossing trust boundaries (such as computing the anonymized counts for the DSWD summary, or issuing signed URLs for birth certificates).
 
 ### Tier 5: Persistence & Database Tier
 - **Technology:** Managed PostgreSQL 15+ (Supabase).
@@ -375,34 +366,42 @@ sequenceDiagram
 
 ---
 
-### Flow 2: Official Aggregate Reporting (Data Privacy Architecture)
+### Flow 2: Enrollment, Verification & Resubmission
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Official as Barangay Official
-    participant UI as OfficialView (Browser)
-    participant API as /api/reports/summary
-    participant Admin as Admin Client (Service Role)
-    participant DB as PostgreSQL Tables
-    
-    Official->>UI: Navigates to Executive Dashboard
-    UI->>API: GET /api/reports/summary
-    API->>API: getServerSession() -> verified role == 'official'
-    Note over API,Admin: Officials have 0 RLS read permissions on raw tables.<br/>System uses AdminClient to aggregate counts.
-    API->>Admin: Request aggregate counts
-    Admin->>DB: SELECT count(*), sex, age_brackets FROM pupils WHERE enrolled
-    Admin->>DB: SELECT count(*) FROM attendance WHERE date = TODAY
-    Admin->>DB: SELECT count(*) FROM pupils WHERE consecutive_absences >= 3
-    DB-->>Admin: Raw aggregated integers
-    Admin-->>API: Compiled counts & ratios
-    API-->>UI: JSON { totalEnrolled: 45, maleCount: 22, attendanceRate: 94.2% }
-    UI->>Official: Renders charts & summary cards (No PII visible)
+    actor Parent as Parent / Guardian
+    participant UI as Create Account form (Browser)
+    participant Signup as /api/auth/signup
+    participant Storage as Private Storage (enrollment-docs)
+    actor Worker as Daycare Worker
+    participant Verify as /api/pupils/verify
+    participant Resubmit as /api/pupils/resubmit
+
+    Parent->>UI: Health & special needs, guardian Last/First/Middle, child details, address (Bacong or Other), birth certificate
+    UI->>UI: enrollmentAgeError(): 3y 1m – 5y? file type & size?
+    UI->>Signup: POST (JSON, no file)
+    Signup->>Signup: Zod + enrollmentAgeError() again (server is the boundary)
+    Signup-->>UI: pupilIds + single-use signed upload URL per child
+    UI->>Storage: uploadToSignedUrl(<pupil_id>/birth-certificate)
+    Worker->>Verify: Approve, or Return with standard reasons
+    alt Approved
+        Verify-->>Parent: Notification "ENROLLMENT APPROVED"; card becomes non-clickable green ENROLLED
+    else Returned
+        Verify-->>Parent: Shown as PENDING with the reason (account stays active)
+        Parent->>Storage: Re-upload document (new signed URL) if asked
+        Parent->>Resubmit: Corrected details
+        Resubmit->>Resubmit: Guardian link + age check; rejected → pending
+        Resubmit-->>Worker: Back in the Verify queue ("Resubmitted ×n")
+    end
 ```
 
 ---
 
 ### Flow 3: Secure ECCD Document Generation Pipeline
+
+The primary download is a **PDF**: the browser requests the same record as JSON (`/api/eccd/report?format=json`, same guardian-link check), renders it on screen, and draws it with jsPDF (`src/lib/eccdPdf.ts`), so the parent and the worker get an identical file. The pipeline below produces the secondary, editable Word copy.
 
 ```mermaid
 sequenceDiagram
@@ -482,7 +481,7 @@ The system implements strict **Trust Boundaries** where incoming data and contro
 ### Minimum Hardware Requirements for Client Terminals
 Because computation (SSR, PDF assembly, DOCX generation) takes place on the server, the system exhibits extremely low client footprint:
 - **Daycare Worker Terminal:** Any device capable of running Google Chrome 110+, Microsoft Edge, or Safari. Minimum 2GB RAM. Compatible with entry-level laptops, Android tablets, or Chromebooks.
-- **Parent / Official Terminal:** Any standard 4G/5G smartphone running mobile Chrome or Safari.
+- **Parent Terminal:** Any standard 4G/5G smartphone running mobile Chrome or Safari.
 
 ---
 
@@ -535,7 +534,7 @@ If a panelist asks: **"Can you explain the system architecture of your project?"
 >
 > Second is the **Application Tier**, running on Next.js. Here, our Edge Middleware acts as the first gatekeeper, inspecting session tokens and blocking unauthorized access before a page even loads. Incoming API requests pass through a strict security pipeline: session verification, role authorization, Zod schema validation, and Upstash Redis rate limiting.
 >
-> Third is the **Data Access Tier**, where we deliberately separate our database connections. Regular user actions use a session client bound to the user's cookie, meaning the database itself enforces what they can see. Privileged tasks — like generating the Officials' summary report or user account creation — run through an isolated, server-only admin client.
+> Third is the **Data Access Tier**, where we deliberately separate our database connections. Regular user actions use a session client bound to the user's cookie, meaning the database itself enforces what they can see. Privileged tasks — like computing the summary counts, issuing birth-certificate upload links, or creating user accounts — run through an isolated, server-only admin client.
 >
 > Finally, the **Persistence Tier** is powered by Supabase PostgreSQL. We don't just store data there; we use the database engine itself for security and automation. We have over 30 Row Level Security policies enforcing data privacy at the SQL level, and a custom database trigger that automatically recalculates consecutive absence streaks without relying on application code.
 >
