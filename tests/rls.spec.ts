@@ -47,6 +47,20 @@ test.describe('Parent scope', () => {
     expect((await request.get('/api/eccd/report?pupil_id=PUP-0000-000&format=json')).status()).toBe(403);
   });
 
+  test('a parent cannot read the worker summary', async ({ request }) => {
+    expect((await request.get('/api/reports/summary')).status()).toBe(403);
+  });
+
+  test('a parent cannot resubmit an enrollment for a child that is not theirs', async ({ request }) => {
+    const res = await request.post('/api/pupils/resubmit', {
+      data: {
+        pupil_id: 'PUP-0000-ABCD', firstName: 'X', lastName: 'Y', birthDate: '2022-06-01', sex: 'Male',
+        hasSpecialNeeds: false, barangay: 'Bacong', municipality: 'San Luis', province: 'Aurora', region: 'Region III',
+      },
+    });
+    expect([403, 400]).toContain(res.status());
+  });
+
   test('a parent cannot enrol or edit a pupil', async ({ request }) => {
     const res = await request.post('/api/pupils', {
       data: {
@@ -58,47 +72,27 @@ test.describe('Parent scope', () => {
   });
 });
 
-test.describe('Official scope', () => {
-  test.use({ storageState: state('official') });
-
-  test('an official cannot read individual progress observations', async ({ request }) => {
-    // schema.sql excludes officials from progress_observations deliberately:
-    // developmental notes on a named child are not oversight material.
-    const res = await request.get('/api/progress');
-    const body = await res.json();
-    expect(body.observations ?? []).toEqual([]);
-  });
-
-  test('an official sees summarized figures, never child records', async ({ request }) => {
-    // The paper: officials view summarized enrollment and attendance reports.
-    for (const url of ['/api/pupils?status=enrolled', '/api/attendance/bulk', '/api/eccd?round=1',
-      '/api/eccd/scores?round=1', '/api/parent-notes', '/api/eccd/report?pupil_id=PUP-2026-001&format=json']) {
-      expect((await request.get(url)).status(), url).toBe(403);
-    }
-    const res = await request.get('/api/reports/summary');
-    expect(res.status()).toBe(200);
-    const summary = await res.json();
-    expect(typeof summary.enrollment.enrolled).toBe('number');
-    // Counts only: no pupil ids or names anywhere in the payload.
-    expect(JSON.stringify(summary)).not.toMatch(/PUP-|first_name|last_name/);
-  });
-
-  test('an official cannot list system accounts', async ({ request }) => {
-    expect((await request.get('/api/users')).status()).toBe(403);
-  });
-
-  test('an official cannot record attendance', async ({ request }) => {
-    const res = await request.post('/api/attendance/bulk', {
-      data: { date: '2026-08-28', records: [{ pupil_id: 'PUP-2026-001', status: 'present' }] },
-    });
-    expect(res.status()).toBe(403);
-  });
-});
-
 test.describe('Worker scope', () => {
   test.use({ storageState: state('worker') });
 
-  test('a worker sees the full roster and manages accounts (three roles)', async ({ request }) => {
+  test('a worker cannot record attendance for a future date', async ({ request }) => {
+    const future = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    const res = await request.post('/api/attendance/bulk', {
+      data: { date: future, records: [{ pupil_id: 'PUP-2026-001', status: 'present' }] },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('the summary counts boys, girls and children with special needs', async ({ request }) => {
+    const res = await request.get('/api/reports/summary');
+    expect(res.status()).toBe(200);
+    const { enrollment } = await res.json();
+    expect(typeof enrollment.male).toBe('number');
+    expect(typeof enrollment.female).toBe('number');
+    expect(typeof enrollment.specialNeeds).toBe('number');
+  });
+
+  test('a worker sees the full roster and manages accounts (two roles)', async ({ request }) => {
     const pupilsRes = await request.get('/api/pupils?status=enrolled');
     const { pupils } = await pupilsRes.json();
     expect(pupils.length).toBeGreaterThan(1);

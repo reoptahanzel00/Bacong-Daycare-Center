@@ -18,17 +18,16 @@ import {
 import PupilAvatar from '@/components/PupilAvatar';
 import { ECCD_DOMAINS, ECCD_TOTAL_ITEMS } from '@/data/eccdChecklist';
 import {
-  fetchEccdRatings,
-  fetchEccdScores,
   fetchEccdRecord,
   fetchChildBackground,
   saveChildBackground,
   type ChildBackground,
-  type EccdRound,
 } from '@/services/eccdService';
-import { fetchParentNotes, submitParentNote } from '@/services/parentNotesService';
+import { fetchParentNotes, submitParentNote, excuseLabel, type ParentNoteRow } from '@/services/parentNotesService';
+import ResubmitEnrollment, { AttachBirthCert } from '@/components/ResubmitEnrollment';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
-import ECCDReportModal from '@/components/ECCDReportModal';
+import ECCDReportModal, { RecordPreview } from '@/components/ECCDReportModal';
+import { downloadEccdPdf } from '@/lib/eccdPdf';
 import { useDaycare, type MockPupil, type MockAttendance } from '@/contexts/DaycareContext';
 import { todayLocalISO, formatLocalTimestamp } from '@/lib/dates';
 import { ABSENCE_ALERT_THRESHOLD } from '@/lib/absences';
@@ -38,6 +37,7 @@ import {
   computeAgeYMD,
   latestGradedRound,
   rawScore,
+  type EccdRecord,
   type EccdRecordRound,
 } from '@/lib/eccdRecord';
 
@@ -52,17 +52,16 @@ export default function ParentView({
   attendance,
   activeTab = 'child'
 }: ParentViewProps) {
-  const { showToast, settings } = useDaycare();
+  const { showToast, settings, refreshPupils } = useDaycare();
 
   // Multi-child selection state
   const [selectedChildId, setSelectedChildId] = useState<string>(pupils[0]?.id || 'PUP-2026-001');
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Record<string, boolean>>({});
 
-  // ECCD Checklist Viewer State
-  const [selectedDomainId, setSelectedDomainId] = useState<string>('gross_motor');
-  const [eccdRound, setEccdRound] = useState<EccdRound>(1);
-  const [childRatings, setChildRatings] = useState<Record<string, boolean>>({});
-  const [childScores, setChildScores] = useState<Record<string, { raw: number; scaled?: number }>>({});
+  // The child's full ECCD record: the ECCD tab renders the same preview the
+  // Daycare Worker sees, from the same server-side record.
+  const [eccdRecord, setEccdRecord] = useState<EccdRecord | null>(null);
+  const [isEccdDownloading, setIsEccdDownloading] = useState(false);
   const [childBackground, setChildBackground] = useState<ChildBackground | null>(null);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -79,7 +78,9 @@ export default function ParentView({
     reason: string;
     notes: string;
     phone: string;
-    acknowledged: boolean;
+    status: ParentNoteRow['status'];
+    /** "Excuse 1", "Excuse 2", ... — the same label the worker sees. */
+    label: string;
     submittedAt: string;
   }
 
@@ -109,7 +110,8 @@ export default function ParentView({
         reason: n.reason,
         notes: n.notes,
         phone: n.phone || '',
-        acknowledged: n.status === 'acknowledged',
+        status: n.status,
+        label: excuseLabel(n),
         submittedAt: formatLocalTimestamp(n.submitted_at),
       })));
     })();
@@ -122,7 +124,9 @@ export default function ParentView({
     let cancelled = false;
     (async () => {
       const res = await fetchEccdRecord(child.id);
-      if (!cancelled) setLatestRound(res.record ? latestGradedRound(res.record) : null);
+      if (cancelled) return;
+      setEccdRecord(res.record);
+      setLatestRound(res.record ? latestGradedRound(res.record) : null);
     })();
     return () => { cancelled = true; };
   }, [child?.id, child?.enrollmentStatus]);
@@ -134,33 +138,6 @@ export default function ParentView({
     () => attendance.filter(a => a.pupil_id === child?.id),
     [attendance, child?.id]
   );
-
-  // Load the child's real ECCD checklist ratings + scores for the selected round.
-  useEffect(() => {
-    if (!child?.id) return;
-    let cancelled = false;
-    (async () => {
-      const [ratingsRes, scoresRes] = await Promise.all([
-        fetchEccdRatings(eccdRound),
-        fetchEccdScores(eccdRound),
-      ]);
-      if (cancelled) return;
-      const mapped: Record<string, boolean> = {};
-      for (const row of ratingsRes.ok ? ratingsRes.ratings : []) {
-        if (row.pupil_id !== child.id) continue;
-        if (row.status_rating === 'Present') mapped[row.milestone_code] = true;
-      }
-      setChildRatings(mapped);
-      const scoreMap: Record<string, { raw: number; scaled?: number }> = {};
-      for (const s of scoresRes.ok ? scoresRes.scores : []) {
-        if (s.pupil_id === child.id) {
-          scoreMap[s.domain_id] = { raw: s.raw_score, scaled: s.scaled_score ?? undefined };
-        }
-      }
-      setChildScores(scoreMap);
-    })();
-    return () => { cancelled = true; };
-  }, [child?.id, eccdRound]);
 
   // Load the child's ECCD Form Section 2 background record.
   useEffect(() => {
@@ -244,19 +221,13 @@ export default function ParentView({
       reason: absenceReason,
       notes: guardianNotes,
       phone: notePhone,
-      acknowledged: false,
+      status: 'pending',
+      label: excuseLabel({ excuse_no: res.note?.excuse_no ?? null }),
       submittedAt: formatLocalTimestamp(new Date()),
     }, ...prev]);
     setGuardianNotes('');
     showToast(`Absence note for ${absenceDate} sent to the Daycare Worker.`, 'success');
   };
-
-  // ECCD Checklist active domain
-  const activeDomain = ECCD_DOMAINS.find(d => d.id === selectedDomainId) || ECCD_DOMAINS[0];
-  const domainPresentCount = activeDomain.items.filter(i => childRatings[i.id]).length;
-  const domainMasteryPct = activeDomain.items.length > 0
-    ? Math.round((domainPresentCount / activeDomain.items.length) * 100)
-    : 0;
 
   // A parent portal with no child to show. Reachable: the roster the portal
   // loads covers pending, enrolled and rejected children, so once a worker
@@ -320,12 +291,12 @@ export default function ParentView({
                   {p.id}
                 </span>
                 {p.enrollmentStatus !== 'enrolled' && (
+                  // A returned enrollment is still pending from the parent's
+                  // side: they can correct it and resubmit.
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                    p.enrollmentStatus === 'pending'
-                      ? (isSelected ? 'bg-warn-fill/30 text-white' : 'bg-warn-light text-warn')
-                      : (isSelected ? 'bg-white/20 text-white' : 'bg-danger-light text-danger')
+                    isSelected ? 'bg-warn-fill/30 text-white' : 'bg-warn-light text-warn'
                   }`}>
-                    {p.enrollmentStatus}
+                    PENDING
                   </span>
                 )}
               </button>
@@ -619,30 +590,45 @@ export default function ParentView({
           ) : (
             <div className="p-6 rounded-3xl bg-white border border-line shadow-sm">
               <div className="flex items-start gap-3">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                  child?.enrollmentStatus === 'rejected' ? 'bg-danger-light text-danger' : 'bg-warn-light text-warn'
-                }`}>
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 bg-warn-light text-warn">
                   {child?.enrollmentStatus === 'rejected' ? <AlertCircle size={22} /> : <Clock size={22} />}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 flex-1 min-w-0">
                   <h4 className="text-base font-extrabold text-ink m-0">
                     {child?.enrollmentStatus === 'rejected'
-                      ? 'Enrollment needs attention'
+                      ? 'Enrollment pending: action needed'
                       : 'Enrollment pending verification'}
                   </h4>
                   <p className="text-xs text-ink-muted leading-relaxed m-0">
                     {child?.enrollmentStatus === 'rejected' ? (
-                      <>The Daycare Worker could not approve this enrollment. Please contact the
-                      daycare center to resolve the following: <strong>{child?.rejectionReason || 'No reason provided.'}</strong></>
+                      <>The Daycare Worker returned this enrollment so it can be corrected. Your
+                      account stays active. Please fix the following and resubmit:{' '}
+                      <strong className="text-ink">{child?.rejectionReason || 'Please contact the Daycare Worker.'}</strong></>
                     ) : (
                       <>Your child&apos;s sociodemographic profile has been submitted and is being
                       reviewed by the Daycare Worker. Once approved, attendance and the ECCD
                       checklist will appear here.</>
                     )}
                   </p>
-                  <span className={`badge ${child?.enrollmentStatus === 'rejected' ? 'badge-danger' : 'badge-warning'} font-bold uppercase`}>
-                    {child?.enrollmentStatus || 'pending'}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="badge badge-warning font-bold uppercase">PENDING</span>
+                    {child?.submittedAt && (
+                      <span className="text-[11px] text-ink-subtle font-semibold">
+                        Submitted {formatLocalTimestamp(child.submittedAt)}
+                      </span>
+                    )}
+                  </div>
+                  {child && child.enrollmentStatus === 'rejected' && (
+                    <ResubmitEnrollment
+                      key={child.id}
+                      child={child}
+                      onResubmitted={async () => {
+                        await refreshPupils();
+                        showToast('Enrollment resubmitted. The Daycare Worker will review it again.');
+                      }}
+                    />
+                  )}
+                  {child && child.enrollmentStatus === 'pending' && <AttachBirthCert key={child.id} pupilId={child.id} />}
                 </div>
               </div>
             </div>
@@ -671,117 +657,38 @@ export default function ParentView({
                 </span>
               </div>
               <h3 className="text-lg font-extrabold text-ink m-0">
-                {ECCD_TOTAL_ITEMS}-Item Official ECCD Domain Checklist Viewer
+                {ECCD_TOTAL_ITEMS}-Item ECCD Checklist: Child&apos;s Record 2
               </h3>
               <p className="text-xs text-ink-muted mt-1 m-0">
-                Official DepEd checklist for <strong>{child?.firstName} {child?.lastName}</strong> —
-                check (✓) means the skill was demonstrated.
+                The same record the Daycare Worker sees for <strong>{child?.firstName} {child?.lastName}</strong>,
+                all three rounds. A check (✓) means the skill was demonstrated.
               </p>
             </div>
-            <div className="flex flex-col items-end gap-2 shrink-0">
-              <div className="flex items-center gap-1.5 p-1.5 bg-canvas border border-line rounded-2xl">
-                {([1, 2, 3] as EccdRound[]).map((round) => (
-                  <button
-                    key={round}
-                    type="button"
-                    onClick={() => setEccdRound(round)}
-                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
-                      eccdRound === round
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-ink-muted hover:text-ink'
-                    }`}
-                    suppressHydrationWarning
-                  >
-                    {round === 1 ? '1st' : round === 2 ? '2nd' : '3rd'}
-                  </button>
-                ))}
-              </div>
-              <span className="badge badge-primary font-bold">{ECCD_TOTAL_ITEMS} Items Total</span>
-            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!eccdRecord) return;
+                setIsEccdDownloading(true);
+                try {
+                  await downloadEccdPdf(eccdRecord);
+                } catch {
+                  showToast('Could not generate the PDF. Please try again.', 'danger');
+                }
+                setIsEccdDownloading(false);
+              }}
+              disabled={!eccdRecord || isEccdDownloading}
+              className="btn btn-primary btn-sm font-bold shrink-0 disabled:opacity-60"
+            >
+              <Download size={16} />
+              <span>{isEccdDownloading ? 'Preparing…' : 'Download PDF'}</span>
+            </button>
           </div>
 
-          {/* Domain Selection Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {ECCD_DOMAINS.map((dom) => {
-              const isSelected = dom.id === selectedDomainId;
-              return (
-                <button
-                  key={dom.id}
-                  onClick={() => setSelectedDomainId(dom.id)}
-                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer border-none shrink-0 flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-primary text-white shadow-md'
-                      : 'bg-canvas text-ink-muted hover:bg-line-strong'
-                  }`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dom.color }}></span>
-                  <span>{dom.shortLabel}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-line-strong text-ink-muted'}`}>
-                    {dom.items.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Active Domain Hero Card */}
-          <div className="p-4 rounded-3xl border border-line bg-canvas flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: activeDomain.color }}></span>
-                <h4 className="text-base font-extrabold text-ink m-0">{activeDomain.label}</h4>
-              </div>
-              <p className="text-xs text-ink-muted mt-1 m-0">
-                {activeDomain.items.length} items on the ECCD Checklist, Child&apos;s Record 2 (ages 3 years 1 month to 5 years).
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="text-right">
-                <span className="text-xs font-extrabold text-primary">
-                  {domainMasteryPct}% Present
-                </span>
-                <span className="text-[10px] text-ink-subtle block">
-                  Raw Score: {domainPresentCount} of {activeDomain.items.length}
-                  {childScores[activeDomain.id]?.scaled != null && (
-                    <> • Scaled: {childScores[activeDomain.id].scaled}</>
-                  )}
-                </span>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center font-bold text-sm">
-                {domainMasteryPct}
-              </div>
-            </div>
-          </div>
-
-          {/* Checklist Items Grid */}
-          <div className="space-y-2.5">
-            {activeDomain.items.map((item) => {
-              const present = !!childRatings[item.id];
-
-              return (
-                <div key={item.id} className="p-3.5 rounded-2xl border border-line bg-white hover:border-primary-display transition-all flex items-start justify-between gap-3 text-xs">
-                  <div className="flex items-start gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-canvas border border-line text-primary font-extrabold flex items-center justify-center shrink-0">
-                      {item.number}
-                    </span>
-                    <div>
-                      <div className="font-bold text-ink leading-snug">{item.description}</div>
-                      <span className="text-[10px] text-ink-subtle">Item Code: {item.id}</span>
-                    </div>
-                  </div>
-
-                  <span className={`px-3 py-1 rounded-full font-extrabold text-[11px] shrink-0 ${
-                    present
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-gray-50 text-gray-500 border border-gray-200'
-                  }`}>
-                    {present ? '✓ Present' : '– Not shown'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {eccdRecord ? (
+            <RecordPreview record={eccdRecord} />
+          ) : (
+            <div className="p-6 text-center text-xs text-ink-muted">Loading the ECCD record…</div>
+          )}
         </div>
         )
       )}
@@ -876,24 +783,28 @@ export default function ParentView({
               {childNotes.map((note) => (
                 <div key={note.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="badge badge-primary text-[10px] font-extrabold">{note.label}</span>
                       <span className="font-bold text-primary text-sm">{note.reason}</span>
                       <span className="badge badge-warning text-[10px]">{note.date}</span>
                     </div>
-                    <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
-                      note.acknowledged
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-warn-light text-warn border-warn-border'
+                    <span className={`badge font-bold text-[10px] ${
+                      note.status === 'approved' ? 'badge-enrolled' : note.status === 'declined' ? 'badge-danger' : 'badge-warning'
                     }`}>
-                      {note.acknowledged ? 'Acknowledged' : 'Awaiting review'}
+                      {note.status === 'approved' ? 'Approved' : note.status === 'declined' ? 'Declined' : 'Pending'}
                     </span>
                   </div>
 
                   <p className="text-xs text-ink-soft leading-relaxed m-0">{note.notes}</p>
 
-                  {note.acknowledged && (
+                  {note.status === 'approved' && (
                     <div className="font-bold text-primary text-xs flex items-center gap-1.5">
-                      <CheckCircle size={14} /> Acknowledged by the Daycare Worker
+                      <CheckCircle size={14} /> {note.label} approved by the Daycare Worker
+                    </div>
+                  )}
+                  {note.status === 'declined' && (
+                    <div className="font-bold text-danger text-xs flex items-center gap-1.5">
+                      <AlertCircle size={14} /> {note.label} declined. Please contact the Daycare Worker.
                     </div>
                   )}
 

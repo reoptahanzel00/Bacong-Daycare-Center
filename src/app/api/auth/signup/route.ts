@@ -5,10 +5,14 @@ import { rateLimited, clientIp } from '@/lib/rateLimit';
 import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
 import { sendVerificationEmail, appOrigin } from '@/lib/emailVerification';
+import { enrollmentAgeError, formatFullName } from '@/lib/enrollment';
+import { createBirthCertUploadUrl } from '@/lib/enrollmentDocs';
 
 const SignupSchema = z.object({
-  role: z.enum(['worker', 'official', 'parent']).default('parent'),
-  fullName: z.string().min(2, 'Full name is required').max(100),
+  role: z.enum(['worker', 'parent']).default('parent'),
+  lastName: z.string().trim().min(1, 'Guardian last name is required').max(100),
+  firstName: z.string().trim().min(1, 'Guardian first name is required').max(100),
+  middleName: z.string().trim().max(100).optional().nullable(),
   email: z.string().email('Invalid email address'),
   password: passwordSchema,
   phone: z.string().max(20).optional(),
@@ -22,14 +26,20 @@ const SignupSchema = z.object({
 
 /** Per-child sociodemographic profile (ECCD Form Section 1) at signup. */
 const ChildProfileSchema = z.object({
+  // Asked first on the form: health and special needs.
+  healthConditions: z.string().max(500).trim().optional().nullable(),
+  hasSpecialNeeds: z.boolean().default(false),
+  specialNeedsDetails: z.string().max(500).trim().optional().nullable(),
   firstName: z.string().min(1, "Child's first name is required").max(100).trim(),
+  middleName: z.string().max(100).trim().optional().nullable(),
   lastName: z.string().min(1, "Child's last name is required").max(100).trim(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be YYYY-MM-DD'),
   sex: z.enum(['Male', 'Female']),
-  barangay: z.string().max(100).trim(),
-  municipality: z.string().max(100).trim(),
-  province: z.string().max(100).trim(),
-  region: z.string().max(100).trim(),
+  // Bacong is pre-filled; a family from elsewhere picks "Other" and types it.
+  barangay: z.string().trim().min(1, 'Barangay is required').max(100),
+  municipality: z.string().trim().min(1, 'Municipality is required').max(100),
+  province: z.string().trim().min(1, 'Province is required').max(100),
+  region: z.string().trim().min(1, 'Region is required').max(100),
   handedness: z.enum(['right', 'left', 'both', 'not_yet_established']),
   currentlyStudying: z.boolean().default(false),
   schoolName: z.string().max(150).trim().optional().nullable(),
@@ -76,7 +86,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // Checked before the body is validated. Public self-registration is for
-    // parents only; worker and official accounts are provisioned by a
+    // parents only; worker accounts are provisioned by a
     // Daycare Worker and are never self-assignable. An attempt to claim one is
     // a refusal, not a validation problem — answering 400 because some other
     // field was also malformed would report privilege escalation as a typo.
@@ -90,6 +100,7 @@ export async function POST(request: Request) {
 
     const parsed = SignupBodySchema.parse(body);
     const email = parsed.email.toLowerCase();
+    const fullName = formatFullName(parsed.lastName, parsed.firstName, parsed.middleName);
 
     if (parsed.role !== 'parent') {
       return NextResponse.json(
@@ -102,6 +113,22 @@ export async function POST(request: Request) {
         { error: 'Please provide your child\'s sociodemographic profile to create a parent account.' },
         { status: 400 }
       );
+    }
+
+    // Enrollment is for children 3 years 1 month to 5 years (ECCD form).
+    // Checked before any account exists so a refusal leaves nothing behind.
+    const today = todayLocalISO();
+    for (const [i, child] of parsed.children.entries()) {
+      const ageError = enrollmentAgeError(child.birthDate, today);
+      if (ageError) {
+        return NextResponse.json({ error: `Child #${i + 1}: ${ageError}` }, { status: 400 });
+      }
+      if (child.hasSpecialNeeds && !child.specialNeedsDetails?.trim()) {
+        return NextResponse.json(
+          { error: `Child #${i + 1}: please describe the child's special needs.` },
+          { status: 400 }
+        );
+      }
     }
 
     const { createAdminClient } = await import('@/lib/supabase/admin');
@@ -129,7 +156,7 @@ export async function POST(request: Request) {
       password: parsed.password,
       email_confirm: true,
       user_metadata: {
-        full_name: parsed.fullName,
+        full_name: fullName,
         role: 'parent',
       },
     });
@@ -147,7 +174,10 @@ export async function POST(request: Request) {
     const { error: profileError } = await admin.from('users').insert({
       id: authData.user.id,
       email,
-      full_name: parsed.fullName,
+      full_name: fullName,
+      last_name: parsed.lastName,
+      first_name: parsed.firstName,
+      middle_name: parsed.middleName || null,
       role: 'parent',
       phone: parsed.phone || null,
       status: 'active',
@@ -192,12 +222,17 @@ export async function POST(request: Request) {
       const { error: pupilError } = await admin.from('pupils').insert({
         id: pupilId,
         first_name: child.firstName,
+        middle_name: child.middleName || null,
         last_name: child.lastName,
         birth_date: child.birthDate,
         sex: child.sex,
         address,
+        health_conditions: child.healthConditions || null,
+        has_special_needs: child.hasSpecialNeeds,
+        special_needs_details: child.hasSpecialNeeds ? child.specialNeedsDetails || null : null,
         enrollment_status: 'pending',
-        enrollment_date: todayLocalISO(),
+        enrollment_date: today,
+        submitted_at: new Date().toISOString(),
         consecutive_absences: 0,
         created_by: authData.user.id,
       });
@@ -214,7 +249,10 @@ export async function POST(request: Request) {
       const { error: guardianError } = await admin.from('guardians').insert({
         pupil_id: pupilId,
         user_id: authData.user.id,
-        full_name: parsed.fullName,
+        full_name: fullName,
+        last_name: parsed.lastName,
+        first_name: parsed.firstName,
+        middle_name: parsed.middleName || null,
         relationship: child.relationship,
         phone: parsed.phone || 'Not provided',
         is_primary_contact: true,
@@ -267,9 +305,19 @@ export async function POST(request: Request) {
       admin,
       authData.user.id,
       email,
-      parsed.fullName,
+      fullName,
       appOrigin(request)
     );
+
+    // One single-use signed upload URL per child for the birth certificate.
+    // The browser sends the file straight to private Storage; nothing else is
+    // exposed. A child whose upload never lands shows the worker a
+    // "Missing birth certificate" flag and can be completed on resubmission.
+    const uploads: Array<{ pupilId: string; path: string; token: string }> = [];
+    for (const pupilId of createdPupilIds) {
+      const u = await createBirthCertUploadUrl(admin, pupilId);
+      if (u) uploads.push({ pupilId, ...u });
+    }
 
     await recordAudit(admin, { userId: authData.user.id, email, role: 'parent' }, 'Registered parent account', createdPupilIds.join(', ') || 'No child profile saved');
 
@@ -290,6 +338,7 @@ export async function POST(request: Request) {
       message: `${childMessage}${verificationMessage}`,
       linked: createdPupilIds.length > 0,
       pupilIds: createdPupilIds,
+      uploads,
       verificationEmailSent: verification.sent,
     });
   } catch (error) {

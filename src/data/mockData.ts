@@ -211,7 +211,7 @@ export const INITIAL_USERS = [
     id: 'USR-02',
     name: 'Hon. Captain Ramon Santos',
     email: 'captain.santos@bacong.gov.ph',
-    role: 'official',
+    role: 'worker',
     phone: '0918-000-3344',
     status: 'active'
   },

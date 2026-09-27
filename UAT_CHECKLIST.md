@@ -13,7 +13,6 @@ All test accounts use the password set at creation (`Password123!` unless change
 |---|---|---|
 | Daycare Worker | `worker@bacong.gov.ph` | All 6 pupils, attendance register, ECCD tool |
 | Daycare Worker (2nd) | `admin@bacong.gov.ph` | Same as the worker (former admin account) |
-| Barangay Official | `official@bacong.gov.ph` | Summarized figures only (no child records) |
 | Parent (Mateo) | `parent@bacong.gov.ph` | Only Mateo Santos (PUP-2026-001) |
 | Parent (Sophia) | `juan.reyes@bacong.gov.ph` | Only Sophia Reyes (PUP-2026-002) |
 
@@ -47,17 +46,12 @@ If a password is forgotten: Supabase Dashboard → **Authentication → Users** 
 2. Verify attendance history shows Mateo's records only.
 3. Open the notification bell — should show the absence alert if the worker triggered one.
 4. Sign in as `juan.reyes@bacong.gov.ph` — **must see only Sophia**.
-5. **Download Report Card (Word)** as `parent@bacong.gov.ph` — the file must be Mateo's record only.
-
-### Barangay Official
-
-1. Sign in — read-only overview with real enrollment/attendance statistics (now backed by the
-   seeded history + today's register).
-2. Confirm there are no edit/save controls.
+5. **Download Report Card (PDF)** as `parent@bacong.gov.ph` — the file must be Mateo's record only,
+   and identical to the worker's download for Mateo.
 
 ### Daycare Worker — accounts & audit trail
 
-The paper has three roles; account management belongs to the Daycare Worker.
+The system has two roles; account management belongs to the Daycare Worker.
 
 1. **User Accounts** tab — user list shows the real accounts with correct roles/status.
 2. **Provision User Account** — create an account, then verify it can sign in.
@@ -76,7 +70,7 @@ The paper has three roles; account management belongs to the Daycare Worker.
 | `guardians` | 6 guardians; `user_id` set for Maria Santos + Juan Reyes |
 | `attendance` | ~66 rows (10 school days × 6 pupils + today) |
 | `progress_observations` | Any observations recorded during UAT |
-| `users` | Accounts with only the roles worker, official and parent, all `active` |
+| `users` | Accounts with only the roles worker and parent (former official accounts are disabled workers) |
 | `audit_log` | Growing; entries have real `user_name`/`role` |
 | `notifications` | Absence/milestone alerts for linked parents |
 

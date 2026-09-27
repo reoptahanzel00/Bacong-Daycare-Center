@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, School, LogOut, Menu } from 'lucide-react';
+import { Search, Bell, BellRing, School, LogOut, Menu } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import type { Notification } from '@/services/notificationService';
 import { createClient } from '@/lib/supabase/client';
@@ -71,8 +71,6 @@ export default function Header({
 
   const getRoleBadgeStyle = (role: string) => {
     switch (role) {
-      case 'official':
-        return 'bg-blue-50 text-blue-800 border-blue-200';
       case 'parent':
         return 'bg-danger-light text-danger border-danger-border';
       case 'worker':
@@ -142,7 +140,9 @@ export default function Header({
           className="relative cursor-pointer p-2 rounded-xl bg-canvas hover:bg-line-strong transition-all border border-line"
           title="Notifications"
         >
-          <Bell size={18} className="text-ink-muted" />
+          {unreadCount > 0
+            ? <BellRing size={18} className="text-accent-coral-strong" />
+            : <Bell size={18} className="text-ink-muted" />}
           {unreadCount > 0 && (
             <span aria-hidden="true" className="absolute -top-1 -right-1 bg-accent-coral-strong text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
               {unreadCount}

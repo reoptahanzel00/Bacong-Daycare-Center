@@ -29,10 +29,14 @@ test.describe('Pupil Enrollment Workflow', () => {
     // pre-fill a sample birth date, so an enrollment saved without touching it
     // recorded an invented one - and every ECCD age and DSWD age bracket is
     // computed from that field.
+    // A birth date four years ago is inside the 3y 1m – 5y enrollment window.
+    const dob = new Date();
+    dob.setFullYear(dob.getFullYear() - 4);
     await page.getByPlaceholder('e.g. Mateo').fill('Juanito');
-    await page.getByPlaceholder('e.g. Santos').fill('Dela Rosa');
-    await page.getByLabel(/date of birth/i).fill('2021-05-10');
-    await page.getByPlaceholder('e.g. Maria Santos').fill('Rosa Dela Rosa');
+    await page.getByLabel(/^last name \*/i).fill('Dela Rosa');
+    await page.getByLabel(/date of birth/i).fill(dob.toISOString().slice(0, 10));
+    await page.getByLabel(/guardian last name/i).fill('Dela Rosa');
+    await page.getByLabel(/^first name \*$/i).last().fill('Rosa');
 
     // Submit form
     await page.getByRole('button', { name: /save enrollment/i }).click();

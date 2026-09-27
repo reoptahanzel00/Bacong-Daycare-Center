@@ -32,6 +32,7 @@ import { errorText } from '@/lib/apiError';
 export interface MockPupil {
   id: string;
   firstName: string;
+  middleName?: string | null;
   lastName: string;
   birthDate: string;
   sex: string;
@@ -39,9 +40,21 @@ export interface MockPupil {
   enrollmentStatus: string;
   enrollmentDate?: string;
   rejectionReason?: string | null;
+  healthConditions?: string | null;
+  hasSpecialNeeds?: boolean;
+  specialNeedsDetails?: string | null;
+  /** When the parent enrolled (ISO timestamp, date and time). */
+  submittedAt?: string | null;
+  verifiedAt?: string | null;
+  resubmissionCount?: number;
+  archiveReason?: string | null;
+  archivedAt?: string | null;
   avatar?: string;
   guardian?: {
     fullName: string;
+    lastName?: string | null;
+    firstName?: string | null;
+    middleName?: string | null;
     relationship: string;
     phone?: string;
     isPrimary?: boolean;
@@ -90,8 +103,8 @@ export interface MockAuditLog {
   details?: string;
 }
 
-/** The paper's three roles. Account management and the audit trail belong to the Daycare Worker. */
-export type UserRole = 'worker' | 'official' | 'parent';
+/** Two roles. Account management and the audit trail belong to the Daycare Worker. */
+export type UserRole = 'worker' | 'parent';
 
 interface ToastState {
   message: string;
@@ -115,8 +128,11 @@ interface DaycareContextValue {
 
   // CRUD Actions
   handleSavePupil: (pupilData: MockPupil) => void;
-  updatePupilEnrollment: (pupilId: string, status: 'enrolled' | 'rejected', reason?: string | null) => void;
+  updatePupilEnrollment: (pupilId: string, status: 'enrolled' | 'rejected' | 'pending', reason?: string | null) => void;
   handleArchivePupil: (pupilId: string) => void;
+  handleRestorePupil: (pupilId: string) => void;
+  /** Re-pulls the roster from the server (e.g. after a parent resubmits). */
+  refreshPupils: () => Promise<void>;
   handleEditPupil: (pupil: MockPupil) => void;
   handleSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
   handleSaveProgress: (progressData: MockProgress) => void;
@@ -159,6 +175,7 @@ function mapPupilRowStatic(row: PupilRow): MockPupil {
   return {
     id: row.id,
     firstName: row.first_name,
+    middleName: row.middle_name ?? null,
     lastName: row.last_name,
     birthDate: row.birth_date,
     sex: row.sex,
@@ -166,6 +183,14 @@ function mapPupilRowStatic(row: PupilRow): MockPupil {
     enrollmentStatus: row.enrollment_status,
     enrollmentDate: row.enrollment_date,
     rejectionReason: row.rejection_reason ?? null,
+    healthConditions: row.health_conditions ?? null,
+    hasSpecialNeeds: Boolean(row.has_special_needs),
+    specialNeedsDetails: row.special_needs_details ?? null,
+    submittedAt: row.submitted_at ?? null,
+    verifiedAt: row.verified_at ?? null,
+    resubmissionCount: row.resubmission_count ?? 0,
+    archiveReason: row.archive_reason ?? null,
+    archivedAt: row.archived_at ?? null,
     consecutiveAbsences: row.consecutive_absences ?? 0,
     avatar: row.avatar_url || undefined,
     guardian: Array.isArray(row.guardian) && row.guardian.length > 0
@@ -173,6 +198,9 @@ function mapPupilRowStatic(row: PupilRow): MockPupil {
           const g = row.guardian.find(x => x.is_primary_contact) || row.guardian[0];
           return {
             fullName: g.full_name,
+            lastName: g.last_name ?? null,
+            firstName: g.first_name ?? null,
+            middleName: g.middle_name ?? null,
             relationship: g.relationship,
             phone: g.phone,
             isPrimary: g.is_primary_contact,
@@ -183,6 +211,28 @@ function mapPupilRowStatic(row: PupilRow): MockPupil {
       ? (row.sociodemographic[0] || null)
       : (row.sociodemographic || null),
   };
+}
+
+/**
+ * Guardian name parts for the pupil write path. Records made before names were
+ * split only carry full_name; the last word is taken as the surname, the same
+ * rule the migration used to backfill.
+ */
+export function splitGuardianName(
+  g: MockPupil['guardian'] | undefined
+): { last: string; first: string; middle: string | null } {
+  if (g?.lastName && g?.firstName) {
+    return { last: g.lastName, first: g.firstName, middle: g.middleName || null };
+  }
+  const full = (g?.fullName || '').trim();
+  if (full.includes(',')) {
+    const [last, rest] = full.split(',', 2);
+    return { last: last.trim(), first: rest.trim() || last.trim(), middle: null };
+  }
+  const parts = full.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { last: '', first: '', middle: null };
+  if (parts.length === 1) return { last: parts[0], first: parts[0], middle: null };
+  return { last: parts[parts.length - 1], first: parts.slice(0, -1).join(' '), middle: null };
 }
 
 /** Maps a progress observation (already domain/date/rating-mapped) to MockProgress. */
@@ -203,7 +253,6 @@ function mapProgressRowStatic(r: ProgressRow): MockProgress {
 /** The tab each role lands on. Kept in one place so the server-seeded first
  *  paint and the client's post-sign-in routing cannot disagree. */
 function defaultTabFor(role: UserRole): string {
-  if (role === 'official') return 'overview';
   if (role === 'parent') return 'child';
   return 'dashboard';
 }
@@ -240,7 +289,7 @@ export function DaycareProvider({
     if (initial?.role) return initial.role;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bacong_auth_role');
-      if (saved && ['worker', 'official', 'parent'].includes(saved)) {
+      if (saved && ['worker', 'parent'].includes(saved)) {
         return saved as UserRole;
       }
     }
@@ -251,7 +300,6 @@ export function DaycareProvider({
     if (initial?.role) return defaultTabFor(initial.role);
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('bacong_auth_role');
-      if (saved === 'official') return 'overview';
       if (saved === 'parent') return 'child';
     }
     return 'dashboard';
@@ -304,18 +352,27 @@ export function DaycareProvider({
     pupil: MockPupil,
     id?: string,
     enrollmentStatus?: string,
-  ): PupilEnrollPayload => ({
-    id,
-    firstName: pupil.firstName,
-    lastName: pupil.lastName,
-    birthDate: pupil.birthDate,
-    sex: pupil.sex as 'Male' | 'Female',
-    address: pupil.address || '',
-    enrollmentStatus: (enrollmentStatus || pupil.enrollmentStatus || 'enrolled') as 'enrolled' | 'archived',
-    guardianName: pupil.guardian?.fullName || '',
-    relationship: (pupil.guardian?.relationship || 'Mother') as PupilEnrollPayload['relationship'],
-    guardianPhone: pupil.guardian?.phone || '',
-  }), []);
+  ): PupilEnrollPayload => {
+    const guardianName = splitGuardianName(pupil.guardian);
+    return {
+      id,
+      firstName: pupil.firstName,
+      middleName: pupil.middleName || null,
+      lastName: pupil.lastName,
+      birthDate: pupil.birthDate,
+      sex: pupil.sex as 'Male' | 'Female',
+      address: pupil.address || '',
+      enrollmentStatus: (enrollmentStatus || pupil.enrollmentStatus || 'enrolled') as 'enrolled' | 'archived',
+      guardianLastName: guardianName.last,
+      guardianFirstName: guardianName.first,
+      guardianMiddleName: guardianName.middle,
+      relationship: (pupil.guardian?.relationship || 'Mother') as PupilEnrollPayload['relationship'],
+      guardianPhone: pupil.guardian?.phone || '',
+      healthConditions: pupil.healthConditions || null,
+      hasSpecialNeeds: Boolean(pupil.hasSpecialNeeds),
+      specialNeedsDetails: pupil.specialNeedsDetails || null,
+    };
+  }, []);
 
   /**
    * Pulls the authoritative pupil roster + attendance register from the API.
@@ -327,13 +384,11 @@ export function DaycareProvider({
       // The user directory and audit trail are the Daycare Worker's (the paper's
       // three roles), so only that role fetches them; others would get 403.
       const isAdmin = role === 'worker';
-      // Officials work from the summary endpoint only; they hold no child rows.
-      const readsChildren = role !== 'official';
-      const skip = { ok: false } as const;
       const [pupilRes, attendanceRes, progressRes, usersRes, auditRes] = await Promise.all([
-        readsChildren ? fetchPupils(['pending', 'enrolled', 'rejected']) : Promise.resolve({ ...skip, pupils: [] }),
-        readsChildren ? fetchAttendance() : Promise.resolve({ ...skip, records: [] }),
-        readsChildren ? fetchProgress() : Promise.resolve({ ...skip, observations: [] }),
+        // The worker's Archived Pupils panel needs archived rows too.
+        fetchPupils(isAdmin ? ['pending', 'enrolled', 'rejected', 'archived'] : ['pending', 'enrolled', 'rejected']),
+        fetchAttendance(),
+        fetchProgress(),
         isAdmin ? fetchUsers() : Promise.resolve({ ok: false, users: [] }),
         isAdmin ? fetchAuditLogs() : Promise.resolve({ ok: false, logs: [] }),
       ]);
@@ -451,7 +506,7 @@ export function DaycareProvider({
             .eq('id', session.user.id)
             .single();
 
-          if (profile?.role && ['worker', 'official', 'parent'].includes(profile.role)) {
+          if (profile?.role && ['worker', 'parent'].includes(profile.role)) {
             resolvedRole = profile.role as UserRole;
           }
           if (profile?.full_name) setCurrentUserName(profile.full_name);
@@ -466,7 +521,7 @@ export function DaycareProvider({
           isDemoMode &&
           !resolvedRole &&
           savedRole &&
-          ['worker', 'official', 'parent'].includes(savedRole)
+          ['worker', 'parent'].includes(savedRole)
         ) {
           resolvedRole = savedRole;
         }
@@ -528,6 +583,7 @@ export function DaycareProvider({
       }
       if (res.success && res.pupil?.id) {
         const serverPupil: MockPupil = {
+          ...pupilData,
           id: res.pupil.id,
           firstName: res.pupil.firstName,
           lastName: res.pupil.lastName,
@@ -553,15 +609,29 @@ export function DaycareProvider({
   /** Local-only update after a worker approves/rejects a parent enrollment. */
   const updatePupilEnrollment = useCallback((
     pupilId: string,
-    status: 'enrolled' | 'rejected',
+    status: 'enrolled' | 'rejected' | 'pending',
     reason?: string | null,
   ) => {
+    const now = new Date().toISOString();
     setPupils(prev => prev.map(p =>
       p.id === pupilId
-        ? { ...p, enrollmentStatus: status, rejectionReason: reason ?? null }
+        ? {
+            ...p,
+            enrollmentStatus: status,
+            rejectionReason: reason ?? null,
+            verifiedAt: status === 'pending' ? null : now,
+            submittedAt: status === 'pending' ? now : p.submittedAt,
+          }
         : p
     ));
   }, []);
+
+  const refreshPupils = useCallback(async () => {
+    const res = await fetchPupils(
+      currentRole === 'worker' ? ['pending', 'enrolled', 'rejected', 'archived'] : ['pending', 'enrolled', 'rejected']
+    );
+    if (res.ok) setPupils(res.pupils.map(mapPupilRowStatic));
+  }, [currentRole]);
 
   const handleArchivePupil = useCallback(async (pupilId: string) => {
     const targetPupil = pupils.find(p => p.id === pupilId);
@@ -573,8 +643,25 @@ export function DaycareProvider({
         return;
       }
     }
-    setPupils(prev => prev.map(p => p.id === pupilId ? { ...p, enrollmentStatus: 'archived' } : p));
+    setPupils(prev => prev.map(p =>
+      p.id === pupilId ? { ...p, enrollmentStatus: 'archived', archivedAt: new Date().toISOString() } : p
+    ));
     showToast(`Record for ${targetPupil?.firstName || pupilId} archived.`, 'danger');
+  }, [pupils, toEnrollPayload, showToast, hasServerData]);
+
+  /** Returns an archived pupil to the active roster. */
+  const handleRestorePupil = useCallback(async (pupilId: string) => {
+    const targetPupil = pupils.find(p => p.id === pupilId);
+    if (!targetPupil) return;
+    const res = await enrollPupil(toEnrollPayload(targetPupil, pupilId, 'enrolled'));
+    if (hasServerData && !res.success) {
+      showToast(errorText(res.error, 'Could not restore — check your connection and try again.'), 'danger');
+      return;
+    }
+    setPupils(prev => prev.map(p =>
+      p.id === pupilId ? { ...p, enrollmentStatus: 'enrolled', archivedAt: null, archiveReason: null } : p
+    ));
+    showToast(`${targetPupil.firstName} ${targetPupil.lastName} restored to the active roster.`);
   }, [pupils, toEnrollPayload, showToast, hasServerData]);
 
   const handleEditPupil = useCallback((pupil: MockPupil) => {
@@ -689,7 +776,7 @@ export function DaycareProvider({
   const value: DaycareContextValue = useMemo(() => ({
     currentRole, activeTab, setActiveTab, searchQuery, setSearchQuery,
     pupils, attendance, progress, users, auditLogs,
-    handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil, handleSaveAttendance,
+    handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleRestorePupil, refreshPupils, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveUser, handleToggleUserStatus,
     settings, saveSettings, currentUserName,
     showToast,
@@ -708,7 +795,7 @@ export function DaycareProvider({
   }), [
     currentRole, activeTab, searchQuery,
     pupils, attendance, progress, users, auditLogs,
-    handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleEditPupil,
+    handleSavePupil, updatePupilEnrollment, handleArchivePupil, handleRestorePupil, refreshPupils, handleEditPupil,
     handleSaveAttendance, handleSaveProgress, handleSaveUser,
     handleToggleUserStatus, settings, saveSettings, currentUserName, showToast, toast,
     isMobileNavOpen, isPupilModalOpen, pupilToEdit,

@@ -15,13 +15,9 @@ const AGE_BRACKETS: Array<{ label: string; min: number; max: number }> = [
 ];
 
 /**
- * GET — the Barangay Executive Dashboard's figures.
- *
- * The capstone paper gives barangay officials "summarized enrollment and
- * attendance reports" and "high-level graphical summaries and enrollment
- * metrics", not children's records. So this returns counts only: no names, no
- * pupil IDs, nothing that identifies a child. It reads with the service role
- * because officials no longer hold row-level access to child tables.
+ * GET — summary figures for the Daycare Worker's dashboard and DSWD report:
+ * enrolled boys, girls and children with special needs, age brackets,
+ * attendance and ECCD coverage. Counts only: no names, no pupil IDs.
  */
 export async function GET() {
   try {
@@ -29,7 +25,7 @@ export async function GET() {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    if (!authorizeRole(session.role, ['official', 'worker'])) {
+    if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 403 });
     }
 
@@ -38,7 +34,7 @@ export async function GET() {
     const today = todayLocalISO();
 
     const [pupilsRes, schoolYearRes, evaluationsRes] = await Promise.all([
-      admin.from('pupils').select('id, sex, birth_date, enrollment_status, consecutive_absences'),
+      admin.from('pupils').select('id, sex, birth_date, enrollment_status, consecutive_absences, has_special_needs'),
       admin.from('school_years').select('label, start_date, end_date').eq('is_current', true).maybeSingle(),
       admin.from('eccd_evaluations').select('pupil_id, evaluation_round'),
     ]);
@@ -89,6 +85,7 @@ export async function GET() {
           archived: pupils.filter((p) => p.enrollment_status === 'archived').length,
           male: enrolled.filter((p) => p.sex === 'Male').length,
           female: enrolled.filter((p) => p.sex === 'Female').length,
+          specialNeeds: enrolled.filter((p) => p.has_special_needs).length,
           ageBrackets,
         },
         attendance: {

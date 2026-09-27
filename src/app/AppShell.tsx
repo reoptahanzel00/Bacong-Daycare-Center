@@ -15,7 +15,6 @@ import LinkParentModal from '@/components/LinkParentModal';
 import DSWDReportModal from '@/components/DSWDReportModal';
 
 import WorkerView from '@/views/WorkerView';
-import OfficialView from '@/views/OfficialView';
 import AdminView from '@/views/AdminView';
 import ParentView from '@/views/ParentView';
 
@@ -90,12 +89,8 @@ function AppContent() {
               />
             )}
 
-            {currentRole === 'official' && (
-              <OfficialView activeTab={activeTab} />
-            )}
-
-            {/* Account management, audit trail and centre settings: the paper has
-                three roles, so these belong to the Daycare Worker. */}
+            {/* Account management, audit trail and centre settings belong to the
+                Daycare Worker. */}
             {currentRole === 'worker' && ACCOUNT_TABS.includes(activeTab) && (
               <AdminView
                 users={users}

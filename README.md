@@ -12,21 +12,22 @@ A comprehensive daycare management system built for **Barangay Bacong, San Luis,
 - ECCD 7-domain milestone observation logging
 - 109-item ECCD checklist (3 rounds, item comments) that fills the official Child's Record 2 Word form
 - Parent notifications (absence alerts, enrollment decisions)
+- Verify parent enrollments: age check (3y 1m – 5y), birth certificate on file, health & special needs; approve, or return to the parent with a reason (the parent resubmits)
+- Enrolled counts: boys, girls and children with special needs
+- Approve or decline numbered excuse letters (Excuse 1, Excuse 2, …)
 - DSWD Form 1 PDF report generation
-- Archive graduated/withdrawn pupils
+- Archive graduated/withdrawn pupils, with an Archived Pupils panel to restore them
 - User account management (create, disable, reset password, link parents)
 - Audit trail (written by the server for every change) and centre settings
 
-### 🏛️ Barangay Official
-- Barangay Executive Dashboard: summarized enrollment and attendance figures with charts (counts only, no individual records)
-- Number of children with frequent absences (3+ consecutive)
-- ECCD assessments completed per round
-
 ### 👨‍👩‍👧 Parent / Guardian
+- Enroll a child: health & special needs first, split guardian name, Barangay Bacong or "Other" address, birth certificate upload
+- A returned enrollment shows as PENDING with the reason; correct it and resubmit
+- Forgot-password reset by email
 - Sign in with email or the child's Student ID
 - View child's attendance history
 - Receive notifications (absence alerts, enrollment decisions)
-- Download the child's ECCD Child's Record 2 (Word form, filled from the worker's evaluations)
+- View and download the child's ECCD Child's Record 2 as a PDF, identical to the worker's copy
 
 ---
 
@@ -100,7 +101,6 @@ src/
 ├── types/            # TypeScript type definitions
 ├── views/            # Role-based dashboard views
 │   ├── WorkerView.tsx
-│   ├── OfficialView.tsx
 │   ├── AdminView.tsx
 │   └── ParentView.tsx
 └── middleware.ts      # Auth middleware

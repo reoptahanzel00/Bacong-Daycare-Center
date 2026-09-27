@@ -33,7 +33,7 @@ const NOTICE_BODY: Array<{ heading: string; body: string }> = [
   {
     heading: 'Who can see it',
     body:
-      'The Daycare Worker can see your child\'s full record. Barangay Officials see only enrolment and attendance figures for oversight and reporting — they cannot view individual child records, guardian contact details, or ECCD assessment notes. Other parents cannot see your child\'s record. Access is enforced by the database itself, not only by the application screens.',
+      'The Daycare Worker can see your child\'s full record. Reports sent to the Barangay and DSWD contain counts only, never an individual child\'s record. Other parents cannot see your child\'s record. Access is enforced by the database itself, not only by the application screens.',
   },
   {
     heading: 'How long we keep it',

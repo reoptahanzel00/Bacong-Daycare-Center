@@ -241,7 +241,7 @@ Set these in: GitHub repo â†’ Settings â†’ Secrets and variables â†
 - [ ] Supabase tables created and RLS enabled
 - [ ] At least one Daycare Worker account provisioned (it manages all other accounts)
 - [ ] `.env.local` / Vercel environment variables set
-- [ ] Test login flow as each role (worker, official, parent) — parents with email and with a Student ID
+- [ ] Test login flow as each role (worker, parent) — parents with email and with a Student ID
 - [ ] Test attendance save and verify Supabase row created
 - [ ] Test pupil enrollment and verify Supabase row created
 - [ ] Verify parent can only see their own child's data

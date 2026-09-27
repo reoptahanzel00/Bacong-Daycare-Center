@@ -2,7 +2,7 @@
  * The consecutive-absence rule, in one place.
  *
  * The threshold lived in three: the attendance API hardcoded `>= 3` when
- * deciding whether to alert a guardian, the officials' summary counted
+ * deciding whether to alert a guardian, the summary report counted
  * "frequent" absences with its own constant, and the parent portal's advisory
  * banner used a different number again — against a different quantity. A parent
  * could therefore be shown an alert the worker's dashboard did not count and

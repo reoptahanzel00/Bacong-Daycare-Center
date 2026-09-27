@@ -8,7 +8,7 @@ import { recordAudit } from '@/lib/audit';
 const CreateUserSchema = z.object({
   fullName: z.string().min(1, 'Full name is required').max(100),
   email: z.string().email('Invalid email address'),
-  role: z.enum(['worker', 'official', 'parent']),
+  role: z.enum(['worker', 'parent']),
   phone: z.string().max(20).optional(),
   password: passwordSchema,
 });

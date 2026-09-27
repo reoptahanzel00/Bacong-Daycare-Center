@@ -18,6 +18,12 @@ import {
   X,
   AlertTriangle,
   FileDown,
+  Users,
+  RotateCcw,
+  HeartPulse,
+  FileCheck2,
+  FileWarning,
+  Clock,
 } from 'lucide-react';
 import PupilAvatar from '@/components/PupilAvatar';
 import PupilDetailModal from '@/components/PupilDetailModal';
@@ -33,7 +39,8 @@ import {
   type ChildBackground,
   type EccdRound,
 } from '@/services/eccdService';
-import { fetchParentNotes, acknowledgeParentNote, type ParentNoteRow } from '@/services/parentNotesService';
+import { fetchParentNotes, reviewParentNote, excuseLabel, type ParentNoteRow } from '@/services/parentNotesService';
+import { enrollmentAgeError, RETURN_REASONS } from '@/lib/enrollment';
 import { fetchAttendance } from '@/services/attendanceService';
 import ChildBackgroundModal from '@/components/ChildBackgroundModal';
 import ECCDReportModal from '@/components/ECCDReportModal';
@@ -69,7 +76,7 @@ export default function WorkerView({
   onArchivePupil,
   onEditPupil
 }: WorkerViewProps) {
-  const { showToast, updatePupilEnrollment } = useDaycare();
+  const { showToast, updatePupilEnrollment, handleRestorePupil } = useDaycare();
 
   const [selectedDate, setSelectedDate] = useState(todayLocalISO());
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
@@ -80,6 +87,16 @@ export default function WorkerView({
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
   const [verifyPupilRecord, setVerifyPupilRecord] = useState<MockPupil | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  // Standard reasons ticked in the return dialog; rejectReason is the "Other" text.
+  const [returnReasons, setReturnReasons] = useState<string[]>([]);
+  // The enrollment whose decision is in flight: its buttons are disabled so a
+  // double-click cannot send two decisions.
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  // Approved during this session: kept on the verify tab with a green,
+  // non-clickable ENROLLED badge so the worker sees the result of the click.
+  const [justApprovedIds, setJustApprovedIds] = useState<string[]>([]);
+  // Pupils with a birth certificate on file (verify queue flags).
+  const [docsOnFile, setDocsOnFile] = useState<Set<string> | null>(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [verifyAction, setVerifyAction] = useState<'approve' | 'reject' | null>(null);
 
@@ -148,7 +165,9 @@ export default function WorkerView({
     reason: string;
     notes: string;
     phone: string;
-    status: string;
+    status: ParentNoteRow['status'];
+    /** "Excuse 1", "Excuse 2", ... — the same label the parent sees. */
+    label: string;
     submittedAt: string;
   }
 
@@ -157,7 +176,7 @@ export default function WorkerView({
   // depend on `pupils`, so the inbox was refetched on every roster change -
   // and each refetch discarded any acknowledgement made since it loaded.
   const [inboxRows, setInboxRows] = useState<ParentNoteRow[]>([]);
-  const [acknowledgedNoteIds, setAcknowledgedNoteIds] = useState<Record<string, boolean>>({});
+  const [noteDecisions, setNoteDecisions] = useState<Record<string, 'approved' | 'declined'>>({});
 
   // Load the real parent-notes inbox once on mount.
   useEffect(() => {
@@ -181,13 +200,12 @@ export default function WorkerView({
         reason: row.reason,
         notes: row.notes,
         phone: row.phone || '',
-        status: row.status === 'acknowledged' || acknowledgedNoteIds[row.id]
-          ? 'Excused & Acknowledged'
-          : 'Pending Teacher Review',
+        status: noteDecisions[row.id] ?? row.status,
+        label: excuseLabel(row),
         submittedAt: formatLocalTimestamp(row.submitted_at),
       };
     }),
-    [inboxRows, pupils, acknowledgedNoteIds]
+    [inboxRows, pupils, noteDecisions]
   );
 
   const enrolledPupils = useMemo(
@@ -301,22 +319,23 @@ export default function WorkerView({
     setDailyAttendanceState(updatedState);
   };
 
-  const handleAcknowledgeParentNote = async (noteId: string, pupilId: string, pupilName: string) => {
-    // Optimistic, then rolled back if the server did not take it. Leaving the
-    // note showing as Excused after a failed call told the worker the parent
-    // had been answered when nothing had been recorded, and the parent's own
-    // portal still showed the note as pending.
-    setAcknowledgedNoteIds(prev => ({ ...prev, [noteId]: true }));
-    const res = await acknowledgeParentNote(noteId);
+  const handleReviewParentNote = async (note: ParentNote, decision: 'approved' | 'declined') => {
+    // Optimistic, then rolled back if the server did not take it, so the
+    // worker is never told the parent was answered when nothing was recorded.
+    setNoteDecisions(prev => ({ ...prev, [note.id]: decision }));
+    const res = await reviewParentNote(note.id, decision);
     if (res.success) {
-      showToast(`Absence note for ${pupilName} marked as Excused!`, 'success');
+      showToast(
+        `${note.label} for ${note.pupilName} ${decision === 'approved' ? 'approved' : 'declined'}.`,
+        decision === 'approved' ? 'success' : 'info'
+      );
     } else {
-      setAcknowledgedNoteIds(prev => {
+      setNoteDecisions(prev => {
         const next = { ...prev };
-        delete next[noteId];
+        delete next[note.id];
         return next;
       });
-      showToast(`Could not mark the note for ${pupilName} as Excused — check your connection and try again.`, 'danger');
+      showToast(errorText(res.error, `Could not update ${note.label} — check your connection and try again.`), 'danger');
     }
   };
 
@@ -399,48 +418,105 @@ export default function WorkerView({
   };
 
   const pendingPupils = useMemo(
-    () => pupils.filter(p => p.enrollmentStatus === 'pending'),
-    [pupils]
+    () => pupils
+      .filter(p => p.enrollmentStatus === 'pending' || (p.enrollmentStatus === 'enrolled' && justApprovedIds.includes(p.id)))
+      // Oldest submission first: the queue is first come, first served.
+      .sort((a, b) => (a.submittedAt || a.enrollmentDate || '').localeCompare(b.submittedAt || b.enrollmentDate || '')),
+    [pupils, justApprovedIds]
   );
   const rejectedPupils = useMemo(
     () => pupils.filter(p => p.enrollmentStatus === 'rejected'),
     [pupils]
   );
+  const archivedPupils = useMemo(
+    () => pupils
+      .filter(p => p.enrollmentStatus === 'archived')
+      .sort((a, b) => (b.archivedAt || '').localeCompare(a.archivedAt || '')),
+    [pupils]
+  );
+
+  // Which queued children have a birth certificate on file.
+  const queueIdsKey = [...pendingPupils, ...rejectedPupils].map(p => p.id).sort().join(',');
+  useEffect(() => {
+    if (activeTab !== 'verify' || !queueIdsKey) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/pupils/documents?pupil_ids=${encodeURIComponent(queueIdsKey)}`, { cache: 'no-store' });
+        const data = await res.json();
+        if (!cancelled && res.ok) setDocsOnFile(new Set<string>(data.withBirthCert || []));
+      } catch {
+        // Leave the flags unknown rather than claiming a document is missing.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, queueIdsKey]);
+
+  const openBirthCert = async (pupil: MockPupil) => {
+    // Opened before the fetch so a popup blocker treats it as the user's click.
+    // Not 'noopener' in the features: with it window.open returns null and the
+    // tab could never be pointed at the file. The opener is cut by hand instead.
+    const win = window.open('', '_blank');
+    if (win) win.opener = null;
+    try {
+      const res = await fetch(`/api/pupils/documents?pupil_id=${encodeURIComponent(pupil.id)}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.url && win) {
+        win.location.href = data.url;
+        return;
+      }
+      win?.close();
+      showToast(`No birth certificate on file for ${pupil.firstName}.`, 'danger');
+    } catch {
+      win?.close();
+      showToast('Could not open the birth certificate.', 'danger');
+    }
+  };
 
   const openVerifyModal = (pupil: MockPupil, action: 'approve' | 'reject') => {
     setVerifyPupilRecord(pupil);
     setVerifyAction(action);
     setRejectReason('');
+    // Pre-tick the reasons the record itself shows, so the worker sees why.
+    const suggested: string[] = [];
+    if (docsOnFile && !docsOnFile.has(pupil.id)) suggested.push(RETURN_REASONS[0]);
+    if (enrollmentAgeError(pupil.birthDate, todayLocalISO())) suggested.push(RETURN_REASONS[1]);
+    setReturnReasons(action === 'reject' ? suggested : []);
     setIsVerifyModalOpen(true);
   };
 
+  const closeVerifyModal = () => {
+    setIsVerifyModalOpen(false);
+    setVerifyPupilRecord(null);
+    setVerifyAction(null);
+    setRejectReason('');
+    setReturnReasons([]);
+  };
+
   const handleVerify = async () => {
-    if (!verifyPupilRecord || !verifyAction) return;
-    if (verifyAction === 'reject' && !rejectReason.trim()) {
-      showToast('Please provide a reason for rejecting this enrollment.', 'danger');
+    if (!verifyPupilRecord || !verifyAction || verifyingId) return;
+    const reason = [...returnReasons, rejectReason.trim()].filter(Boolean).join('; ');
+    if (verifyAction === 'reject' && !reason) {
+      showToast('Tick at least one reason (or write one) so the parent knows what to correct.', 'danger');
       return;
     }
-    const res = await verifyPupil(verifyPupilRecord.id, verifyAction, rejectReason.trim() || undefined);
+    const pupil = verifyPupilRecord;
+    setVerifyingId(pupil.id);
+    closeVerifyModal();
+    const res = await verifyPupil(pupil.id, verifyAction, reason || undefined);
+    setVerifyingId(null);
     if (res.success) {
-      const pupil = verifyPupilRecord;
-      updatePupilEnrollment(
-        pupil.id,
-        verifyAction === 'approve' ? 'enrolled' : 'rejected',
-        rejectReason.trim() || null
-      );
+      updatePupilEnrollment(pupil.id, verifyAction === 'approve' ? 'enrolled' : 'rejected', reason || null);
+      if (verifyAction === 'approve') setJustApprovedIds(prev => [...prev, pupil.id]);
       showToast(
         verifyAction === 'approve'
           ? `${pupil.firstName} ${pupil.lastName} is now enrolled.`
-          : `Enrollment for ${pupil.firstName} ${pupil.lastName} was rejected.`,
+          : `Enrollment for ${pupil.firstName} ${pupil.lastName} was returned to the parent for correction.`,
         verifyAction === 'approve' ? 'success' : 'info'
       );
     } else {
       showToast(errorText(res.error, 'Could not verify this enrollment.'), 'danger');
     }
-    setIsVerifyModalOpen(false);
-    setVerifyPupilRecord(null);
-    setVerifyAction(null);
-    setRejectReason('');
   };
 
   const presentCount = enrolledPupils.filter(p => displayedStatus(p.id) === 'present').length;
@@ -515,7 +591,14 @@ export default function WorkerView({
                   type="date"
                   aria-label="Attendance register date"
                   value={selectedDate}
+                  max={todayLocalISO()}
                   onChange={(e) => {
+                    // A register records what happened; a day that has not
+                    // come yet cannot be marked.
+                    if (e.target.value > todayLocalISO()) {
+                      showToast('Attendance cannot be recorded for a future date.', 'danger');
+                      return;
+                    }
                     setSelectedDate(e.target.value);
                     // Reset the edit overlay so the register reflects saved records.
                     setDailyAttendanceState({});
@@ -617,6 +700,26 @@ export default function WorkerView({
       {/* 2. Enrolled Pupils Tab */}
       {(activeTab === 'pupils' || activeTab === 'roster') && (
         <div className="card bg-white p-5 space-y-4">
+          {/* Enrolled counts: boys, girls and children with special needs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3" aria-label="Enrollment counts">
+            {[
+              { label: 'Total Enrolled', value: enrolledPupils.length, icon: Users, cls: 'text-primary bg-primary-light' },
+              { label: 'Boys', value: enrolledPupils.filter(p => p.sex === 'Male').length, icon: Users, cls: 'text-accent-blue bg-accent-blue-light' },
+              { label: 'Girls', value: enrolledPupils.filter(p => p.sex === 'Female').length, icon: Users, cls: 'text-accent-coral-strong bg-accent-coral-light' },
+              { label: 'Children with Special Needs', value: enrolledPupils.filter(p => p.hasSpecialNeeds).length, icon: HeartPulse, cls: 'text-warn bg-warn-light' },
+            ].map(({ label, value, icon: Icon, cls }) => (
+              <div key={label} className="p-3.5 rounded-2xl border border-line bg-canvas flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${cls}`}>
+                  <Icon size={18} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl font-extrabold text-ink leading-none">{value}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mt-1">{label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-ink m-0">Enrolled Pupil Roster</h3>
@@ -636,10 +739,16 @@ export default function WorkerView({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="badge badge-primary">{pupil.id}</span>
-                      <span className="badge badge-success">Enrolled</span>
+                      <span className="badge badge-enrolled font-bold">ENROLLED</span>
                     </div>
-                    <h4 className="text-sm font-bold text-ink m-0 mt-1 truncate">{pupil.firstName} {pupil.lastName}</h4>
+                    <h4 className="text-sm font-bold text-ink m-0 mt-1 truncate">{pupil.firstName} {pupil.middleName ? `${pupil.middleName} ` : ''}{pupil.lastName}</h4>
                     <span className="text-[11px] text-ink-muted">{pupil.sex} • Born: {pupil.birthDate}</span>
+                    {(pupil.hasSpecialNeeds || pupil.healthConditions) && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {pupil.hasSpecialNeeds && <span className="badge badge-warning text-[10px]">Special needs</span>}
+                        {pupil.healthConditions && <span className="badge badge-danger text-[10px]">Health condition</span>}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -695,8 +804,10 @@ export default function WorkerView({
             </div>
             <h3 className="text-lg font-extrabold text-ink m-0">Parent-Submitted Child Profiles</h3>
             <p className="text-xs text-ink-muted mt-1 m-0">
-              Parents submitted these sociodemographic profiles (ECCD Form Section 1) at account
-              creation. Review each one, then approve the enrollment or reject it with a reason.
+              Parents submitted these profiles (ECCD Form Section 1) at account creation. Approve
+              when the birth certificate is on file and the child is within the enrollment age.
+              Otherwise <strong>return</strong> it with the reason: the parent keeps their account,
+              sees it as pending, corrects it and resubmits.
             </p>
           </div>
 
@@ -712,43 +823,109 @@ export default function WorkerView({
             <div className="space-y-4">
               {pendingPupils.map((pupil) => {
                 const profile = pupil.sociodemographic;
+                const isApproved = pupil.enrollmentStatus === 'enrolled';
+                const isBusy = verifyingId === pupil.id;
+                const ageProblem = enrollmentAgeError(pupil.birthDate, todayLocalISO());
+                const hasDoc = docsOnFile ? docsOnFile.has(pupil.id) : null;
                 return (
-                  <div key={pupil.id} className="p-4 rounded-3xl border border-line bg-canvas space-y-3">
+                  <div key={pupil.id} className={`p-4 rounded-3xl border space-y-3 ${
+                    isApproved ? 'border-[#A5D6A7] bg-[#F4FBF4]' : 'border-line bg-canvas'
+                  }`}>
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <PupilAvatar src={pupil.avatar} firstName={pupil.firstName} lastName={pupil.lastName} size={48} className="rounded-2xl" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="badge badge-warning">{pupil.id}</span>
-                            <span className="badge badge-primary">Pending</span>
+                            {isApproved
+                              ? <span className="badge badge-enrolled font-bold">ENROLLED</span>
+                              : <span className="badge badge-primary">Pending</span>}
+                            {(pupil.resubmissionCount ?? 0) > 0 && (
+                              <span className="badge badge-warning text-[10px]">
+                                <RotateCcw size={10} className="inline mr-0.5" />Resubmitted ×{pupil.resubmissionCount}
+                              </span>
+                            )}
                           </div>
                           <h4 className="text-sm font-bold text-ink m-0 mt-1">
-                            {pupil.firstName} {pupil.lastName}
+                            {pupil.firstName} {pupil.middleName ? `${pupil.middleName} ` : ''}{pupil.lastName}
                           </h4>
                           <span className="text-[11px] text-ink-muted">
-                            {pupil.sex} • Born: {pupil.birthDate} • Submitted {pupil.enrollmentDate || 'recently'}
+                            {pupil.sex} • Born: {pupil.birthDate}
                           </span>
+                          <div className="text-[11px] text-ink-soft font-semibold flex items-center gap-1 mt-0.5">
+                            <Clock size={11} />
+                            Enrolled by parent: {pupil.submittedAt ? formatLocalTimestamp(pupil.submittedAt) : (pupil.enrollmentDate || '—')}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => openVerifyModal(pupil, 'approve')}
-                          className="btn btn-primary btn-sm font-bold"
-                          suppressHydrationWarning
-                        >
-                          <CheckCircle2 size={14} />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => openVerifyModal(pupil, 'reject')}
-                          className="btn btn-secondary btn-sm font-bold text-danger"
-                          suppressHydrationWarning
-                        >
-                          <X size={14} />
-                          Reject
-                        </button>
+                        {isApproved ? (
+                          // Decided: nothing left to click.
+                          <span
+                            className="px-4 py-2 rounded-full text-xs font-extrabold flex items-center gap-1.5 bg-[#2E7D32] text-white cursor-default select-none"
+                            aria-disabled="true"
+                          >
+                            <CheckCircle2 size={14} /> ENROLLED
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => openVerifyModal(pupil, 'approve')}
+                              disabled={isBusy}
+                              className="btn btn-primary btn-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+                              suppressHydrationWarning
+                            >
+                              <CheckCircle2 size={14} />
+                              {isBusy ? 'Saving…' : 'Approve'}
+                            </button>
+                            <button
+                              onClick={() => openVerifyModal(pupil, 'reject')}
+                              disabled={isBusy}
+                              className="btn btn-secondary btn-sm font-bold text-danger disabled:opacity-60 disabled:cursor-not-allowed"
+                              suppressHydrationWarning
+                            >
+                              <RotateCcw size={14} />
+                              Return to Parent
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
+
+                    {/* The checks that decide approve vs. return, at a glance */}
+                    {!isApproved && (
+                      <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                        <span className={`px-2.5 py-1 rounded-full flex items-center gap-1 ${ageProblem ? 'bg-danger-light text-danger' : 'bg-[#E8F5E9] text-[#1B5E20]'}`}>
+                          {ageProblem ? <AlertTriangle size={12} /> : <CheckCircle size={12} />}
+                          {ageProblem ? 'Age not within 3y 1m – 5y' : 'Age OK'}
+                        </span>
+                        {hasDoc === null ? (
+                          <span className="px-2.5 py-1 rounded-full bg-canvas text-ink-muted border border-line">Checking documents…</span>
+                        ) : hasDoc ? (
+                          <button
+                            type="button"
+                            onClick={() => openBirthCert(pupil)}
+                            className="px-2.5 py-1 rounded-full flex items-center gap-1 bg-[#E8F5E9] text-[#1B5E20] border-none cursor-pointer hover:underline"
+                          >
+                            <FileCheck2 size={12} /> View birth certificate
+                          </button>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full flex items-center gap-1 bg-danger-light text-danger">
+                            <FileWarning size={12} /> Missing birth certificate
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {(pupil.healthConditions || pupil.hasSpecialNeeds) && (
+                      <div className="p-3 rounded-2xl bg-warn-light border border-warn-border text-xs space-y-1">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-warn flex items-center gap-1">
+                          <HeartPulse size={12} /> Health &amp; Special Needs
+                        </div>
+                        {pupil.healthConditions && <div><strong className="text-ink">Illness / condition:</strong> {pupil.healthConditions}</div>}
+                        {pupil.hasSpecialNeeds && <div><strong className="text-ink">Special needs:</strong> {pupil.specialNeedsDetails || 'Yes'}</div>}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                       <div className="p-3 rounded-2xl bg-white border border-line space-y-1">
@@ -793,24 +970,112 @@ export default function WorkerView({
           )}
 
           {rejectedPupils.length > 0 && (
-            <div className="pt-2 border-t border-line">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-ink-subtle m-0 mb-2">
-                Recently Rejected ({rejectedPupils.length})
-              </h4>
-              <div className="space-y-2">
-                {rejectedPupils.map((pupil) => (
-                  <div key={pupil.id} className="p-3 rounded-2xl bg-[#FFF7F7] border border-danger-border text-xs">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle size={14} className="text-danger shrink-0" />
-                      <strong className="text-ink">{pupil.firstName} {pupil.lastName}</strong>
-                      <span className="badge badge-danger">Rejected</span>
-                    </div>
-                    {pupil.rejectionReason && (
-                      <p className="text-[11px] text-ink-muted m-0 mt-1">Reason: {pupil.rejectionReason}</p>
-                    )}
-                  </div>
-                ))}
+            <div className="pt-3 border-t border-line space-y-2">
+              <div>
+                <h4 className="text-sm font-extrabold text-ink m-0">
+                  Returned to Parent: Awaiting Correction ({rejectedPupils.length})
+                </h4>
+                <p className="text-[11px] text-ink-muted m-0">
+                  The parent sees these as pending and can resubmit. A resubmission moves the
+                  child back to the queue above.
+                </p>
               </div>
+              <div className="overflow-x-auto rounded-2xl border border-line">
+                <table className="w-full text-xs">
+                  <thead className="bg-canvas text-left text-[10px] uppercase tracking-wider text-ink-muted">
+                    <tr>
+                      <th scope="col" className="px-3 py-2">Child</th>
+                      <th scope="col" className="px-3 py-2">Enrolled by parent</th>
+                      <th scope="col" className="px-3 py-2">Returned</th>
+                      <th scope="col" className="px-3 py-2">Reason</th>
+                      <th scope="col" className="px-3 py-2">Birth cert.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rejectedPupils.map((pupil) => (
+                      <tr key={pupil.id} className="border-t border-line align-top">
+                        <td className="px-3 py-2">
+                          <div className="font-bold text-ink">{pupil.firstName} {pupil.lastName}</div>
+                          <div className="text-[10px] text-ink-subtle">{pupil.id}</div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">{pupil.submittedAt ? formatLocalTimestamp(pupil.submittedAt) : (pupil.enrollmentDate || '—')}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">{pupil.verifiedAt ? formatLocalTimestamp(pupil.verifiedAt) : '—'}</td>
+                        <td className="px-3 py-2 text-ink-soft">{pupil.rejectionReason || '—'}</td>
+                        <td className="px-3 py-2">
+                          {docsOnFile === null ? '…' : docsOnFile.has(pupil.id)
+                            ? <span className="text-[#1B5E20] font-bold">On file</span>
+                            : <span className="text-danger font-bold">Missing</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3b. Archived Pupils: the last panel */}
+      {activeTab === 'archived' && (
+        <div className="card bg-white p-5 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Archive size={18} className="text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Records Archive</span>
+              </div>
+              <h3 className="text-lg font-extrabold text-ink m-0">Archived Pupils</h3>
+              <p className="text-xs text-ink-muted mt-1 m-0">
+                Soft-archived records are kept here, not deleted. Restore a pupil to return them to the active roster.
+              </p>
+            </div>
+            <span className="badge badge-primary font-bold shrink-0">{archivedPupils.length} archived</span>
+          </div>
+
+          {archivedPupils.length === 0 ? (
+            <div className="p-6 rounded-3xl bg-canvas border border-dashed border-line text-center text-xs text-ink-muted">
+              No archived pupils.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-line">
+              <table className="w-full text-xs">
+                <thead className="bg-canvas text-left text-[10px] uppercase tracking-wider text-ink-muted">
+                  <tr>
+                    <th scope="col" className="px-3 py-2">Pupil</th>
+                    <th scope="col" className="px-3 py-2">Sex</th>
+                    <th scope="col" className="px-3 py-2">Guardian</th>
+                    <th scope="col" className="px-3 py-2">Archived</th>
+                    <th scope="col" className="px-3 py-2"><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {archivedPupils.map((pupil) => (
+                    <tr key={pupil.id} className="border-t border-line">
+                      <td className="px-3 py-2">
+                        <div className="font-bold text-ink">{pupil.firstName} {pupil.lastName}</div>
+                        <div className="text-[10px] text-ink-subtle">{pupil.id}</div>
+                      </td>
+                      <td className="px-3 py-2">{pupil.sex}</td>
+                      <td className="px-3 py-2">{pupil.guardian?.fullName || '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {pupil.archivedAt ? formatLocalTimestamp(pupil.archivedAt) : '—'}
+                        {pupil.archiveReason ? <div className="text-[10px] text-ink-subtle">{pupil.archiveReason}</div> : null}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRestorePupil(pupil.id)}
+                          className="btn btn-secondary btn-sm font-bold"
+                        >
+                          <RotateCcw size={14} />
+                          <span>Restore</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -1094,7 +1359,7 @@ export default function WorkerView({
                 Parent Absence Notes Inbox
               </h3>
               <p className="text-xs text-ink-muted mt-1 m-0">
-                Review and acknowledge absence excusal notes submitted by parents.
+                Approve or decline excuse letters submitted by parents. Each letter is numbered per child (Excuse 1, Excuse 2, …) exactly as the parent sees it.
               </p>
             </div>
             <span className="badge badge-primary font-bold">{inboxNotes.length} Messages Received</span>
@@ -1104,7 +1369,8 @@ export default function WorkerView({
             {inboxNotes.map((note) => (
               <div key={note.id} className="p-4 rounded-3xl border border-line bg-canvas flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
                 <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="badge badge-primary text-[10px] font-extrabold">{note.label}</span>
                     <span className="font-bold text-ink text-sm">{note.pupilName} ({note.pupilId})</span>
                     <span className="badge badge-warning text-[10px]">{note.date}</span>
                     <span className="badge badge-primary text-[10px]">{note.reason}</span>
@@ -1114,19 +1380,32 @@ export default function WorkerView({
                 </div>
 
                 <div className="shrink-0">
-                  {note.status === 'Excused & Acknowledged' ? (
-                    <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1">
-                      <CheckCircle size={14} /> Excused & Acknowledged
-                    </span>
+                  {note.status === 'pending' ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleReviewParentNote(note, 'approved')}
+                        className="btn btn-primary btn-sm font-bold shadow-md"
+                        suppressHydrationWarning
+                      >
+                        <CheckCircle size={14} />
+                        <span>Approve {note.label}</span>
+                      </button>
+                      <button
+                        onClick={() => handleReviewParentNote(note, 'declined')}
+                        className="btn btn-secondary btn-sm font-bold text-danger"
+                        suppressHydrationWarning
+                      >
+                        <X size={14} />
+                        <span>Decline</span>
+                      </button>
+                    </div>
                   ) : (
-                    <button
-                      onClick={() => handleAcknowledgeParentNote(note.id, note.pupilId, note.pupilName)}
-                      className="btn btn-primary btn-sm font-bold shadow-md"
-                      suppressHydrationWarning
-                    >
-                      <CheckCircle size={14} />
-                      <span>Acknowledge & Mark Excused</span>
-                    </button>
+                    <span className={`badge font-extrabold text-xs flex items-center gap-1 ${
+                      note.status === 'approved' ? 'badge-enrolled' : 'badge-danger'
+                    }`}>
+                      {note.status === 'approved' ? <CheckCircle size={14} /> : <X size={14} />}
+                      {note.label} {note.status === 'approved' ? 'Approved' : 'Declined'}
+                    </span>
                   )}
                 </div>
               </div>
@@ -1184,7 +1463,7 @@ export default function WorkerView({
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-ink m-0">
-                    {verifyAction === 'approve' ? 'Approve enrollment?' : 'Reject enrollment?'}
+                    {verifyAction === 'approve' ? 'Approve enrollment?' : 'Return enrollment to parent?'}
                   </h3>
                   <p className="text-xs text-ink-muted m-0">
                     {verifyPupilRecord.firstName} {verifyPupilRecord.lastName} ({verifyPupilRecord.id})
@@ -1193,7 +1472,7 @@ export default function WorkerView({
               </div>
               <button
                 aria-label="Close"
-                onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
+                onClick={closeVerifyModal}
                 className="p-2 rounded-full text-ink-subtle hover:bg-canvas hover:text-ink border-none bg-transparent cursor-pointer transition-all"
                 suppressHydrationWarning
               >
@@ -1208,24 +1487,41 @@ export default function WorkerView({
               </p>
             ) : (
               <div className="space-y-2">
-                <label htmlFor="srcviewsworkerview-reason-for-rejection-2" className="block text-xs font-bold text-ink">Reason for rejection *</label>
+                <fieldset className="border-none p-0 m-0 space-y-1.5">
+                  <legend className="block text-xs font-bold text-ink mb-1">What does the parent need to correct? *</legend>
+                  <p className="text-[10px] text-ink-subtle m-0">
+                    Return only when something is missing or wrong. The parent keeps their account, sees
+                    PENDING with these reasons, and resubmits.
+                  </p>
+                  {RETURN_REASONS.map((r) => (
+                    <label key={r} className="flex items-start gap-2 text-xs text-ink-soft cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={returnReasons.includes(r)}
+                        onChange={(e) =>
+                          setReturnReasons(prev => e.target.checked ? [...prev, r] : prev.filter(x => x !== r))
+                        }
+                      />
+                      <span>{r}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <label htmlFor="srcviewsworkerview-reason-for-rejection-2" className="block text-xs font-bold text-ink">Other / details</label>
                 <textarea id="srcviewsworkerview-reason-for-rejection-2"
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                  placeholder="e.g. Missing birth certificate; please contact the daycare to complete the profile."
+                  rows={2}
+                  maxLength={300}
+                  placeholder="e.g. The birth certificate photo is blurry; please upload a clearer copy."
                   className="w-full px-3 py-2.5 rounded-2xl border border-line bg-canvas text-sm text-ink outline-none focus:border-danger focus:ring-2 focus:ring-danger/20 transition-all resize-y"
                 />
-                <p className="text-[10px] text-ink-subtle m-0">
-                  The parent will see this reason in their portal.
-                </p>
               </div>
             )}
 
             <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-line">
               <button
-                onClick={() => { setIsVerifyModalOpen(false); setVerifyPupilRecord(null); setVerifyAction(null); setRejectReason(''); }}
+                onClick={closeVerifyModal}
                 className="px-4 py-2 rounded-2xl text-xs font-bold text-ink-muted bg-canvas hover:bg-line-strong border-none cursor-pointer transition-all"
                 suppressHydrationWarning
               >
@@ -1241,7 +1537,7 @@ export default function WorkerView({
                 suppressHydrationWarning
               >
                 {verifyAction === 'approve' ? <CheckCircle2 size={14} /> : <X size={14} />}
-                {verifyAction === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
+                {verifyAction === 'approve' ? 'Confirm Approval' : 'Return to Parent'}
               </button>
             </div>
           </div>

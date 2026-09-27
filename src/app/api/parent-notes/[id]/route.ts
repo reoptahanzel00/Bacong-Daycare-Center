@@ -1,9 +1,22 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
+import { notifyUsers } from '@/lib/notify';
 
-/** PATCH — worker/admin acknowledges an absence note. */
-export async function PATCH(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+const DecisionSchema = z.object({
+  status: z.enum(['approved', 'declined']),
+});
+
+/**
+ * PATCH — the Daycare Worker approves or declines an excuse letter.
+ *
+ * Approval also marks that day's absence as excused on the register (when the
+ * absence has been recorded), and the parent is told either way. Each letter is
+ * numbered per child ("Excuse 1", "Excuse 2", ...) so the parent and the worker
+ * refer to the same one.
+ */
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession();
     if (!session.isAuthenticated) {
@@ -11,10 +24,19 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
     }
     if (!authorizeRole(session.role, ['worker'])) {
       return NextResponse.json(
-        { error: 'Unauthorized: Only Daycare Workers can acknowledge notes.' },
+        { error: 'Unauthorized: Only Daycare Workers can approve excuse letters.' },
         { status: 403 }
       );
     }
+
+    let body: unknown = {};
+    try {
+      body = await request.json();
+    } catch {
+      // Older clients sent no body; treat as approval.
+      body = { status: 'approved' };
+    }
+    const { status } = DecisionSchema.parse(body);
 
     const { id } = await params;
     const { createAdminClient } = await import('@/lib/supabase/admin');
@@ -22,21 +44,49 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
 
     const { data, error } = await admin
       .from('parent_notes')
-      .update({ status: 'acknowledged' })
+      .update({ status, reviewed_at: new Date().toISOString() })
       .eq('id', id)
-      .select('id, status')
+      .eq('status', 'pending')
+      .select('id, status, pupil_id, user_id, note_date, excuse_no')
       .maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     if (!data) {
-      return NextResponse.json({ error: 'Note not found.' }, { status: 404 });
+      return NextResponse.json({ error: 'Excuse letter not found or already reviewed.' }, { status: 404 });
     }
-    await recordAudit(admin, session, 'Acknowledged absence note', `Note ${id}`);
 
-    return NextResponse.json({ success: true, note: data });
-  } catch {
+    const label = `Excuse ${data.excuse_no ?? ''}`.trim();
+    if (status === 'approved') {
+      const { error: attError } = await admin
+        .from('attendance')
+        .update({ notes: `Excused (${label})` })
+        .eq('pupil_id', data.pupil_id)
+        .eq('date', data.note_date)
+        .eq('status', 'absent');
+      if (attError) console.warn('[Parent Notes API] attendance note warning:', attError.message);
+    }
+
+    if (data.user_id) {
+      await notifyUsers([{ user_id: data.user_id, pupil_id: data.pupil_id }], {
+        type: 'enrollment',
+        title: status === 'approved' ? `${label.toUpperCase()} APPROVED` : `${label} declined`,
+        message:
+          status === 'approved'
+            ? `Your ${label} for ${data.note_date} was approved by the Daycare Worker.`
+            : `Your ${label} for ${data.note_date} was declined. Please contact the Daycare Worker.`,
+        severity: status === 'approved' ? 'info' : 'medium',
+      });
+    }
+
+    await recordAudit(admin, session, status === 'approved' ? 'Approved excuse letter' : 'Declined excuse letter', `Note ${id}`, label);
+
+    return NextResponse.json({ success: true, note: { id: data.id, status: data.status } });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -26,15 +26,16 @@ test.describe('Role-Based Access Control (RBAC) & Scope Isolation', () => {
     await expect(page.getByText(/daily register/i).first()).toBeVisible();
   });
 
-  test('should render the Barangay Official portal for the official role', async ({ page }) => {
+  test('the retired Barangay Official role no longer has a portal', async ({ page }) => {
+    // The panel removed the role; a stale value left in a browser must not
+    // bring back the old oversight dashboard.
     await seedRole(page, 'official');
     await page.goto('/');
-    await expect(page.getByText('Barangay Executive Dashboard')).toBeVisible();
-    // Summaries only: officials get no DSWD roster and no child-record tabs.
-    await expect(page.getByRole('button', { name: /dswd/i })).toHaveCount(0);
+    await expect(page.getByText('Barangay Executive Dashboard')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /frequent absences/i })).toHaveCount(0);
   });
 
-  test('the paper has three roles: the Daycare Worker manages accounts and the audit trail', async ({ page }) => {
+  test('two roles: the Daycare Worker manages accounts and the audit trail', async ({ page }) => {
     await seedRole(page, 'worker');
     await page.goto('/');
     const accounts = page.getByRole('button', { name: 'User Accounts' }).first();
@@ -49,6 +50,16 @@ test.describe('Role-Based Access Control (RBAC) & Scope Isolation', () => {
     await seedRole(page, 'barangay_admin');
     await page.goto('/');
     await expect(page.getByText(/daily register/i).first()).toBeVisible();
+  });
+
+  test('the Archived Pupils panel is the last item in the worker menu', async ({ page }) => {
+    await seedRole(page, 'worker');
+    await page.goto('/');
+    const nav = page.locator('aside');
+    await expect(nav.getByRole('button', { name: 'Archived Pupils' })).toBeVisible();
+    const labels = await nav.locator('button').allInnerTexts();
+    const menu = labels.filter((l) => !/sign out/i.test(l));
+    expect(menu[menu.length - 1]).toMatch(/Archived Pupils/);
   });
 
   test('should render the Parent portal for the parent role and hide admin controls', async ({ page }) => {

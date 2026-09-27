@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { X, UserPlus, Save, AlertCircle } from 'lucide-react';
-import type { MockPupil } from '@/contexts/DaycareContext';
+import { splitGuardianName, type MockPupil } from '@/contexts/DaycareContext';
 import { todayLocalISO, currentYearLocal } from '@/lib/dates';
+import { enrollmentAgeError, ENROLLMENT_AGE_LABEL, formatFullName } from '@/lib/enrollment';
+import { HealthFields } from '@/components/EnrollmentFields';
 import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface PupilModalProps {
@@ -24,14 +26,22 @@ interface PupilModalProps {
  * brackets and every ECCD 'age at test' are computed from.
  */
 function buildInitialForm(pupil?: MockPupil | null) {
+  const guardian = splitGuardianName(pupil?.guardian);
   return {
+    hasIllness: Boolean(pupil?.healthConditions),
+    healthConditions: pupil?.healthConditions || '',
+    hasSpecialNeeds: Boolean(pupil?.hasSpecialNeeds),
+    specialNeedsDetails: pupil?.specialNeedsDetails || '',
     firstName: pupil?.firstName || '',
+    middleName: pupil?.middleName || '',
     lastName: pupil?.lastName || '',
     birthDate: pupil?.birthDate || '',
     sex: pupil?.sex || 'Male',
     address: pupil?.address || '',
     enrollmentStatus: pupil?.enrollmentStatus || 'enrolled',
-    guardianName: pupil?.guardian?.fullName || '',
+    guardianLastName: guardian.last,
+    guardianFirstName: guardian.first,
+    guardianMiddleName: guardian.middle || '',
     relationship: pupil?.guardian?.relationship || 'Mother',
     guardianPhone: pupil?.guardian?.phone || ''
   };
@@ -49,12 +59,33 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName.trim() || !formData.lastName.trim() || !formData.guardianName.trim()) {
-      setError('Please fill in all required fields (Pupil First/Last Name and Guardian Name).');
+    if (
+      !formData.firstName.trim() ||
+      !formData.lastName.trim() ||
+      !formData.guardianLastName.trim() ||
+      !formData.guardianFirstName.trim()
+    ) {
+      setError('Please fill in all required fields (pupil first/last name, guardian last/first name).');
       return;
     }
     if (!formData.birthDate) {
       setError("Please enter the pupil's date of birth — the ECCD and DSWD reports are age-based.");
+      return;
+    }
+    // The age window applies to new enrollments; an existing pupil who has
+    // since turned five must still be editable.
+    if (!pupilToEdit) {
+      const ageProblem = enrollmentAgeError(formData.birthDate, todayLocalISO());
+      if (ageProblem) {
+        setError(ageProblem);
+        return;
+      }
+    }
+    if (
+      (formData.hasIllness && !formData.healthConditions.trim()) ||
+      (formData.hasSpecialNeeds && !formData.specialNeedsDetails.trim())
+    ) {
+      setError('Please describe the illness or special needs you marked Yes.');
       return;
     }
 
@@ -67,15 +98,22 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
         ? pupilToEdit.id
         : `PUP-${currentYearLocal()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`,
       firstName: formData.firstName,
+      middleName: formData.middleName.trim() || null,
       lastName: formData.lastName,
       birthDate: formData.birthDate,
+      healthConditions: formData.hasIllness ? formData.healthConditions.trim() : null,
+      hasSpecialNeeds: formData.hasSpecialNeeds,
+      specialNeedsDetails: formData.hasSpecialNeeds ? formData.specialNeedsDetails.trim() : null,
       sex: formData.sex,
       address: formData.address,
       enrollmentStatus: formData.enrollmentStatus,
       enrollmentDate: pupilToEdit ? pupilToEdit.enrollmentDate : todayLocalISO(),
       avatar: pupilToEdit ? pupilToEdit.avatar : undefined,
       guardian: {
-        fullName: formData.guardianName,
+        fullName: formatFullName(formData.guardianLastName, formData.guardianFirstName, formData.guardianMiddleName),
+        lastName: formData.guardianLastName.trim(),
+        firstName: formData.guardianFirstName.trim(),
+        middleName: formData.guardianMiddleName.trim() || null,
         relationship: formData.relationship,
         phone: formData.guardianPhone,
         isPrimary: true
@@ -89,7 +127,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
 
   return (
     <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn" suppressHydrationWarning>
-      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-lg p-6 space-y-5 animate-scaleUp">
+      <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-2xl p-6 space-y-5 animate-scaleUp">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line pb-4">
@@ -124,7 +162,13 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <HealthFields
+            idPrefix="pupil-modal"
+            value={formData}
+            onChange={(patch) => setFormData({ ...formData, ...patch })}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
               <label htmlFor="srccomponentspupilmodal-first-name-1" className="text-xs font-bold text-ink-soft">First Name *</label>
               <input id="srccomponentspupilmodal-first-name-1"
@@ -134,6 +178,16 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 suppressHydrationWarning
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="pupil-modal-middle-name" className="text-xs font-bold text-ink-soft">Middle Name</label>
+              <input id="pupil-modal-middle-name"
+                type="text"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
+                placeholder="e.g. Reyes"
+                value={formData.middleName}
+                onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
               />
             </div>
             <div className="space-y-1">
@@ -156,9 +210,17 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
                 type="date"
                 className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
                 value={formData.birthDate}
+                max={todayLocalISO()}
                 onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                 suppressHydrationWarning
               />
+              {!pupilToEdit && (
+                <p className={`text-[10px] font-semibold m-0 ${
+                  formData.birthDate && enrollmentAgeError(formData.birthDate, todayLocalISO()) ? 'text-danger' : 'text-ink-subtle'
+                }`}>
+                  {(formData.birthDate && enrollmentAgeError(formData.birthDate, todayLocalISO())) || `Ages ${ENROLLMENT_AGE_LABEL}.`}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -202,20 +264,32 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
 
           <div className="pt-2 border-t border-line space-y-3">
             <h4 className="text-xs font-extrabold text-primary uppercase tracking-wider m-0">Guardian Details</h4>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label htmlFor="srccomponentspupilmodal-guardian-full-name-7" className="text-xs font-bold text-ink-soft">Guardian Full Name *</label>
-                <input id="srccomponentspupilmodal-guardian-full-name-7"
-                  type="text"
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
-                  placeholder="e.g. Maria Santos"
-                  value={formData.guardianName}
-                  onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
-                  suppressHydrationWarning
+                <label htmlFor="pupil-modal-guardian-last" className="text-xs font-bold text-ink-soft">Guardian Last Name *</label>
+                <input id="pupil-modal-guardian-last" type="text" className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white" placeholder="e.g. Santos"
+                  value={formData.guardianLastName}
+                  onChange={(e) => setFormData({ ...formData, guardianLastName: e.target.value })}
                 />
               </div>
-
+              <div className="space-y-1">
+                <label htmlFor="pupil-modal-guardian-first" className="text-xs font-bold text-ink-soft">First Name *</label>
+                <input id="pupil-modal-guardian-first" type="text" className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white" placeholder="e.g. Maria"
+                  value={formData.guardianFirstName}
+                  onChange={(e) => setFormData({ ...formData, guardianFirstName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="pupil-modal-guardian-middle" className="text-xs font-bold text-ink-soft">Middle Name</label>
+                <input id="pupil-modal-guardian-middle" type="text" className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white" placeholder="e.g. Reyes"
+                  value={formData.guardianMiddleName}
+                  onChange={(e) => setFormData({ ...formData, guardianMiddleName: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label htmlFor="srccomponentspupilmodal-relationship-8" className="text-xs font-bold text-ink-soft">Relationship</label>
                 <select id="srccomponentspupilmodal-relationship-8"

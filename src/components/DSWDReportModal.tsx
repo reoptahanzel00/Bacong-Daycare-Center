@@ -42,6 +42,7 @@ export default function DSWDReportModal({
   const enrolledIds = new Set(enrolledPupils.map(p => p.id));
   const maleCount = enrolledPupils.filter(p => p.sex === 'Male').length;
   const femaleCount = enrolledPupils.filter(p => p.sex === 'Female').length;
+  const specialNeedsCount = enrolledPupils.filter(p => p.hasSpecialNeeds).length;
 
   // Scoped to the children this form reports on. It previously averaged every
   // attendance row on hand, including rows belonging to archived and pending
@@ -82,6 +83,7 @@ export default function DSWDReportModal({
         totalEnrolled: enrolledPupils.length,
         maleCount,
         femaleCount,
+        specialNeedsCount,
         avgAttendance,
         eccdAssessed,
         pupils: rows,
@@ -167,14 +169,18 @@ export default function DSWDReportModal({
             </div>
 
             {/* Quick Metrics Grid */}
-            <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
               <div className="p-3 rounded-2xl bg-primary-light border border-primary-display/20">
                 <div className="text-xl font-extrabold text-primary">{enrolledPupils.length}</div>
                 <div className="text-[10px] font-bold text-ink-muted uppercase">Total Enrolled</div>
               </div>
               <div className="p-3 rounded-2xl bg-[#EBF8FF] border border-[#2B6CB0]/20">
                 <div className="text-xl font-extrabold text-[#2B6CB0]">{maleCount} M / {femaleCount} F</div>
-                <div className="text-[10px] font-bold text-ink-muted uppercase">Sex Ratio</div>
+                <div className="text-[10px] font-bold text-ink-muted uppercase">Boys / Girls</div>
+              </div>
+              <div className="p-3 rounded-2xl bg-warn-light border border-warn-border">
+                <div className="text-xl font-extrabold text-warn">{specialNeedsCount}</div>
+                <div className="text-[10px] font-bold text-ink-muted uppercase">Special Needs</div>
               </div>
               <div className="p-3 rounded-2xl bg-warn-light border border-warn-fill/30">
                 <div className="text-xl font-extrabold text-warn">{avgAttendance === null ? 'No records' : `${avgAttendance}%`}</div>

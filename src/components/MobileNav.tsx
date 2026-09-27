@@ -12,7 +12,7 @@ import {
   Heart, 
   UserCheck, 
   School,
-  BellRing,
+  Archive,
   BookOpen,
   MessageSquare,
 } from 'lucide-react';
@@ -49,14 +49,7 @@ export default function MobileNav({
         { id: 'users', label: 'User Accounts', icon: UserCheck },
         { id: 'audit_logs', label: 'Audit Trail', icon: FileText },
         { id: 'security', label: 'Centre & Privacy', icon: Shield },
-      ]
-    },
-    official: {
-      title: 'Barangay Official',
-      badge: 'Oversight View',
-      items: [
-        { id: 'overview', label: 'Executive Overview', icon: Shield },
-        { id: 'consecutive_absences', label: 'Frequent Absences', icon: BellRing },
+        { id: 'archived', label: 'Archived Pupils', icon: Archive },
       ]
     },
     parent: {

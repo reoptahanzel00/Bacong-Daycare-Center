@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Download, ShieldCheck, FileText, Loader2, AlertTriangle } from 'lucide-react';
 import { ECCD_DOMAINS } from '@/data/eccdChecklist';
 import { downloadEccdRecord, fetchEccdRecord } from '@/services/eccdService';
+import { downloadEccdPdf } from '@/lib/eccdPdf';
 import {
   BACKGROUND_FIELDS,
   ECCD_ROUNDS,
@@ -39,10 +40,11 @@ const HANDEDNESS_LABELS: Record<string, string> = {
 };
 
 /**
- * Preview of the pupil's ECCD Checklist, Child's Record 2, and the download of
- * the centre's own Word form filled with the same record (all three rounds).
- * The preview and the file are built from one server-side record, so what the
- * examiner checks here is what the form says.
+ * Preview of the pupil's ECCD Checklist, Child's Record 2, and its download as
+ * a PDF (all three rounds). The same modal serves the parent and the Daycare
+ * Worker, and the preview and the PDF are both built from one server-side
+ * record, so both roles see and download exactly the same document. The
+ * centre's Word form remains available as a secondary download for editing.
  */
 export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportModalProps) {
   const pupilId = pupil?.id;
@@ -76,6 +78,19 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
   if (!isOpen || !pupil) return null;
 
   const handleDownload = async () => {
+    if (!record) return;
+    setIsDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadEccdPdf(record);
+    } catch (err) {
+      console.error('ECCD PDF export failed:', err);
+      setDownloadError('Could not generate the PDF. Please try again.');
+    }
+    setIsDownloading(false);
+  };
+
+  const handleDownloadDocx = async () => {
     if (!record) return;
     setIsDownloading(true);
     setDownloadError(null);
@@ -146,7 +161,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
             {downloadError ? (
               <span role="alert" className="text-danger">{downloadError}</span>
             ) : (
-              <>Official ECCD Child&apos;s Record 2 &mdash; Word form, filled from saved evaluations</>
+              <>Official ECCD Child&apos;s Record 2 &mdash; PDF, filled from saved evaluations</>
             )}
           </span>
 
@@ -159,13 +174,22 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
               Close
             </button>
             <button
+              onClick={handleDownloadDocx}
+              disabled={isDownloading || isLoading || !record}
+              className="px-4 py-2.5 rounded-full text-xs font-bold text-primary hover:bg-primary-light transition-all cursor-pointer border border-primary-border bg-white disabled:opacity-50"
+              title="Editable Word copy of the same record"
+              suppressHydrationWarning
+            >
+              Word (.docx)
+            </button>
+            <button
               onClick={handleDownload}
               disabled={isDownloading || isLoading || !record}
               className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
               suppressHydrationWarning
             >
               <Download size={16} />
-              <span>{isDownloading ? 'Preparing record...' : 'Download ECCD Record (.docx)'}</span>
+              <span>{isDownloading ? 'Preparing record...' : 'Download ECCD Record (PDF)'}</span>
             </button>
           </div>
         </div>
@@ -175,7 +199,7 @@ export default function ECCDReportModal({ isOpen, onClose, pupil }: ECCDReportMo
   );
 }
 
-function RecordPreview({ record }: { record: EccdRecord }) {
+export function RecordPreview({ record }: { record: EccdRecord }) {
   const { pupil, profile } = record;
   const dob = splitISODate(pupil.birthDate);
   const latest = latestGradedRound(record);

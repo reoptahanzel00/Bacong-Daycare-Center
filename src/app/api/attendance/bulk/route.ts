@@ -16,6 +16,7 @@ const BulkAttendanceSchema = z.object({
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
 import { ABSENCE_ALERT_THRESHOLD } from '@/lib/absences';
+import { todayLocalISO } from '@/lib/dates';
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +32,14 @@ export async function POST(request: Request) {
     }
     const body = await request.json();
     const parsed = BulkAttendanceSchema.parse(body);
+    // A register records what happened. A date ahead of today at the centre
+    // would mark children present or absent for a day that has not come.
+    if (parsed.date > todayLocalISO()) {
+      return NextResponse.json(
+        { error: 'Attendance cannot be recorded for a future date.' },
+        { status: 400 }
+      );
+    }
 
     const records = parsed.records.map(r => ({
       pupil_id: r.pupil_id,
@@ -135,11 +144,6 @@ export async function GET(request: Request) {
     const session = await getServerSession();
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-    }
-    // The capstone paper gives barangay officials summarized figures only
-    // (/api/reports/summary), never individual children's records.
-    if (session.role === 'official') {
-      return NextResponse.json({ error: 'Barangay officials see summarized figures only.' }, { status: 403 });
     }
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();

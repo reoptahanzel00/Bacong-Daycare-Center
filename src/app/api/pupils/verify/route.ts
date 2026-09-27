@@ -12,7 +12,9 @@ const VerifySchema = z.object({
 /**
  * POST /api/pupils/verify — Daycare Workers approve or reject a parent-submitted
  * enrollment (sociodemographic profile). Approval flips the pupil to 'enrolled'
- * and notifies the parent; rejection records a reason the parent can see.
+ * and notifies the parent; a return ('rejected' in the database) records a
+ * reason the parent can see, keeps their account, and lets them resubmit via
+ * /api/pupils/resubmit. Parents are shown it as PENDING, never "rejected".
  */
 export async function POST(request: Request) {
   try {
@@ -54,15 +56,24 @@ export async function POST(request: Request) {
     }
 
     const status = parsed.action === 'approve' ? 'enrolled' : 'rejected';
-    const { error: updateError } = await admin
+    const verifiedAt = new Date().toISOString();
+    // Conditional on still being pending, so a double-click or two workers
+    // deciding at once cannot approve twice (and notify the parent twice).
+    const { data: updated, error: updateError } = await admin
       .from('pupils')
       .update({
         enrollment_status: status,
         rejection_reason: parsed.action === 'reject' ? parsed.reason : null,
+        verified_at: verifiedAt,
       })
-      .eq('id', parsed.pupil_id);
+      .eq('id', parsed.pupil_id)
+      .eq('enrollment_status', 'pending')
+      .select('id');
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 400 });
+    }
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ error: 'This enrollment was already decided.' }, { status: 409 });
     }
 
     const guardians = Array.isArray(pupil.guardian) ? pupil.guardian : [];
@@ -72,11 +83,13 @@ export async function POST(request: Request) {
         recipient_user_id: parentUserId,
         pupil_id: parsed.pupil_id,
         type: 'enrollment',
-        title: parsed.action === 'approve' ? 'Enrollment approved' : 'Enrollment needs attention',
+        // Upper-case so an approval stands out in the parent's feed; a returned
+        // enrollment is presented as still pending, never as "rejected".
+        title: parsed.action === 'approve' ? 'ENROLLMENT APPROVED' : 'ENROLLMENT PENDING – ACTION NEEDED',
         message:
           parsed.action === 'approve'
             ? `${pupil.first_name} ${pupil.last_name}'s enrollment has been approved by the Daycare Worker. Student ID: ${parsed.pupil_id} — you can also sign in with it.`
-            : `The Daycare Worker could not approve ${pupil.first_name} ${pupil.last_name}'s enrollment: ${parsed.reason}`,
+            : `${pupil.first_name} ${pupil.last_name}'s enrollment is still pending. Please correct the following and resubmit from your portal: ${parsed.reason}`,
         channel: 'PORTAL',
         severity: parsed.action === 'approve' ? 'info' : 'medium',
       });
@@ -90,7 +103,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      pupil: { id: parsed.pupil_id, enrollmentStatus: status, rejectionReason: parsed.reason || null },
+      pupil: { id: parsed.pupil_id, enrollmentStatus: status, rejectionReason: parsed.reason || null, verifiedAt },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -16,7 +16,7 @@ interface UserModalProps {
 export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'worker' | 'official' | 'parent'>('worker');
+  const [role, setRole] = useState<'worker' | 'parent'>('worker');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -113,7 +113,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
             <div>
               <h3 className="text-base font-extrabold text-ink m-0">Provision User Account</h3>
               <p className="text-xs text-ink-muted m-0">
-                Create an account for a Daycare Worker, Barangay Official or Parent
+                Create an account for a Daycare Worker or Parent
               </p>
             </div>
           </div>
@@ -169,7 +169,6 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
               suppressHydrationWarning
             >
               <option value="worker">Lead Daycare Worker (Teacher)</option>
-              <option value="official">Barangay Official (Council Oversight)</option>
               <option value="parent">Parent / Guardian</option>
             </select>
           </div>

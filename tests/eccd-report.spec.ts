@@ -136,11 +136,17 @@ test.describe("ECCD Child's Record 2 (Word)", () => {
       page.getByRole('heading', { name: 'ECCD Pupil Evaluation Report' }).first()
     ).toBeVisible();
 
-    // Download the filled Word form.
-    const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
-    await page.getByRole('button', { name: /download eccd record/i }).click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/^ECCD_Record2_Santos_Mateo\.docx$/);
+    // Download the record as a PDF (the same file the parent gets).
+    const pdfPromise = page.waitForEvent('download', { timeout: 60000 });
+    await page.getByRole('button', { name: /download eccd record \(pdf\)/i }).click();
+    const pdf = await pdfPromise;
+    expect(pdf.suggestedFilename()).toMatch(/^ECCD_Record2_Santos_Mateo\.pdf$/);
+
+    // The editable Word copy is still available.
+    const docxPromise = page.waitForEvent('download', { timeout: 60000 });
+    await page.getByRole('button', { name: /word \(\.docx\)/i }).click();
+    const docx = await docxPromise;
+    expect(docx.suggestedFilename()).toMatch(/^ECCD_Record2_Santos_Mateo\.docx$/);
   });
 
   test('worker: saving sends the comment and standard score', async ({ page }) => {
@@ -190,6 +196,11 @@ test.describe("ECCD Child's Record 2 (Word)", () => {
     await expect(page.getByText('1st Eval', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('2nd Eval', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('3rd Eval', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /download eccd record/i })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /download eccd record \(pdf\)/i })).toBeEnabled();
+
+    // Parents download the same PDF the worker does.
+    const pdfPromise = page.waitForEvent('download', { timeout: 60000 });
+    await page.getByRole('button', { name: /download eccd record \(pdf\)/i }).click();
+    expect((await pdfPromise).suggestedFilename()).toMatch(/^ECCD_Record2_Santos_Mateo\.pdf$/);
   });
 });

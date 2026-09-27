@@ -157,7 +157,6 @@ export default function AdminView({
               >
                 <option value="all">All System Roles</option>
                 <option value="worker">Daycare Worker</option>
-                <option value="official">Barangay Official</option>
                 <option value="parent">Parent / Guardian</option>
               </select>
             </div>
@@ -370,7 +369,7 @@ export default function AdminView({
             </div>
             <h3 className="text-lg font-extrabold text-ink m-0">Who can see what</h3>
             <p className="text-xs text-ink-muted mt-1 m-0">
-              The system has three roles. These rules are enforced by the database (Row-Level Security)
+              The system has two roles. These rules are enforced by the database (Row-Level Security)
               and checked again by the server on every request.
             </p>
           </div>
@@ -378,7 +377,6 @@ export default function AdminView({
           <div className="space-y-2 text-xs">
             {[
               { role: 'Daycare Worker', rule: 'Enrolls, records attendance and ECCD evaluations, and sees every child’s record. Manages user accounts, the audit trail and these settings.' },
-              { role: 'Barangay Official', rule: 'Sees summarized enrollment and attendance figures only — never an individual child’s record.' },
               { role: 'Parent / Guardian', rule: 'Sees only the records of their own linked children.' },
             ].map((row) => (
               <div key={row.role} className="p-3 rounded-2xl bg-canvas border border-line">

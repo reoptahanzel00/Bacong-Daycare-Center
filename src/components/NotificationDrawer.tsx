@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, X, AlertTriangle, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
+import { BellRing, X, CalendarX, CheckCircle2, PhoneCall, AlertCircle, Info, Star } from 'lucide-react';
 
 interface NotificationItem {
   id: string;
@@ -12,6 +12,28 @@ interface NotificationItem {
   severity: string;
   read: boolean;
   timestamp: string;
+}
+
+/**
+ * Icon and tint per kind of notification, so an approval, a returned
+ * enrollment and an absence alert are told apart at a glance instead of all
+ * sharing one generic icon.
+ */
+function notificationLook(n: NotificationItem) {
+  const title = n.title.toUpperCase();
+  if (n.type === 'consecutive_absences') {
+    return { Icon: CalendarX, iconClass: 'text-danger', boxClass: 'bg-danger-light border-danger-border' };
+  }
+  if (n.type === 'enrollment' && title.includes('APPROVED')) {
+    return { Icon: CheckCircle2, iconClass: 'text-[#2E7D32]', boxClass: 'bg-[#F4FBF4] border-[#A5D6A7]' };
+  }
+  if (n.type === 'enrollment' || n.severity === 'medium') {
+    return { Icon: AlertCircle, iconClass: 'text-warn', boxClass: 'bg-warn-light border-warn-border' };
+  }
+  if (n.type === 'milestone') {
+    return { Icon: Star, iconClass: 'text-accent-yellow', boxClass: 'bg-canvas border-line' };
+  }
+  return { Icon: Info, iconClass: 'text-primary', boxClass: 'bg-canvas border-line' };
 }
 
 interface NotificationDrawerProps {
@@ -35,7 +57,7 @@ export default function NotificationDrawer({
       {/* Drawer Header */}
       <div className="p-4 border-b border-line bg-canvas flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Bell size={18} className="text-primary" />
+          <BellRing size={18} className="text-primary" />
           <h3 className="text-sm font-bold text-ink m-0">Parent & System Notifications</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -57,6 +79,7 @@ export default function NotificationDrawer({
         {notifications.length > 0 ? (
           notifications.map((n) => {
             const isAbsence = n.type === 'consecutive_absences';
+            const { Icon, iconClass, boxClass } = notificationLook(n);
 
             // The feed carried `read` all along and rendered every entry the
             // same, so a parent opening the drawer after an absence alert had
@@ -65,16 +88,11 @@ export default function NotificationDrawer({
             return (
               <div
                 key={n.id}
-                className={`p-3 rounded-2xl border text-xs transition-all ${
-                  isAbsence
-                    ? 'bg-danger-light border-danger-border'
-                    : 'bg-canvas border-line'
-                } ${n.read ? 'opacity-60' : ''}`}
+                className={`p-3 rounded-2xl border text-xs transition-all ${boxClass} ${n.read ? 'opacity-60' : ''}`}
               >
                 <div className="flex items-start gap-2.5">
                   <div className="p-2 rounded-xl bg-white shadow-sm flex-shrink-0">
-                    {isAbsence && <AlertTriangle size={16} className="text-danger" />}
-                    {!isAbsence && <Sparkles size={16} className="text-primary" />}
+                    <Icon size={16} className={iconClass} aria-hidden="true" />
                   </div>
 
                   <div className="flex-1 min-w-0">

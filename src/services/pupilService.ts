@@ -6,12 +6,18 @@
 export interface PupilEnrollPayload {
   id?: string;
   firstName: string;
+  middleName?: string | null;
   lastName: string;
   birthDate: string;
   sex: 'Male' | 'Female';
   address: string;
   enrollmentStatus?: 'enrolled' | 'archived';
-  guardianName: string;
+  guardianLastName: string;
+  guardianFirstName: string;
+  guardianMiddleName?: string | null;
+  healthConditions?: string | null;
+  hasSpecialNeeds?: boolean;
+  specialNeedsDetails?: string | null;
   relationship: 'Mother' | 'Father' | 'Grandmother' | 'Grandfather' | 'Legal Guardian';
   guardianPhone: string;
 }
@@ -46,12 +52,22 @@ export interface SociodemographicProfileRow {
 export interface PupilRow {
   id: string;
   first_name: string;
+  middle_name?: string | null;
   last_name: string;
   birth_date: string;
   sex: 'Male' | 'Female';
   address?: string;
   enrollment_status: 'pending' | 'enrolled' | 'rejected' | 'archived';
   enrollment_date?: string;
+  health_conditions?: string | null;
+  has_special_needs?: boolean | null;
+  special_needs_details?: string | null;
+  /** When the parent enrolled (date and time). */
+  submitted_at?: string | null;
+  verified_at?: string | null;
+  resubmission_count?: number | null;
+  archive_reason?: string | null;
+  archived_at?: string | null;
   consecutive_absences?: number;
   avatar_url?: string | null;
   rejection_reason?: string | null;
@@ -59,6 +75,9 @@ export interface PupilRow {
   guardian?: Array<{
     id?: string;
     full_name: string;
+    last_name?: string | null;
+    first_name?: string | null;
+    middle_name?: string | null;
     relationship: string;
     phone?: string;
     is_primary_contact?: boolean;
@@ -125,7 +144,7 @@ export async function enrollPupil(payload: PupilEnrollPayload): Promise<PupilEnr
 
 export interface VerifyPupilResult {
   success?: boolean;
-  pupil?: { id: string; enrollmentStatus: 'enrolled' | 'rejected'; rejectionReason: string | null };
+  pupil?: { id: string; enrollmentStatus: 'enrolled' | 'rejected'; rejectionReason: string | null; verifiedAt?: string };
   error?: unknown;
 }
 

@@ -14,7 +14,6 @@ const STATE_DIR = path.join(process.cwd(), 'playwright', '.auth');
 
 const ROLES = [
   { role: 'worker',   email: 'e2e-worker@example.test' },
-  { role: 'official', email: 'e2e-official@example.test' },
   { role: 'parent',   email: 'e2e-parent@example.test' },
 ] as const;
 

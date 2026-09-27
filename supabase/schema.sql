@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('worker', 'official', 'parent')),
+  last_name TEXT,
+  first_name TEXT,
+  middle_name TEXT,
+  role TEXT NOT NULL CHECK (role IN ('worker', 'parent')),
   phone TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
   -- RA 10173: recorded per account so consent is provable, and versioned so a
@@ -60,6 +63,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS pupils (
   id TEXT PRIMARY KEY, -- e.g. 'PUP-2026-001'
   first_name TEXT NOT NULL,
+  middle_name TEXT,
   last_name TEXT NOT NULL,
   birth_date DATE NOT NULL,
   sex TEXT NOT NULL CHECK (sex IN ('Male', 'Female')),
@@ -68,6 +72,15 @@ CREATE TABLE IF NOT EXISTS pupils (
   enrollment_date DATE NOT NULL DEFAULT CURRENT_DATE,
   archive_reason TEXT CHECK (archive_reason IN ('Graduated', 'Transferred', 'Dropped Out', 'Other')),
   rejection_reason TEXT,
+  -- Asked first at enrollment: any illness/medical condition, and special needs.
+  health_conditions TEXT,
+  has_special_needs BOOLEAN NOT NULL DEFAULT false,
+  special_needs_details TEXT,
+  -- When the parent enrolled (date AND time), when the worker decided, and how
+  -- many times a returned enrollment was corrected and sent back.
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  verified_at TIMESTAMPTZ,
+  resubmission_count INT NOT NULL DEFAULT 0,
   avatar_url TEXT,
   consecutive_absences INT DEFAULT 0,
   school_year_id UUID REFERENCES school_years(id),
@@ -82,6 +95,9 @@ CREATE TABLE IF NOT EXISTS guardians (
   pupil_id TEXT NOT NULL REFERENCES pupils(id) ON DELETE CASCADE,
   user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Nullable if parent account not yet created
   full_name TEXT NOT NULL,
+  last_name TEXT,
+  first_name TEXT,
+  middle_name TEXT,
   relationship TEXT NOT NULL CHECK (relationship IN ('Mother', 'Father', 'Grandmother', 'Grandfather', 'Legal Guardian')),
   phone TEXT NOT NULL,
   is_primary_contact BOOLEAN DEFAULT true,
@@ -175,7 +191,10 @@ CREATE TABLE IF NOT EXISTS parent_notes (
   reason TEXT NOT NULL,
   notes TEXT NOT NULL,
   phone TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'acknowledged')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
+  -- "Excuse 1", "Excuse 2", ... numbered per child by trg_assign_excuse_no.
+  excuse_no INT,
+  reviewed_at TIMESTAMPTZ,
   submitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -268,6 +287,15 @@ CREATE TABLE IF NOT EXISTS eccd_item_comments (
   PRIMARY KEY (pupil_id, evaluation_round, milestone_code)
 );
 
+-- 19. Enrollment documents (birth certificate). One file per child at
+-- enrollment-docs/<pupil_id>/birth-certificate in a private Storage bucket.
+-- The server issues signed upload/download URLs after checking the guardian
+-- link or worker role, so the bucket has no client policies.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('enrollment-docs', 'enrollment-docs', false, 5242880,
+        ARRAY['application/pdf', 'image/jpeg', 'image/png'])
+ON CONFLICT (id) DO NOTHING;
+
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
 -- ==========================================================================
@@ -310,6 +338,7 @@ ALTER TABLE child_backgrounds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sociodemographic_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eccd_evaluations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eccd_item_comments ENABLE ROW LEVEL SECURITY;
+
 
 -- Reference tables. These hold no personal data, but Supabase grants anon and
 -- authenticated full DML on public tables by default and RLS is the only thing
@@ -555,3 +584,24 @@ CREATE TRIGGER trg_calculate_consecutive_absences
 AFTER INSERT OR UPDATE ON attendance
 FOR EACH ROW
 EXECUTE FUNCTION calculate_consecutive_absences();
+
+-- ==========================================================================
+-- EXCUSE LETTER NUMBERING ("Excuse 1", "Excuse 2", ... per child)
+-- ==========================================================================
+CREATE OR REPLACE FUNCTION assign_excuse_no()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.excuse_no IS NULL THEN
+    PERFORM pg_advisory_xact_lock(hashtext('excuse_no:' || NEW.pupil_id));
+    SELECT COALESCE(MAX(excuse_no), 0) + 1 INTO NEW.excuse_no
+      FROM parent_notes WHERE pupil_id = NEW.pupil_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_assign_excuse_no ON parent_notes;
+CREATE TRIGGER trg_assign_excuse_no
+BEFORE INSERT ON parent_notes
+FOR EACH ROW
+EXECUTE FUNCTION assign_excuse_no();

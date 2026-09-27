@@ -4,12 +4,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * GET — aggregate ECCD milestone counts for oversight dashboards.
- * Returns counts ONLY (no individual observation notes), so officials can see
+ * Returns counts ONLY (no individual observation notes), so dashboards can show
  * program-wide progress without exposing the private per-pupil notes that RLS
  * deliberately keeps from non-staff roles per RA 10173.
  *
  * - Parents: counts scoped to their linked children.
- * - Officials/Workers/Admins: program-wide counts.
+ * - Workers: program-wide counts.
  */
 export async function GET() {
   try {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getServerSession, authorizeRole } from '@/lib/auth';
-import { resolveEnrollmentStatus } from '@/lib/enrollment';
+import { resolveEnrollmentStatus, enrollmentAgeError, formatFullName } from '@/lib/enrollment';
 import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
 
@@ -10,14 +10,20 @@ const PupilSchema = z.object({
   // An arbitrary string must never be able to create a row via the upsert.
   id: z.string().regex(/^PUP-\d{4}-[A-Z0-9]{4,12}$/, 'Invalid pupil ID').optional(),
   firstName: z.string().min(1, 'First name is required').max(100).trim(),
+  middleName: z.string().max(100).trim().optional().nullable(),
   lastName: z.string().min(1, 'Last name is required').max(100).trim(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Birth date must be YYYY-MM-DD'),
   sex: z.enum(['Male', 'Female']),
   address: z.string().max(300).trim(),
   enrollmentStatus: z.enum(['enrolled', 'archived']).default('enrolled'),
-  guardianName: z.string().min(1, 'Guardian name is required').max(150).trim(),
+  guardianLastName: z.string().min(1, 'Guardian last name is required').max(100).trim(),
+  guardianFirstName: z.string().min(1, 'Guardian first name is required').max(100).trim(),
+  guardianMiddleName: z.string().max(100).trim().optional().nullable(),
   relationship: z.enum(['Mother', 'Father', 'Grandmother', 'Grandfather', 'Legal Guardian']),
   guardianPhone: z.string().max(20).trim(),
+  healthConditions: z.string().max(500).trim().optional().nullable(),
+  hasSpecialNeeds: z.boolean().optional().default(false),
+  specialNeedsDetails: z.string().max(500).trim().optional().nullable(),
 });
 
 export async function GET(request: Request) {
@@ -35,12 +41,6 @@ export async function GET(request: Request) {
     if (!session.isAuthenticated) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    // The capstone paper gives barangay officials summarized figures only
-    // (/api/reports/summary), never individual children's records.
-    if (session.role === 'official') {
-      return NextResponse.json({ error: 'Barangay officials see summarized figures only.' }, { status: 403 });
-    }
-
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
     let query = supabase
@@ -76,6 +76,14 @@ export async function POST(request: Request) {
     }
     const body = await request.json();
     const parsed = PupilSchema.parse(body);
+    const guardianName = formatFullName(parsed.guardianLastName, parsed.guardianFirstName, parsed.guardianMiddleName);
+
+    // Age window applies to new enrollments. An existing pupil who has since
+    // turned five must still be editable.
+    if (!parsed.id) {
+      const ageError = enrollmentAgeError(parsed.birthDate, todayLocalISO());
+      if (ageError) return NextResponse.json({ error: ageError }, { status: 400 });
+    }
 
     // Use secure UUID-based IDs — never Math.random()
     const pupilId = parsed.id || `PUP-${currentYearLocal()}-${crypto.randomUUID().split('-')[0].toUpperCase()}`;
@@ -85,6 +93,7 @@ export async function POST(request: Request) {
     let resolvedStatus: string = parsed.enrollmentStatus;
     let resolvedEnrollmentDate = todayLocalISO();
     let resolvedAbsences = 0;
+    let previousStatus: string | null = null;
 
     // Attempt to persist to Supabase
     try {
@@ -96,22 +105,33 @@ export async function POST(request: Request) {
       // so a pending/rejected record keeps its status through this write.
       const { data: existing } = await supabase
         .from('pupils')
-        .select('enrollment_status, enrollment_date, consecutive_absences')
+        .select('enrollment_status, enrollment_date, consecutive_absences, archived_at')
         .eq('id', pupilId)
         .maybeSingle();
+      previousStatus = existing?.enrollment_status ?? null;
 
       const dbRecord = {
         id: pupilId,
         first_name: parsed.firstName,
+        middle_name: parsed.middleName || null,
         last_name: parsed.lastName,
         birth_date: parsed.birthDate,
         sex: parsed.sex,
         address: parsed.address,
+        health_conditions: parsed.healthConditions || null,
+        has_special_needs: parsed.hasSpecialNeeds,
+        special_needs_details: parsed.hasSpecialNeeds ? parsed.specialNeedsDetails || null : null,
         enrollment_status: resolveEnrollmentStatus(existing?.enrollment_status, parsed.enrollmentStatus),
         enrollment_date: existing?.enrollment_date || todayLocalISO(),
         // Never reset a live absence streak on a demographic edit.
         consecutive_absences: existing?.consecutive_absences ?? 0,
+        archived_at: null as string | null,
       };
+      // When the record was archived, for the Archived Pupils panel; cleared
+      // on restore.
+      dbRecord.archived_at = dbRecord.enrollment_status === 'archived'
+        ? (existing?.enrollment_status === 'archived' && existing.archived_at) || new Date().toISOString()
+        : null;
 
       resolvedStatus = dbRecord.enrollment_status;
       resolvedEnrollmentDate = dbRecord.enrollment_date;
@@ -138,7 +158,10 @@ export async function POST(request: Request) {
           const { error: gError } = await supabase
             .from('guardians')
             .update({
-              full_name: parsed.guardianName,
+              full_name: guardianName,
+              last_name: parsed.guardianLastName,
+              first_name: parsed.guardianFirstName,
+              middle_name: parsed.guardianMiddleName || null,
               relationship: parsed.relationship,
               phone: parsed.guardianPhone,
             })
@@ -147,7 +170,10 @@ export async function POST(request: Request) {
         } else {
           const { error: gError } = await supabase.from('guardians').insert([{
             pupil_id: pupilId,
-            full_name: parsed.guardianName,
+            full_name: guardianName,
+            last_name: parsed.guardianLastName,
+            first_name: parsed.guardianFirstName,
+            middle_name: parsed.guardianMiddleName || null,
             relationship: parsed.relationship,
             phone: parsed.guardianPhone,
             is_primary_contact: true,
@@ -165,7 +191,13 @@ export async function POST(request: Request) {
 
     {
       const { createAdminClient } = await import('@/lib/supabase/admin');
-      const action = !parsed.id ? 'Enrolled pupil' : resolvedStatus === 'archived' ? 'Archived pupil record' : 'Updated pupil record';
+      const action = !parsed.id
+        ? 'Enrolled pupil'
+        : resolvedStatus === 'archived'
+          ? 'Archived pupil record'
+          : previousStatus === 'archived'
+            ? 'Restored archived pupil'
+            : 'Updated pupil record';
       await recordAudit(createAdminClient(), session, action, pupilId, `Status: ${resolvedStatus}`);
     }
 
@@ -174,15 +206,22 @@ export async function POST(request: Request) {
       pupil: {
         id: pupilId,
         firstName: parsed.firstName,
+        middleName: parsed.middleName || null,
         lastName: parsed.lastName,
         birthDate: parsed.birthDate,
         sex: parsed.sex,
         address: parsed.address,
+        healthConditions: parsed.healthConditions || null,
+        hasSpecialNeeds: parsed.hasSpecialNeeds,
+        specialNeedsDetails: parsed.specialNeedsDetails || null,
         enrollmentStatus: resolvedStatus,
         enrollmentDate: resolvedEnrollmentDate,
         consecutiveAbsences: resolvedAbsences,
         guardian: {
-          fullName: parsed.guardianName,
+          fullName: guardianName,
+          lastName: parsed.guardianLastName,
+          firstName: parsed.guardianFirstName,
+          middleName: parsed.guardianMiddleName || null,
           relationship: parsed.relationship,
           phone: parsed.guardianPhone,
           isPrimary: true,

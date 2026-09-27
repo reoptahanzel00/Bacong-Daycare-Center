@@ -8,18 +8,34 @@ import { checkPassword } from '@/lib/password';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 import { clearStoredData } from '@/data/mockData';
 import { errorText } from '@/lib/apiError';
+import { enrollmentAgeError, ENROLLMENT_AGE_LABEL } from '@/lib/enrollment';
+import { todayLocalISO } from '@/lib/dates';
+import {
+  HealthFields,
+  AddressFields,
+  BirthCertField,
+  birthCertProblem,
+  HOME_ADDRESS,
+} from '@/components/EnrollmentFields';
 
-type UserRole = 'worker' | 'official' | 'parent';
+type UserRole = 'worker' | 'parent';
 type AuthMode = 'signin' | 'create';
 
 
 type Handedness = 'right' | 'left' | 'both' | 'not_yet_established';
 
 interface ChildProfileForm {
+  // Asked first: health and special needs.
+  hasIllness: boolean;
+  healthConditions: string;
+  hasSpecialNeeds: boolean;
+  specialNeedsDetails: string;
   firstName: string;
+  middleName: string;
   lastName: string;
   birthDate: string;
   sex: 'Male' | 'Female';
+  addressMode: 'home' | 'other';
   barangay: string;
   municipality: string;
   province: string;
@@ -38,17 +54,21 @@ interface ChildProfileForm {
   motherEducation: string;
   siblingsCount: string;
   birthOrder: string;
+  birthCert: File | null;
 }
 
 const EMPTY_CHILD: ChildProfileForm = {
+  hasIllness: false,
+  healthConditions: '',
+  hasSpecialNeeds: false,
+  specialNeedsDetails: '',
   firstName: '',
+  middleName: '',
   lastName: '',
   birthDate: '',
   sex: 'Male',
-  barangay: '',
-  municipality: '',
-  province: '',
-  region: '',
+  addressMode: 'home',
+  ...HOME_ADDRESS,
   handedness: 'right',
   currentlyStudying: false,
   schoolName: '',
@@ -63,6 +83,7 @@ const EMPTY_CHILD: ChildProfileForm = {
   motherEducation: '',
   siblingsCount: '',
   birthOrder: '',
+  birthCert: null,
 };
 
 const HANDEDNESS_OPTIONS: Array<{ value: Handedness; label: string }> = [
@@ -75,7 +96,6 @@ const HANDEDNESS_OPTIONS: Array<{ value: Handedness; label: string }> = [
 const ROLE_OPTIONS: Array<{ id: UserRole; label: string; hint: string; isPublic: boolean }> = [
   { id: 'parent', label: 'Parent / Guardian', hint: 'For parents and guardians of enrolled pupils.', isPublic: true },
   { id: 'worker', label: 'Daycare Worker', hint: 'Daycare staff who manage registers and evaluations.', isPublic: false },
-  { id: 'official', label: 'Barangay Official', hint: 'Read-only oversight for barangay officials.', isPublic: false },
 ];
 
 export default function AuthPage() {
@@ -103,7 +123,9 @@ export default function AuthPage() {
 
   // Create-account state
   const [createRole, setCreateRole] = useState<UserRole>('parent');
-  const [fullName, setFullName] = useState('');
+  const [guardianLast, setGuardianLast] = useState('');
+  const [guardianFirst, setGuardianFirst] = useState('');
+  const [guardianMiddle, setGuardianMiddle] = useState('');
   const [phone, setPhone] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPassword, setCreatePassword] = useState('');
@@ -236,8 +258,8 @@ export default function AuthPage() {
     e.preventDefault();
     setCreateError(null);
 
-    if (!fullName.trim() || !createEmail.trim()) {
-      setCreateError('Please fill in your full name and email address.');
+    if (!guardianLast.trim() || !guardianFirst.trim() || !createEmail.trim()) {
+      setCreateError("Please fill in the guardian's last name, first name and email address.");
       return;
     }
     if (createRole === 'parent' && !phone.trim()) {
@@ -264,13 +286,29 @@ export default function AuthPage() {
           !child.province.trim() ||
           !child.region.trim();
         const studyingMissing = child.currentlyStudying && !child.schoolName.trim();
-        return coreMissing || studyingMissing;
+        const healthMissing =
+          (child.hasIllness && !child.healthConditions.trim()) ||
+          (child.hasSpecialNeeds && !child.specialNeedsDetails.trim());
+        return coreMissing || studyingMissing || healthMissing;
       });
       if (incomplete !== -1) {
         setCreateError(
-          `Child #${incomplete + 1}: please complete the required sociodemographic fields (name, birth date, sex, address, and school name if currently studying).`
+          `Child #${incomplete + 1}: please complete the required fields (health details if yes, name, birth date, sex, address, and school name if currently studying).`
         );
         return;
+      }
+      const today = todayLocalISO();
+      for (const [i, child] of children.entries()) {
+        const ageProblem = enrollmentAgeError(child.birthDate, today);
+        if (ageProblem) {
+          setCreateError(`Child #${i + 1}: ${ageProblem}`);
+          return;
+        }
+        const docProblem = birthCertProblem(child.birthCert);
+        if (docProblem) {
+          setCreateError(`Child #${i + 1}: ${docProblem}`);
+          return;
+        }
       }
     }
 
@@ -281,7 +319,9 @@ export default function AuthPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           role: createRole,
-          fullName: fullName.trim(),
+          lastName: guardianLast.trim(),
+          firstName: guardianFirst.trim(),
+          middleName: guardianMiddle.trim() || null,
           phone: phone.trim(),
           email: createEmail.trim(),
           password: createPassword,
@@ -289,7 +329,11 @@ export default function AuthPage() {
           consentVersion: PRIVACY_NOTICE_VERSION,
           children: createRole === 'parent'
             ? children.map((child) => ({
+                healthConditions: child.hasIllness ? child.healthConditions.trim() : null,
+                hasSpecialNeeds: child.hasSpecialNeeds,
+                specialNeedsDetails: child.hasSpecialNeeds ? child.specialNeedsDetails.trim() : null,
                 firstName: child.firstName.trim(),
+                middleName: child.middleName.trim() || null,
                 lastName: child.lastName.trim(),
                 birthDate: child.birthDate,
                 sex: child.sex,
@@ -320,7 +364,32 @@ export default function AuthPage() {
         setCreateError(errorText(data.error, 'Unable to create your account. Please try again.'));
         return;
       }
-      setCreateSuccess({ message: data.message, linked: !!data.linked });
+      // Send each birth certificate straight to private Storage using the
+      // single-use URL the server issued for that child.
+      const uploads: Array<{ pupilId: string; path: string; token: string }> = data.uploads || [];
+      const pupilIds: string[] = data.pupilIds || [];
+      let failedUploads = 0;
+      if (uploads.length > 0) {
+        const supabase = createClient();
+        await Promise.all(
+          uploads.map(async (u) => {
+            // Children are created in form order, so pupilIds[i] is children[i].
+            const file = children[pupilIds.indexOf(u.pupilId)]?.birthCert;
+            if (!file) {
+              failedUploads += 1;
+              return;
+            }
+            const { error } = await supabase.storage
+              .from('enrollment-docs')
+              .uploadToSignedUrl(u.path, u.token, file, { contentType: file.type, upsert: true });
+            if (error) failedUploads += 1;
+          })
+        );
+      }
+      const uploadNote = failedUploads > 0
+        ? ` ${failedUploads} birth certificate(s) could not be uploaded. You can attach them from your portal after signing in.`
+        : '';
+      setCreateSuccess({ message: `${data.message}${uploadNote}`, linked: !!data.linked });
     } catch {
       setCreateError('Network error while creating your account. Please try again.');
     } finally {
@@ -559,16 +628,35 @@ export default function AuthPage() {
 
                   {selectedRole.isPublic ? (
                     <>
-                      <div>
-                        <label htmlFor="srcapploginpage-guardian-full-name-3" className="block text-xs font-bold text-ink mb-1.5">Guardian Full Name *</label>
-                        <input id="srcapploginpage-guardian-full-name-3"
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder="e.g. Maria Santos"
-                          className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
-                        />
-                      </div>
+                      <fieldset className="border-none p-0 m-0">
+                        <legend className="block text-xs font-bold text-ink mb-1.5">Guardian Full Name *</legend>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label htmlFor="signup-guardian-last" className="block text-[10px] font-bold text-ink-muted mb-1">Last Name *</label>
+                            <input id="signup-guardian-last" type="text" value={guardianLast}
+                              onChange={(e) => setGuardianLast(e.target.value)}
+                              placeholder="e.g. Santos" autoComplete="family-name"
+                              className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="signup-guardian-first" className="block text-[10px] font-bold text-ink-muted mb-1">First Name *</label>
+                            <input id="signup-guardian-first" type="text" value={guardianFirst}
+                              onChange={(e) => setGuardianFirst(e.target.value)}
+                              placeholder="e.g. Maria" autoComplete="given-name"
+                              className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="signup-guardian-middle" className="block text-[10px] font-bold text-ink-muted mb-1">Middle Name</label>
+                            <input id="signup-guardian-middle" type="text" value={guardianMiddle}
+                              onChange={(e) => setGuardianMiddle(e.target.value)}
+                              placeholder="e.g. Reyes" autoComplete="additional-name"
+                              className="w-full px-4 py-3 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
+                            />
+                          </div>
+                        </div>
+                      </fieldset>
 
                       <div>
                         <label htmlFor="srcapploginpage-guardian-contact-phone-4" className="block text-xs font-bold text-ink mb-1.5">Guardian Contact Phone *</label>
@@ -654,7 +742,13 @@ export default function AuthPage() {
                               )}
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <HealthFields
+                              idPrefix={`child-${index}`}
+                              value={child}
+                              onChange={(patch) => updateChild(index, patch)}
+                            />
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div>
                                 <label htmlFor="srcapploginpage-first-name-7" className="block text-[10px] font-bold text-ink mb-1">First Name *</label>
                                 <input id="srcapploginpage-first-name-7"
@@ -662,6 +756,16 @@ export default function AuthPage() {
                                   value={child.firstName}
                                   onChange={(e) => updateChild(index, { firstName: e.target.value })}
                                   placeholder="Child&apos;s first name"
+                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor={`child-${index}-middle`} className="block text-[10px] font-bold text-ink mb-1">Middle Name</label>
+                                <input id={`child-${index}-middle`}
+                                  type="text"
+                                  value={child.middleName}
+                                  onChange={(e) => updateChild(index, { middleName: e.target.value })}
+                                  placeholder="Child&apos;s middle name"
                                   className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
                               </div>
@@ -683,9 +787,16 @@ export default function AuthPage() {
                                 <input id="srcapploginpage-date-of-birth-9"
                                   type="date"
                                   value={child.birthDate}
+                                  max={todayLocalISO()}
                                   onChange={(e) => updateChild(index, { birthDate: e.target.value })}
+                                  aria-describedby={`child-${index}-age-hint`}
                                   className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
                                 />
+                                <p id={`child-${index}-age-hint`} className={`text-[10px] font-semibold mt-1 ${
+                                  child.birthDate && enrollmentAgeError(child.birthDate, todayLocalISO()) ? 'text-danger' : 'text-ink-subtle'
+                                }`}>
+                                  {(child.birthDate && enrollmentAgeError(child.birthDate, todayLocalISO())) || `Ages ${ENROLLMENT_AGE_LABEL}.`}
+                                </p>
                               </div>
                               <div>
                                 <label htmlFor="srcapploginpage-sex-10" className="block text-[10px] font-bold text-ink mb-1">Sex *</label>
@@ -718,39 +829,17 @@ export default function AuthPage() {
                               </div>
                             </div>
 
-                            <div>
-                              <label htmlFor="srcapploginpage-address-12" className="block text-[10px] font-bold text-ink mb-1">Address *</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                                <input id="srcapploginpage-address-12"
-                                  type="text"
-                                  value={child.barangay}
-                                  onChange={(e) => updateChild(index, { barangay: e.target.value })}
-                                  placeholder="Barangay"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
-                                />
-                                <input
-                                  type="text"
-                                  value={child.municipality}
-                                  onChange={(e) => updateChild(index, { municipality: e.target.value })}
-                                  placeholder="Municipality / City"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
-                                />
-                                <input
-                                  type="text"
-                                  value={child.province}
-                                  onChange={(e) => updateChild(index, { province: e.target.value })}
-                                  placeholder="Province"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
-                                />
-                                <input
-                                  type="text"
-                                  value={child.region}
-                                  onChange={(e) => updateChild(index, { region: e.target.value })}
-                                  placeholder="Region"
-                                  className="w-full px-3 py-2.5 rounded-2xl border border-line bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display"
-                                />
-                              </div>
-                            </div>
+                            <AddressFields
+                              idPrefix={`child-${index}`}
+                              value={child}
+                              onChange={(patch) => updateChild(index, patch)}
+                            />
+
+                            <BirthCertField
+                              idPrefix={`child-${index}`}
+                              file={child.birthCert}
+                              onChange={(file) => updateChild(index, { birthCert: file })}
+                            />
 
                             <div>
                               <label id={`child-${index}-handedness-label`} className="block text-[10px] font-bold text-ink mb-1">Handedness *</label>

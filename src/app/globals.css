@@ -294,6 +294,14 @@ table, .tabular {
   color: #2B6CB0;
 }
 
+/* Enrolled: green, so an approved child reads differently from the blue
+   informational badges and the amber pending ones. #1B5E20 on #E8F5E9 is AA. */
+.badge-enrolled {
+  background-color: #E8F5E9;
+  color: #1B5E20;
+  border: 1px solid #A5D6A7;
+}
+
 .badge-warning {
   background-color: #FEF8EC;
   color: #8A5D00;

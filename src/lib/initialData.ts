@@ -50,28 +50,16 @@ export async function loadInitialAppData(): Promise<InitialAppData> {
   try {
     const supabase = await createClient();
 
-    // Officials see the dashboard's counts (/api/reports/summary), never
-    // children's rows, so there is nothing of that kind to preload for them.
-    if (session.role === 'official') {
-      const [profileRes, settingsRes] = await Promise.all([
-        supabase.from('users').select('full_name').eq('id', session.userId).maybeSingle(),
-        supabase.from('center_settings').select('center_name, daycare_worker_name, barangay_captain_name').maybeSingle(),
-      ]);
-      return {
-        ...EMPTY,
-        role: session.role,
-        userName: profileRes.data?.full_name ?? null,
-        settings: (settingsRes.data as CenterSettingsRow | null) ?? EMPTY_SETTINGS,
-      };
-    }
-
     const [profileRes, pupilsRes, attendanceRes, progressRes, settingsRes] =
       await Promise.all([
         supabase.from('users').select('full_name').eq('id', session.userId).maybeSingle(),
         supabase
           .from('pupils')
           .select('*, guardian:guardians(*), sociodemographic:sociodemographic_profiles(*)')
-          .in('enrollment_status', ['pending', 'enrolled', 'rejected'])
+          // Archived rows feed the worker's Archived Pupils panel.
+          .in('enrollment_status', session.role === 'worker'
+            ? ['pending', 'enrolled', 'rejected', 'archived']
+            : ['pending', 'enrolled', 'rejected'])
           .order('created_at', { ascending: false })
           .limit(500),
         supabase.from('attendance').select('*').order('date', { ascending: false }).limit(500),

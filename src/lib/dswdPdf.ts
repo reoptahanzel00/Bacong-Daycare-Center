@@ -37,6 +37,8 @@ export interface DswdReportData {
   totalEnrolled: number;
   maleCount: number;
   femaleCount: number;
+  /** Enrolled children recorded as having special needs. */
+  specialNeedsCount: number;
   avgAttendance: number | null;
   /** Enrolled children with at least one ECCD checklist rating. */
   eccdAssessed: number;
@@ -116,10 +118,11 @@ export function buildDswdPdf(doc: jsPDF, autoTable: AutoTableFn, data: DswdRepor
   autoTable(doc, {
     startY: 43,
     margin: { left: MARGIN, right: MARGIN, top: 43, bottom: 18 },
-    head: [['Total Enrolled', 'Sex Ratio (M / F)', 'Average Attendance', 'ECCD Assessed']],
+    head: [['Total Enrolled', 'Boys / Girls', 'Special Needs', 'Average Attendance', 'ECCD Assessed']],
     body: [[
       String(data.totalEnrolled),
       `${data.maleCount} M / ${data.femaleCount} F`,
+      String(data.specialNeedsCount),
       data.avgAttendance === null ? 'No records' : `${data.avgAttendance}%`,
       `${data.eccdAssessed} of ${data.totalEnrolled}`,
     ]],

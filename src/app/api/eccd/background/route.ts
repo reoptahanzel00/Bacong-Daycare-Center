@@ -33,12 +33,6 @@ export async function GET(request: Request) {
     if (!session.isAuthenticated || !session.userId) {
       return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
-    // The capstone paper gives barangay officials summarized figures only
-    // (/api/reports/summary), never individual children's records.
-    if (session.role === 'official') {
-      return NextResponse.json({ error: 'Barangay officials see summarized figures only.' }, { status: 403 });
-    }
-
     const { searchParams } = new URL(request.url);
     const pupilId = searchParams.get('pupil_id');
     if (!pupilId) {
@@ -66,8 +60,7 @@ export async function GET(request: Request) {
 
 /**
  * POST — create/update the child & family background record.
- * Parents may write only their own linked children; workers/admins any pupil;
- * officials are read-only.
+ * Parents may write only their own linked children; workers any pupil.
  */
 export async function POST(request: Request) {
   try {
