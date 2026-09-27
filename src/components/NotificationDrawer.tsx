@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { formatLocalTimestamp } from '@/lib/dates';
 import { BellRing, X, CalendarX, CheckCircle2, PhoneCall, AlertCircle, Info, Star } from 'lucide-react';
 
 interface NotificationItem {
@@ -96,8 +97,8 @@ export default function NotificationDrawer({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <span className={`truncate ${n.read ? 'font-semibold text-ink-soft' : 'font-bold text-ink'}`}>
+                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                      <span className={`min-w-0 break-words ${n.read ? 'font-semibold text-ink-soft' : 'font-bold text-ink'}`}>
                         {!n.read && (
                           <span
                             aria-hidden="true"
@@ -107,7 +108,7 @@ export default function NotificationDrawer({
                         {n.title}
                         {!n.read && <span className="sr-only"> (unread)</span>}
                       </span>
-                      <span className="text-[10px] text-ink-subtle shrink-0">{n.timestamp}</span>
+                      <span className="text-[10px] text-ink-subtle shrink-0">{formatLocalTimestamp(n.timestamp) || n.timestamp}</span>
                     </div>
 
                     <p className="text-ink-soft leading-relaxed m-0 text-[11px]">{n.message}</p>

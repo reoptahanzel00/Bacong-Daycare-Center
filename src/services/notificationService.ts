@@ -6,7 +6,7 @@ export interface Notification {
   id: string;
   recipient_id: string;
   pupil_id?: string;
-  type: 'consecutive_absences' | 'milestone';
+  type: 'consecutive_absences' | 'milestone' | 'enrollment' | 'announcement';
   title: string;
   message: string;
   channel: string;
