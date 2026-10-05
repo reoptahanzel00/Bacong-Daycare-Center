@@ -11,25 +11,32 @@ jobs:
     name: Build, TypeCheck & Lint
     runs-on: ubuntu-latest
 
+    # No service-role key at job level. Job-level env reaches every step,
+    # including `npm ci`, where any dependency's install script could read it.
+    # Nothing here needs it: the build and the demo E2E run without Supabase,
+    # and the authenticated E2E step receives its own staging secrets below.
+    # Only the staging URL is kept here, because the step condition reads it.
     env:
-      # Use placeholder values for CI — real values injected via GitHub Secrets in staging/prod
       E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      # Node 20 reached end of life on 2026-10-01.
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      # Production dependencies only: a critical or high advisory in what
+      # ships (the Next.js RCE fixed on 2026-10-05 was one) fails the build.
+      - name: Dependency audit (production)
+        run: npm audit --omit=dev --audit-level=high
 
       - name: TypeScript type check
         run: npx tsc --noEmit

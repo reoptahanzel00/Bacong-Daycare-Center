@@ -203,19 +203,25 @@ Scope: main at [HEAD], Supabase ukzruwisvuemdjjqgoko, https://bacong-daycare-cen
 
 | ID | Severity | Summary | First Found | Status | Notes |
 |---|---|---|---|---|---|
-| B1 | BLOCKER | Privacy notice is a placeholder; no retention period or DPO contact | 2026-09-15 | **OPEN** | Lines 8, 39, 44 in src/app/privacy/page.tsx still say PLACEHOLDER. Replace with DPO-approved text and bump PRIVACY_NOTICE_VERSION before real pupil data is entered. |
+| B1 | BLOCKER | Privacy notice is a placeholder; no retention period or DPO contact | 2026-09-15 | **FIXED** | Notice finalised (PRIVACY_NOTICE_VERSION v1.0-2026-09-16); no PLACEHOLDER text remains (verified 2026-10-05). |
 | B2 | BLOCKER | Officials could read full child records | 2026-09-15 | **FIXED** | Fixed by migrations 20260917_01 and 20260918_01. Officials restricted to /api/reports/summary. Verify: no 'official' in child-table policies. |
 | B3 | BLOCKER | Service worker cached authenticated pages; survived sign-out | 2026-09-15 | **FIXED** | public/sw.js replaced with self-removing stub (deletes caches, unregisters, reloads tabs). |
 | B4 | BLOCKER | Legacy service-role JWT in public git history; legacy JWT keys enabled | 2026-09-15 | **PARTIALLY FIXED** | New key pair in use (.env.local + Vercel). Legacy JWT keys must still be disabled in Supabase Dashboard. |
 | H1 | HIGH | Failed attendance save returned success: true; data silently lost | 2026-09-15 | **FIXED** | attendance/bulk/route.ts now returns 503 + success: false on any write failure. |
-| H2 | HIGH | Supabase service-role secret key shared in AI chat (2026-09-15 and 2026-09-16) | 2026-09-15 | **OPEN** | Key sb_secret_YSE4zZxRjPj3BjT-SnjaOw... must be rotated. Create new secret key in Supabase, update .env.local and Vercel, delete old key. |
+| H2 | HIGH | Supabase service-role secret key shared in AI chat (2026-09-15 and 2026-09-16) | 2026-09-15 | **OPEN** | The secret key in use since 2026-09-15 (prefix redacted) must be rotated. Create new secret key in Supabase, update .env.local and Vercel, delete old key. |
 | M1 | MEDIUM | Audit trail written by browser, not server | 2026-09-15 | **FIXED** | All write routes now call recordAudit() server-side with verified session. |
 | M2 | MEDIUM | localStorage not cleared on session expiry | 2026-09-15 | **FIXED** | login/page.tsx calls clearStoredData() on mount. Sign-out buttons in Header and Sidebar also clear it. |
 | M3 | MEDIUM | Staff accounts use demo names and fake email addresses | 2026-09-15 | **OPEN** | worker@bacong.gov.ph and official@bacong.gov.ph are test accounts. Replace with real staff emails; fill Centre & Signatories. |
-| L1 | LOW | Middleware public-path check lacks trailing-slash guard | 2026-09-15 | **OPEN** | src/middleware.ts startsWith('/auth') would match /author. Fix: path === p or path.startsWith(p + '/'). |
-| L2 | LOW | Middleware passes through when Supabase env vars missing | 2026-09-15 | **OPEN** | Demo fallback. Fix: fail closed when NODE_ENV === 'production'. |
-| L3 | LOW | supabase/.temp/ untracked and not in .gitignore | 2026-09-15 | **OPEN** | Add supabase/.temp/ to .gitignore. |
-| L4 | LOW | Parent signup auto-confirms email; no ownership proof | 2026-09-15 | **OPEN** | email_confirm: true in auth/signup/route.ts. No data exposure (worker still verifies), but a typo locks parent out of recovery. |
+| L1 | LOW | Middleware public-path check lacks trailing-slash guard | 2026-09-15 | **FIXED** | src/middleware.ts uses exact match or `p + "/"` prefix (verified 2026-10-05). |
+| L2 | LOW | Middleware passes through when Supabase env vars missing | 2026-09-15 | **FIXED** | Middleware returns 503 in production when Supabase env is missing (verified 2026-10-05). |
+| L3 | LOW | supabase/.temp/ untracked and not in .gitignore | 2026-09-15 | **FIXED** | supabase/.temp/ is in .gitignore. |
+| L4 | LOW | Parent signup auto-confirms email; no ownership proof | 2026-09-15 | **MITIGATED** | Email ownership is proven before any alert email is sent (20260925 migration); sign-in itself still does not require it. |
+| F1 | CRITICAL | Next.js RCE advisories (15.5.23) and jspdf/dompurify injection | 2026-10-05 | **FIXED** | next 15.5.27, jspdf 4.2.1, overrides for postcss/sharp; CI now fails on high advisories. |
+| F2 | CRITICAL | Disabled accounts kept worker access through RLS (current_user_role ignored status; ex-officials not banned) | 2026-10-05 | **FIXED IN CODE — APPLY MIGRATION** | Run supabase/migrations/20261005_01_final_audit.sql in the Supabase SQL editor. |
+| F3 | HIGH | ECCD checklist save deleted before inserting; reads truncated at 1000 rows | 2026-10-05 | **FIXED** | Insert-then-delete; paginated reads (src/lib/supabase/paginate.ts). |
+| F4 | HIGH | DSWD Form 1 / summary figures computed from truncated data | 2026-10-05 | **FIXED** | Server figures per school year via /api/reports/summary?schoolYear=. |
+| F5 | HIGH | schema.sql could not build a fresh database | 2026-10-05 | **FIXED** | center_settings moved after users. |
+| F6 | HIGH | Fake-success paths (user provisioning, account disable, guardian save, signup children, ECCD scores) | 2026-10-05 | **FIXED** | See docs/AUDIT-2026-10-05.md. |
 
 ---
 
