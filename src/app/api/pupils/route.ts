@@ -52,7 +52,8 @@ export async function GET(request: Request) {
     const { data, error } = await query.order('created_at', { ascending: false }).limit(500);
 
     if (error) {
-      return NextResponse.json({ pupils: [], warning: error.message });
+      console.error('[API pupils] read failed:', error.message);
+      return NextResponse.json({ pupils: [], warning: 'Data unavailable.' });
     }
 
     return NextResponse.json({ pupils: data || [] });
@@ -103,11 +104,24 @@ export async function POST(request: Request) {
       // Enrollment status transitions belong to /api/pupils/verify. Editing a
       // pupil's demographics must never approve a parent-submitted enrollment,
       // so a pending/rejected record keeps its status through this write.
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('pupils')
         .select('enrollment_status, enrollment_date, consecutive_absences, archived_at')
         .eq('id', pupilId)
         .maybeSingle();
+      if (existingError) {
+        console.error('[Pupils API] lookup failed:', existingError.message);
+        return NextResponse.json(
+          { success: false, error: 'The pupil record could not be saved. Please try again.' },
+          { status: 503 }
+        );
+      }
+      // An id is an edit of a record that exists. Accepting an unknown one
+      // created a pupil under a caller-chosen id and skipped the age check,
+      // which only runs for new enrollments.
+      if (parsed.id && !existing) {
+        return NextResponse.json({ success: false, error: 'Pupil record not found.' }, { status: 404 });
+      }
       previousStatus = existing?.enrollment_status ?? null;
 
       const dbRecord = {
@@ -147,38 +161,42 @@ export async function POST(request: Request) {
       } else {
         // Update-or-insert the primary guardian so re-saves on an existing pupil
         // do not create duplicate guardian rows every edit.
-        const { data: existingGuardian } = await supabase
+        const { data: primaryGuardians, error: lookupError } = await supabase
           .from('guardians')
           .select('id')
           .eq('pupil_id', pupilId)
           .eq('is_primary_contact', true)
-          .maybeSingle();
+          .order('id')
+          .limit(1);
+        const existingGuardian = primaryGuardians?.[0];
 
-        if (existingGuardian) {
-          const { error: gError } = await supabase
-            .from('guardians')
-            .update({
-              full_name: guardianName,
-              last_name: parsed.guardianLastName,
-              first_name: parsed.guardianFirstName,
-              middle_name: parsed.guardianMiddleName || null,
-              relationship: parsed.relationship,
-              phone: parsed.guardianPhone,
-            })
-            .eq('id', existingGuardian.id);
-          if (gError) console.warn('[Pupils API] Guardian update warning:', gError.message);
-        } else {
-          const { error: gError } = await supabase.from('guardians').insert([{
-            pupil_id: pupilId,
-            full_name: guardianName,
-            last_name: parsed.guardianLastName,
-            first_name: parsed.guardianFirstName,
-            middle_name: parsed.guardianMiddleName || null,
-            relationship: parsed.relationship,
-            phone: parsed.guardianPhone,
-            is_primary_contact: true,
-          }]);
-          if (gError) console.warn('[Pupils API] Guardian insert warning:', gError.message);
+        const guardianFields = {
+          full_name: guardianName,
+          last_name: parsed.guardianLastName,
+          first_name: parsed.guardianFirstName,
+          middle_name: parsed.guardianMiddleName || null,
+          relationship: parsed.relationship,
+          phone: parsed.guardianPhone,
+        };
+        const { error: gError } = lookupError
+          ? { error: lookupError }
+          : existingGuardian
+            ? await supabase.from('guardians').update(guardianFields).eq('id', existingGuardian.id)
+            : await supabase.from('guardians').insert([{ ...guardianFields, pupil_id: pupilId, is_primary_contact: true }]);
+        if (gError) {
+          // The pupil row is saved; say plainly that the guardian is not,
+          // instead of answering success with guardian details never stored.
+          console.error('[Pupils API] Guardian write failed:', gError.message);
+          const duplicatePhone = 'code' in gError && gError.code === '23505';
+          return NextResponse.json(
+            {
+              success: false,
+              error: duplicatePhone
+                ? 'The child was saved, but that guardian phone number is already recorded for this child. Edit the record to fix the guardian details.'
+                : 'The child was saved, but the guardian details were not. Please edit the record and save again.',
+            },
+            { status: 500 }
+          );
         }
       }
     } catch {

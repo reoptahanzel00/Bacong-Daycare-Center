@@ -22,7 +22,8 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[API notifications/[id]] write failed:', error.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
     if (!data) {
       return NextResponse.json({ error: 'Notification not found.' }, { status: 404 });

@@ -20,7 +20,8 @@ export async function GET() {
       .limit(50);
 
     if (error) {
-      return NextResponse.json({ notifications: [], warning: error.message });
+      console.error('[API notifications] read failed:', error.message);
+      return NextResponse.json({ notifications: [], warning: 'Data unavailable.' });
     }
 
     const notifications = (data || []).map((n) => ({

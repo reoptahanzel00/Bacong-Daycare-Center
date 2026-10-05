@@ -25,7 +25,31 @@ function safeNext(raw: string | null): string {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const tokenHash = searchParams.get('token_hash');
+  const type = searchParams.get('type');
   const next = safeNext(searchParams.get('next'));
+
+  // A recovery link issued by the Daycare Worker (/api/users/reset-password)
+  // carries a token_hash rather than a PKCE code: it is opened on the
+  // parent's phone, which never held a code verifier.
+  if (tokenHash && type === 'recovery') {
+    try {
+      const supabase = await createClient();
+      const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+      if (error) {
+        console.warn('[Auth callback] Recovery token rejected:', error.message);
+        return NextResponse.redirect(
+          `${origin}/login?error=${encodeURIComponent('That link has expired or was already used. Please request a new one.')}`
+        );
+      }
+      return NextResponse.redirect(`${origin}${next}`);
+    } catch (e) {
+      console.error('[Auth callback] Unexpected failure:', e);
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent('Could not complete sign-in. Please try again.')}`
+      );
+    }
+  }
 
   if (!code) {
     return NextResponse.redirect(

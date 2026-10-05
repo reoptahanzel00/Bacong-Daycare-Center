@@ -44,7 +44,8 @@ export async function GET(request: Request) {
     const { data, error } = await query.limit(200);
 
     if (error) {
-      return NextResponse.json({ observations: [], warning: error.message });
+      console.error('[API progress] read failed:', error.message);
+      return NextResponse.json({ observations: [], warning: 'Data unavailable.' });
     }
 
     // Map DB columns back to the client contract (domain/date/rating) so the

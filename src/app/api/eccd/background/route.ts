@@ -50,7 +50,8 @@ export async function GET(request: Request) {
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ background: null, warning: error.message });
+      console.error('[API eccd/background] read failed:', error.message);
+      return NextResponse.json({ background: null, warning: 'Data unavailable.' });
     }
     return NextResponse.json({ background: data || null });
   } catch {
@@ -85,16 +86,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: this pupil is not linked to your account.' }, { status: 403 });
     }
 
-    const row = {
+    // Only the fields the request carries are written. A field left out keeps
+    // its stored value; one sent as null or '' is cleared. Writing every
+    // field as `?? null` erased whatever a partial form did not resend.
+    const FIELDS = ['child_background', 'family_environment', 'stimulating_activities', 'home_environment', 'others'] as const;
+    const row: Record<string, string | null> = {
       pupil_id: parsed.pupil_id,
-      child_background: parsed.child_background ?? null,
-      family_environment: parsed.family_environment ?? null,
-      stimulating_activities: parsed.stimulating_activities ?? null,
-      home_environment: parsed.home_environment ?? null,
-      others: parsed.others ?? null,
       updated_by: session.userId,
       updated_at: new Date().toISOString(),
     };
+    for (const field of FIELDS) {
+      const value = parsed[field];
+      if (value !== undefined) row[field] = value || null;
+    }
 
     const { data, error } = await admin
       .from('child_backgrounds')
@@ -103,7 +107,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[Background API] save failed:', error.message);
+      return NextResponse.json({ error: 'Could not save the background information.' }, { status: 400 });
     }
     await recordAudit(admin, session, 'Updated child & family background', parsed.pupil_id);
 

@@ -24,8 +24,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json();
     const parsed = UpdateUserSchema.parse(body);
 
+    if (!z.string().uuid().safeParse(id).success) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
+
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const admin = createAdminClient();
+
+    if (parsed.status === 'disabled') {
+      // Nobody can sign in to re-enable an account once no worker can sign
+      // in, short of editing the database by hand.
+      if (id === session.userId) {
+        return NextResponse.json({ error: 'You cannot disable your own account.' }, { status: 400 });
+      }
+      const { data: target } = await admin.from('users').select('role').eq('id', id).maybeSingle();
+      if (target?.role === 'worker') {
+        const { count, error: countError } = await admin
+          .from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'worker')
+          .eq('status', 'active')
+          .neq('id', id);
+        if (countError || !count) {
+          return NextResponse.json(
+            { error: 'At least one Daycare Worker account must stay active.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     const { data, error } = await admin
       .from('users')
@@ -35,7 +62,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[Users API] status update failed:', error.message);
+      return NextResponse.json({ error: 'Could not update the account.' }, { status: 400 });
     }
 
     // Flipping the profile row stops every API call (getServerSession rejects a

@@ -30,7 +30,8 @@ export async function GET() {
       .limit(500);
 
     if (error) {
-      return NextResponse.json({ logs: [], warning: error.message });
+      console.error('[API audit-log] read failed:', error.message);
+      return NextResponse.json({ logs: [], warning: 'Data unavailable.' });
     }
     return NextResponse.json({ logs: data || [] });
   } catch {

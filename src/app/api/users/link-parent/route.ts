@@ -51,6 +51,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Guardian record not found for this pupil.' }, { status: 400 });
     }
 
+    // Re-pointing a guardian that already has an account would silently cut
+    // the first parent off from their child. Unlink deliberately instead.
+    const alreadyLinkedTo = guardian.user_id as string | null;
+
     let parentUserId: string;
 
     if (parsed.mode === 'existing') {
@@ -75,8 +79,20 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+      if (alreadyLinkedTo && alreadyLinkedTo !== profile.id) {
+        return NextResponse.json(
+          { error: `${guardian.full_name} is already linked to another parent account.` },
+          { status: 409 }
+        );
+      }
       parentUserId = profile.id;
     } else {
+      if (alreadyLinkedTo) {
+        return NextResponse.json(
+          { error: `${guardian.full_name} is already linked to a parent account.` },
+          { status: 409 }
+        );
+      }
       // Create the auth account, then the profile row, then link.
       const { data: authData, error: authError } = await admin.auth.admin.createUser({
         email: parsed.email as string,
@@ -101,7 +117,11 @@ export async function POST(request: Request) {
       });
 
       if (profileError) {
-        console.warn('[Link Parent API] Profile insert warning:', profileError.message);
+        // Without a profile the account can never sign in ("not provisioned")
+        // and its email is taken. Remove it so the worker can simply retry.
+        console.error('[Link Parent API] Profile insert failed:', profileError.message);
+        await admin.auth.admin.deleteUser(authData.user.id);
+        return NextResponse.json({ error: 'Could not create the parent account. Please try again.' }, { status: 500 });
       }
       parentUserId = authData.user.id;
     }
@@ -113,7 +133,8 @@ export async function POST(request: Request) {
       .eq('id', guardian.id);
 
     if (linkError) {
-      return NextResponse.json({ error: linkError.message }, { status: 400 });
+      console.error('[Link Parent API] link failed:', linkError.message);
+      return NextResponse.json({ error: 'Could not link the parent account.' }, { status: 400 });
     }
 
     await recordAudit(admin, session, 'Linked parent account to pupil', parsed.pupil_id, `User ${parentUserId}`);

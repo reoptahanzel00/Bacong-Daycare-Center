@@ -39,7 +39,8 @@ export async function GET() {
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ settings: EMPTY_SETTINGS, warning: error.message });
+      console.error('[API settings] read failed:', error.message);
+      return NextResponse.json({ settings: EMPTY_SETTINGS, warning: 'Data unavailable.' });
     }
     return NextResponse.json({ settings: data || EMPTY_SETTINGS });
   } catch {
@@ -75,7 +76,8 @@ export async function PATCH(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[API settings] write failed:', error.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
 
     // Who signs the barangay's official reports is worth an audit entry.

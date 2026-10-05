@@ -60,6 +60,7 @@ export default function AdminView({
   const [auditPage, setAuditPage] = useState(1);
   const [resetSent, setResetSent] = useState<Record<string, boolean>>({});
   const [resetLinks, setResetLinks] = useState<Record<string, string>>({});
+  const [resetBusy, setResetBusy] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
     const needle = userSearch.toLowerCase();
@@ -79,14 +80,30 @@ export default function AdminView({
   );
 
   const handleResetPassword = async (userId: string, userEmail: string) => {
-    const res = await resetUserPassword(userId);
-    if (res.success) {
-      setResetLinks(prev => ({ ...prev, [userId]: res.reset_link || '' }));
-      setResetSent(prev => ({ ...prev, [userId]: true }));
-      showToast(`Reset link generated for ${userEmail}!`, 'success');
-      setTimeout(() => setResetSent(prev => ({ ...prev, [userId]: false })), 6000);
-    } else {
-      showToast(`Could not reset ${userEmail}: ${errorText(res.error, 'unknown error')}`, 'danger');
+    if (resetBusy) return;
+    setResetBusy(userId);
+    try {
+      const res = await resetUserPassword(userId);
+      if (res.success) {
+        setResetLinks(prev => ({ ...prev, [userId]: res.reset_link || '' }));
+        setResetSent(prev => ({ ...prev, [userId]: true }));
+        showToast(res.emailed ? `Reset link emailed to ${userEmail}.` : `Reset link created for ${userEmail}. Give it to them directly.`, 'success');
+      } else {
+        showToast(`Could not reset ${userEmail}: ${errorText(res.error, 'unknown error')}`, 'danger');
+      }
+    } finally {
+      setResetBusy(null);
+    }
+  };
+
+  // Copied, never opened here: the link signs in whoever opens it, so opening
+  // it on this device would replace the worker's own session with the parent's.
+  const copyResetLink = async (userId: string) => {
+    try {
+      await navigator.clipboard.writeText(resetLinks[userId]);
+      showToast('Reset link copied. Send it to the parent only.', 'success');
+    } catch {
+      showToast('Could not copy automatically. Long-press the link to copy it.', 'warning');
     }
   };
 
@@ -192,33 +209,36 @@ export default function AdminView({
                       </button>
                     </td>
                     <td>
+                      {u.role === 'parent' ? (
                       <div className="flex flex-col items-start gap-1">
                         <button
                           onClick={() => handleResetPassword(u.id, u.email)}
+                          disabled={resetBusy !== null}
                           className={`btn btn-sm gap-1.5 transition-all ${
                             resetSent[u.id]
                               ? 'bg-primary-light text-primary border-primary-display/30'
                               : 'btn-secondary'
                           }`}
-                          title={resetSent[u.id] ? 'Reset link generated!' : 'Generate password reset link'}
+                          title="Create a one-time password reset link"
                           suppressHydrationWarning
                         >
                           {resetSent[u.id] ? <CheckCircle size={14} /> : <Key size={14} />}
-                          <span>{resetSent[u.id] ? 'Generated!' : 'Reset Pass'}</span>
+                          <span>{resetBusy === u.id ? 'Creating…' : resetSent[u.id] ? 'Link ready' : 'Reset Pass'}</span>
                         </button>
                         {resetLinks[u.id] && (
-                          <a
-                            href={resetLinks[u.id]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-primary underline max-w-[180px] truncate"
+                          <button
+                            type="button"
+                            onClick={() => copyResetLink(u.id)}
+                            className="text-[10px] text-primary underline bg-transparent border-none p-0 cursor-pointer"
                             title={resetLinks[u.id]}
-                            suppressHydrationWarning
                           >
-                            Open reset link
-                          </a>
+                            Copy reset link
+                          </button>
                         )}
                       </div>
+                      ) : (
+                        <span className="text-[10px] text-ink-muted">Resets own password from sign-in</span>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -29,7 +29,8 @@ export async function GET() {
       .order('submitted_at', { ascending: false })
       .limit(200);
     if (error) {
-      return NextResponse.json({ notes: [], warning: error.message });
+      console.error('[API parent-notes] read failed:', error.message);
+      return NextResponse.json({ notes: [], warning: 'Data unavailable.' });
     }
     return NextResponse.json({ notes: data || [] });
   } catch {
@@ -86,7 +87,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[API parent-notes] write failed:', error.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
     await recordAudit(admin, session, 'Submitted absence note', parsed.pupil_id, `For ${parsed.date}`);
 

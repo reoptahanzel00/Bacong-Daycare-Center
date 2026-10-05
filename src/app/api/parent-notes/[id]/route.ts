@@ -29,12 +29,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       );
     }
 
-    let body: unknown = {};
+    // The decision must be stated. An unreadable body used to count as an
+    // approval, so a malformed "decline" approved the letter.
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
-      // Older clients sent no body; treat as approval.
-      body = { status: 'approved' };
+      return NextResponse.json({ error: 'State the decision: approved or declined.' }, { status: 400 });
     }
     const { status } = DecisionSchema.parse(body);
 
@@ -51,7 +52,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[Parent Notes API] review failed:', error.message);
+      return NextResponse.json({ error: 'Could not record the decision.' }, { status: 400 });
     }
     if (!data) {
       return NextResponse.json({ error: 'Excuse letter not found or already reviewed.' }, { status: 404 });

@@ -24,7 +24,8 @@ export async function GET() {
       .limit(500);
 
     if (error) {
-      return NextResponse.json({ users: [], warning: error.message });
+      console.error('[API users] read failed:', error.message);
+      return NextResponse.json({ users: [], warning: 'Data unavailable.' });
     }
 
     return NextResponse.json({ users: data || [] });

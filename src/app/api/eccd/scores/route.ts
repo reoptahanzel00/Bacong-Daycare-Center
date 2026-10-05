@@ -14,7 +14,8 @@ const SaveScoresSchema = z.object({
     z.object({
       domain_id: z.string().min(1, 'Domain ID is required'),
       raw_score: z.number().int().min(0).max(200),
-      scaled_score: z.number().int().min(0).max(100).nullable().optional(),
+      // The form's scaled scores run 1-19 (SCALED_SCORE_BANDS); 0 = not yet read off.
+      scaled_score: z.number().int().min(0).max(19).nullable().optional(),
     })
   ),
   // Read off the official Sum-of-Scaled-Scores table by the examiner; the
@@ -53,7 +54,8 @@ export async function GET(request: Request) {
     ]);
 
     if (error) {
-      return NextResponse.json({ scores: [], evaluations: [], warning: error.message });
+      console.error('[API eccd/scores] read failed:', error.message);
+      return NextResponse.json({ scores: [], evaluations: [], warning: 'Data unavailable.' });
     }
     return NextResponse.json({ scores: data || [], evaluations: evaluations || [] });
   } catch {
@@ -97,7 +99,8 @@ export async function POST(request: Request) {
       .upsert(rows, { onConflict: 'pupil_id,domain_id,evaluation_round' });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[API eccd/scores] write failed:', error.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
 
     const { error: evaluationError } = await admin.from('eccd_evaluations').upsert(
@@ -112,7 +115,8 @@ export async function POST(request: Request) {
       { onConflict: 'pupil_id,evaluation_round' }
     );
     if (evaluationError) {
-      return NextResponse.json({ error: evaluationError.message }, { status: 400 });
+      console.error('[API eccd/scores] write failed:', evaluationError.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
 
     await recordAudit(admin, session, 'Saved ECCD scores', parsed.pupil_id, `Round ${parsed.round}${parsed.standard_score != null ? `, standard score ${parsed.standard_score}` : ''}`);

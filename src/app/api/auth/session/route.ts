@@ -1,34 +1,38 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ * The caller's session, judged by the same rules every API route applies
+ * (getServerSession): a disabled or unprovisioned account is reported as not
+ * authenticated, rather than as signed in with a null role.
+ */
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      return NextResponse.json({ authenticated: false, user: null });
+    const session = await getServerSession();
+    if (!session.isAuthenticated || !session.userId) {
+      return NextResponse.json({ authenticated: false, user: null }, { headers: { 'Cache-Control': 'private, no-store' } });
     }
 
+    const supabase = await createClient();
     const { data: profile } = await supabase
       .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+      .select('full_name')
+      .eq('id', session.userId)
+      .maybeSingle();
 
-    // The users table is the single source of truth. user_metadata is
-    // user-editable and must never be trusted for authorization.
-    const role = profile?.role ?? null;
-
-    return NextResponse.json({
-      authenticated: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        role,
-        name: profile?.full_name || 'System User',
+    return NextResponse.json(
+      {
+        authenticated: true,
+        user: {
+          id: session.userId,
+          email: session.email,
+          role: session.role,
+          name: profile?.full_name || 'System User',
+        },
       },
-    });
+      { headers: { 'Cache-Control': 'private, no-store' } }
+    );
   } catch {
     return NextResponse.json({ authenticated: false, user: null });
   }

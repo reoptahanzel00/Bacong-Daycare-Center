@@ -70,7 +70,8 @@ export async function POST(request: Request) {
       .eq('enrollment_status', 'pending')
       .select('id');
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
+      console.error('[API pupils/verify] write failed:', updateError.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
     if (!updated || updated.length === 0) {
       return NextResponse.json({ error: 'This enrollment was already decided.' }, { status: 409 });

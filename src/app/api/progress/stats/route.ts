@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 /**
  * GET — aggregate ECCD milestone counts for oversight dashboards.
@@ -29,12 +30,17 @@ export async function GET() {
       if (pupilIds.length === 0) {
         return NextResponse.json({ total: 0, byDomain: {} });
       }
-      const { data, error } = await admin
-        .from('progress_observations')
-        .select('domain_id')
-        .in('pupil_id', pupilIds);
+      const { data, error } = await fetchAllRows<{ domain_id: string }>((from, to) =>
+        admin
+          .from('progress_observations')
+          .select('domain_id')
+          .in('pupil_id', pupilIds)
+          .order('id')
+          .range(from, to)
+      );
       if (error) {
-        return NextResponse.json({ total: 0, byDomain: {}, warning: error.message });
+        console.error('[Progress Stats API] read failed:', error.message);
+        return NextResponse.json({ total: 0, byDomain: {}, warning: 'Stats unavailable.' });
       }
       const rows = data || [];
       const byDomain: Record<string, number> = {};
@@ -42,11 +48,13 @@ export async function GET() {
       return NextResponse.json({ total: rows.length, byDomain });
     }
 
-    const { data, error } = await admin
-      .from('progress_observations')
-      .select('domain_id');
+    // Paged: one fully assessed class passes Supabase's 1000-row response cap.
+    const { data, error } = await fetchAllRows<{ domain_id: string }>((from, to) =>
+      admin.from('progress_observations').select('domain_id').order('id').range(from, to)
+    );
     if (error) {
-      return NextResponse.json({ total: 0, byDomain: {}, warning: error.message });
+      console.error('[Progress Stats API] read failed:', error.message);
+        return NextResponse.json({ total: 0, byDomain: {}, warning: 'Stats unavailable.' });
     }
     const rows = data || [];
     const byDomain: Record<string, number> = {};

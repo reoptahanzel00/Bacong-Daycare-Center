@@ -41,24 +41,76 @@ export async function POST(request: Request) {
       );
     }
 
-    const records = parsed.records.map(r => ({
+    // One row per pupil: a duplicate pupil_id in a single upsert makes
+    // Postgres reject the whole register ("cannot affect row a second time").
+    const latest = new Map(parsed.records.map((r) => [r.pupil_id, r]));
+    const records = [...latest.values()].map((r) => ({
       pupil_id: r.pupil_id,
       date: parsed.date,
       status: r.status,
-      notes: (r.notes || '').trim(),
+      // undefined = keep whatever note the row already has (an approved
+      // excuse letter is recorded there); a string, even '', replaces it.
+      notes: r.notes === undefined ? undefined : r.notes.trim(),
       recorded_by: session.userId,
     }));
+    const pupilIds = records.map((r) => r.pupil_id);
+
+    // Streaks before this save, so an alert goes out only when this register
+    // made a streak reach or pass the threshold - not on every re-save of a
+    // register that already contained the absences.
+    let admin: ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>;
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      admin = createAdminClient();
+    } catch {
+      console.error('[Attendance API] Database unavailable; register not saved.');
+      return NextResponse.json(
+        { success: false, error: 'The attendance register could not be saved. Please try again.' },
+        { status: 503 }
+      );
+    }
+    const { data: before, error: beforeError } = await admin
+      .from('pupils')
+      .select('id, enrollment_status, consecutive_absences')
+      .in('id', pupilIds);
+    if (beforeError) {
+      console.error('[Attendance API] Pupil lookup failed:', beforeError.message);
+      return NextResponse.json(
+        { success: false, error: 'The attendance register could not be saved. Please try again.' },
+        { status: 503 }
+      );
+    }
+    const notEnrolled = pupilIds.filter(
+      (id) => !(before || []).some((p) => p.id === id && p.enrollment_status === 'enrolled')
+    );
+    if (notEnrolled.length > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Attendance can only be recorded for enrolled children.' },
+        { status: 400 }
+      );
+    }
+    const priorStreak = new Map((before || []).map((p) => [p.id, p.consecutive_absences || 0]));
 
     // Try to persist to Supabase
     try {
       const { createClient } = await import('@/lib/supabase/server');
       const supabase = await createClient();
-      const { error } = await supabase
-        .from('attendance')
-        .upsert(records, { onConflict: 'pupil_id,date' });
+      // Rows with and without a note go in separate upserts: in one batch
+      // PostgREST writes the union of columns, so a row sent without `notes`
+      // would have its stored note overwritten with NULL.
+      const withNotes = records.filter((r) => r.notes !== undefined);
+      const withoutNotes = records
+        .filter((r) => r.notes === undefined)
+        .map((r) => ({ pupil_id: r.pupil_id, date: r.date, status: r.status, recorded_by: r.recorded_by }));
+      let error: { message: string } | null = null;
+      for (const batch of [withNotes, withoutNotes]) {
+        if (batch.length === 0) continue;
+        ({ error } = await supabase.from('attendance').upsert(batch, { onConflict: 'pupil_id,date' }));
+        if (error) break;
+      }
 
       if (error) {
-        console.error('[Attendance API] Upsert error:', error);
+        console.error('[Attendance API] Upsert error:', error.message);
         // Not saved. There is no offline queue, so say so rather than letting
         // the worker believe the register is stored.
         return NextResponse.json(
@@ -73,12 +125,9 @@ export async function POST(request: Request) {
       // whether the register saved. after() still runs the work to completion on
       // the server, unlike a bare floating promise, which a serverless instance
       // may kill once the response is sent.
-      const pupilIds = records.map((r) => r.pupil_id);
       after(async () => {
         try {
-          const { createAdminClient } = await import('@/lib/supabase/admin');
           const { notifyUsers, guardianUserIdsForPupils } = await import('@/lib/notify');
-          const admin = createAdminClient();
 
           const { data: affected } = await admin
             .from('pupils')
@@ -86,7 +135,9 @@ export async function POST(request: Request) {
             .in('id', pupilIds);
 
           const alertPupils = (affected || []).filter(
-            (p) => p.consecutive_absences >= ABSENCE_ALERT_THRESHOLD
+            (p) =>
+              p.consecutive_absences >= ABSENCE_ALERT_THRESHOLD &&
+              p.consecutive_absences > (priorStreak.get(p.id) ?? 0)
           );
           if (alertPupils.length === 0) return;
 
@@ -118,8 +169,7 @@ export async function POST(request: Request) {
     }
 
     {
-      const { createAdminClient } = await import('@/lib/supabase/admin');
-      await recordAudit(createAdminClient(), session, 'Saved attendance register', `Register ${parsed.date}`, `${records.length} pupils marked`);
+      await recordAudit(admin, session, 'Saved attendance register', `Register ${parsed.date}`, `${records.length} pupils marked`);
     }
 
     return NextResponse.json({
@@ -153,7 +203,10 @@ export async function GET(request: Request) {
     if (pupilId) query = query.eq('pupil_id', pupilId);
 
     const { data, error } = await query.limit(500);
-    if (error) return NextResponse.json({ records: [], warning: error.message });
+    if (error) {
+      console.error('[Attendance API] read failed:', error.message);
+      return NextResponse.json({ records: [], warning: 'Attendance unavailable.' });
+    }
     return NextResponse.json({ records: data || [] });
   } catch {
     return NextResponse.json({ records: [], warning: 'Database not connected.' });

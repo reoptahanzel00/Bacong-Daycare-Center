@@ -20,7 +20,8 @@ export async function POST() {
       .select('id');
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[API notifications/read-all] write failed:', error.message);
+      return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
     return NextResponse.json({ success: true, marked: data?.length || 0 });
   } catch {

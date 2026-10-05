@@ -293,7 +293,7 @@ export async function POST(request: Request) {
     }
 
     if (pupilCreateError) {
-      console.warn('[Signup API] Child profile insert warning:', pupilCreateError);
+      console.error('[Signup API] Child profile insert failed:', pupilCreateError);
     }
 
     // Prove the address. This does not gate sign-in — the account above is
@@ -321,10 +321,16 @@ export async function POST(request: Request) {
 
     await recordAudit(admin, { userId: authData.user.id, email, role: 'parent' }, 'Registered parent account', createdPupilIds.join(', ') || 'No child profile saved');
 
+    // Saving stops at the first child that fails, so every child after it is
+    // unsaved too. Say how many, rather than reporting the account as linked
+    // and letting a parent of two believe both were submitted.
+    const childrenNotSaved = parsed.children.length - createdPupilIds.length;
     const childMessage =
-      createdPupilIds.length > 0
-        ? `Account created. ${createdPupilIds.length} child profile(s) submitted for verification by the Daycare Worker.`
-        : 'Account created, but your child profile could not be saved. Please contact the Daycare Worker.';
+      createdPupilIds.length === 0
+        ? 'Account created, but your child profile could not be saved. Please contact the Daycare Worker.'
+        : childrenNotSaved > 0
+          ? `Account created. ${createdPupilIds.length} of ${parsed.children.length} child profiles were submitted for verification; ${childrenNotSaved} could not be saved. Please contact the Daycare Worker to add ${childrenNotSaved === 1 ? 'that child' : 'those children'}.`
+          : `Account created. ${createdPupilIds.length} child profile(s) submitted for verification by the Daycare Worker.`;
 
     // Only claim a confirmation email when one was actually handed to the
     // provider. Telling a parent to check an inbox nothing was sent to is the
@@ -337,6 +343,7 @@ export async function POST(request: Request) {
       success: true,
       message: `${childMessage}${verificationMessage}`,
       linked: createdPupilIds.length > 0,
+      childrenNotSaved,
       pupilIds: createdPupilIds,
       uploads,
       verificationEmailSent: verification.sent,
