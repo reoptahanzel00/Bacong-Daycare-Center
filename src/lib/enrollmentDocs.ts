@@ -10,13 +10,12 @@ type AdminClient = ReturnType<typeof createAdminClient>;
  * private bucket with no client policies. The browser never holds a storage
  * credential: the server checks the guardian link or worker role, then hands
  * out a single-use signed upload URL or a short-lived signed download URL.
- * Uploading straight to Storage also keeps a 5 MB scan clear of the 4.5 MB
- * function body limit. Storage itself is the record of whether the document
+ * Uploading straight to Storage also keeps a scan of up to 15 MB clear of
+ * the 4.5 MB function body limit; the bucket's file_size_limit enforces the cap. Storage itself is the record of whether the document
  * was submitted, so there is no table row to drift out of step with it.
  */
 export const ENROLLMENT_DOCS_BUCKET = 'enrollment-docs';
 export const BIRTH_CERT_FILE = 'birth-certificate';
-export const MAX_DOC_BYTES = 5 * 1024 * 1024;
 
 export function birthCertPath(pupilId: string): string {
   return `${pupilId}/${BIRTH_CERT_FILE}`;

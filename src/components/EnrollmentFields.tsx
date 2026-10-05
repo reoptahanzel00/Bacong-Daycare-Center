@@ -169,13 +169,15 @@ export function AddressFields({
 }
 
 export const DOC_ACCEPT = 'application/pdf,image/jpeg,image/png';
-export const MAX_DOC_BYTES = 5 * 1024 * 1024;
+/** Must match the enrollment-docs bucket's file_size_limit (supabase/schema.sql). */
+export const MAX_DOC_MB = 15;
+export const MAX_DOC_BYTES = MAX_DOC_MB * 1024 * 1024;
 
 /** Null when the file is acceptable, otherwise the message to show. */
 export function birthCertProblem(file: File | null): string | null {
   if (!file) return 'Please attach the child\'s birth certificate (PDF, JPG or PNG).';
   if (!DOC_ACCEPT.split(',').includes(file.type)) return 'The birth certificate must be a PDF, JPG or PNG file.';
-  if (file.size > MAX_DOC_BYTES) return 'The birth certificate must be 5 MB or smaller.';
+  if (file.size > MAX_DOC_BYTES) return `The birth certificate must be ${MAX_DOC_MB} MB or smaller.`;
   return null;
 }
 
@@ -206,7 +208,7 @@ export function BirthCertField({
       <p className="text-[10px] text-ink-subtle font-semibold mt-1">
         {alreadyOnFile
           ? 'A birth certificate is already on file. Attach a new one only if the Daycare Worker asked for it.'
-          : `PDF, JPG or PNG, up to 5 MB. Required to verify the child's age (${ENROLLMENT_AGE_LABEL}).`}
+          : `PDF, JPG or PNG, up to ${MAX_DOC_MB} MB. Required to verify the child's age (${ENROLLMENT_AGE_LABEL}).`}
         {file ? ` Selected: ${file.name}` : ''}
       </p>
     </div>

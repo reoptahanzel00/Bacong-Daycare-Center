@@ -268,7 +268,7 @@ Changes made in response to the capstone panel's review, and how to demonstrate 
 |---|---|---|
 | Remove Barangay from the panel | Barangay Official role removed; two roles remain (Worker, Parent). Existing official accounts were disabled. | Sign-in page role list; worker User Accounts |
 | Guardian last, first, middle name | Guardian name is entered as three fields and stored as "Last, First Middle" | Parent Create Account; worker Enroll New Pupil |
-| Age validation + birth certificate | Child must be 3 years 1 month to 5 years; birth certificate (PDF/JPG/PNG, ≤5 MB) required; missing documents can be attached later | Create Account; worker Verify Enrollments shows "Age OK" and "View birth certificate" / "Missing birth certificate" |
+| Age validation + birth certificate | Child must be 3 years 1 month to 5 years; birth certificate (PDF/JPG/PNG, ≤15 MB) required; missing documents can be attached later | Create Account; worker Verify Enrollments shows "Age OK" and "View birth certificate" / "Missing birth certificate" |
 | "Rejected" should read "PENDING" | Parents see PENDING with the worker's reason; never the word "rejected" | Parent portal of a returned child |
 | Rejected account stays alive and can resubmit | Account stays active; parent corrects and resubmits; the child returns to the worker's queue | Parent "Correct & Resubmit Enrollment" |
 | Know when/how to reject; move rejected to a table | Worker "Return to Parent" with standard reasons (missing certificate, age, incomplete info); returned enrollments listed in a separate table | Verify Enrollments |

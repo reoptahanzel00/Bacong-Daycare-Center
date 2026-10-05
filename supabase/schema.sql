@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS eccd_item_comments (
 -- The server issues signed upload/download URLs after checking the guardian
 -- link or worker role, so the bucket has no client policies.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES ('enrollment-docs', 'enrollment-docs', false, 5242880,
+VALUES ('enrollment-docs', 'enrollment-docs', false, 15728640, -- 15 MB
         ARRAY['application/pdf', 'image/jpeg', 'image/png'])
 ON CONFLICT (id) DO UPDATE
   SET public = false,
