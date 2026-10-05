@@ -341,7 +341,8 @@ AS $$
 $$;
 
 -- Fails closed: a disabled account resolves to NULL and matches no policy.
-REVOKE EXECUTE ON FUNCTION public.current_user_role() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.current_user_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_user_role() TO authenticated, service_role;
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pupils ENABLE ROW LEVEL SECURITY;
