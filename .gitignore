@@ -15,6 +15,7 @@ build/
 # add it here. .env.staging.local holds a service-role key.
 .env*
 !.env.example
+!.env.staging.example
 
 # TypeScript build cache
 *.tsbuildinfo

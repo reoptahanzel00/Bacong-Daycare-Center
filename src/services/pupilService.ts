@@ -125,10 +125,6 @@ export async function fetchPupils(
   }
 }
 
-export async function fetchPendingPupils() {
-  return fetchPupils('pending');
-}
-
 export async function enrollPupil(payload: PupilEnrollPayload): Promise<PupilEnrollResult> {
   try {
     const res = await fetch('/api/pupils', {

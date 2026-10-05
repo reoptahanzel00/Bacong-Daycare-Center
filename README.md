@@ -90,20 +90,20 @@ See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for full database setup instructions with
 
 ```
 src/
-├── app/              # Next.js App Router pages & API routes
-│   ├── api/          # REST API endpoints
-│   └── login/        # Login page
-├── components/       # Reusable UI components
-├── contexts/         # DaycareContext — global state
-├── data/             # Mock/seed data
-├── lib/              # Supabase client utilities
-├── services/         # API service layer
-├── types/            # TypeScript type definitions
-├── views/            # Role-based dashboard views
-│   ├── WorkerView.tsx
-│   ├── AdminView.tsx
-│   └── ParentView.tsx
-└── middleware.ts      # Auth middleware
+├── app/              # Next.js App Router: pages, API routes (app/api), auth callbacks
+├── components/       # Reusable UI components and modals
+├── contexts/         # DaycareContext — global client state
+├── data/             # ECCD checklist (generated) and offline demo data
+├── hooks/            # Shared React hooks (modal accessibility)
+├── lib/              # Server and shared utilities (auth, Supabase clients, exports)
+├── services/         # Client-side API service layer
+├── templates/        # Official ECCD Child's Record 2 Word template
+├── views/            # Role-based screens: WorkerView, AdminView, ParentView
+└── middleware.ts     # Session refresh and route protection
+supabase/             # schema.sql (fresh database) and migrations/ (live changes)
+scripts/              # Contract/RLS checks, test-user seeding, checklist generator
+tests/                # Playwright end-to-end tests
+docs/                 # Architecture and defense guides; audits/ holds audit reports
 ```
 
 ---

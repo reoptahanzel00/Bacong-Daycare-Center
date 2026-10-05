@@ -61,8 +61,8 @@ To replace paper-based processes at the Barangay Bacong Daycare Center with a di
 
 ### Operational Workflow Diagram
 The end-to-end operational flow across all actors is mapped in the system design board. Note: the board predates the panel revisions and still shows a Barangay Official lane; that role has since been removed (see Section 9).
-- Visual Board: [docs/diagrams/system-workflow-board.png](file:///C:/Bacong%20Daycare/docs/diagrams/system-workflow-board.png)
-- Full Mermaid Architecture: See Section 2.C in [docs/SYSTEM-ARCHITECTURE-GUIDE.md](file:///C:/Bacong%20Daycare/docs/SYSTEM-ARCHITECTURE-GUIDE.md#c-operational--role-based-workflow-flowchart)
+- Visual Board: [docs/diagrams/system-workflow-board.png](diagrams/system-workflow-board.png)
+- Full Mermaid Architecture: See Section 2.C in [docs/SYSTEM-ARCHITECTURE-GUIDE.md](SYSTEM-ARCHITECTURE-GUIDE.md#c-operational--role-based-workflow-flowchart)
 
 ### "Explain it like I'm presenting to the panel"
 

@@ -140,7 +140,7 @@ The following flowchart maps the system's operational workflow and actor interac
 
 > **Note (panel revisions, September 2026):** the design board predates the panel review. The Barangay Official lane has been removed from the system and from this flowchart; the Barangay receives the DSWD Form 1 report instead. Section 4, Flow 2 shows the enrollment, verification and resubmission flow that replaced it.
 
-![Operational Workflow Diagram](file:///C:/Bacong%20Daycare/docs/diagrams/system-workflow-board.png)
+![Operational Workflow Diagram](diagrams/system-workflow-board.png)
 
 ```mermaid
 flowchart TD
@@ -256,7 +256,7 @@ flowchart TD
 - **Responsibility:** Capturing user inputs, displaying dashboard visualizations, triggering downloads, and providing accessible interactive UI.
 - **Client Architecture:**
   - **No Heavy Client-Side Routing:** The app runs as an SPA-like interface within `/` once authenticated. Active modules (`dashboard`, `pupils`, `progress`, `parent_notes`, `users`, `audit_logs`) transition via state flags within views rather than browser reloads, maximizing responsiveness.
-  - **Accessible Dialogs:** Modals rely on the custom [`useModalA11y`](file:///C:/Bacong%20Daycare/src/hooks/useModalA11y.ts) hook to implement strict WCAG keyboard focus trapping, restoring focus to invoking triggers upon dismissal.
+  - **Accessible Dialogs:** Modals rely on the custom [`useModalA11y`](../src/hooks/useModalA11y.ts) hook to implement strict WCAG keyboard focus trapping, restoring focus to invoking triggers upon dismissal.
   - **State Segregation:** Shared data lives in `DaycareContext.tsx`. Temporary form edits (such as inline attendance edits or draft marks) stay inside view-local states until explicitly persisted.
 
 ### Tier 2: Edge & Application Routing Tier

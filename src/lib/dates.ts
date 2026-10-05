@@ -28,11 +28,6 @@ export function todayLocalISO(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: CENTER_TIMEZONE }).format(new Date());
 }
 
-/** The centre-local date of a given instant, as `YYYY-MM-DD`. */
-export function toLocalISODate(date: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: CENTER_TIMEZONE }).format(date);
-}
-
 /**
  * The current year at the centre, as `YYYY`.
  *

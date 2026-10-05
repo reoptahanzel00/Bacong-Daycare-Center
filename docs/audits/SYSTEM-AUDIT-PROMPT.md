@@ -2,7 +2,7 @@
 
 > **How to use this document:**
 > Paste the block below into an AI assistant (e.g. Antigravity, Claude, Gemini) and ask it to run a full audit.
-> The AI should execute every command, read every file, and produce a new audit report in the same format as `docs/AUDIT-2026-09-15.md`.
+> The AI should execute every command, read every file, and produce a new audit report in the same format as `docs/audits/AUDIT-2026-09-15.md`.
 > Update the **Findings Tracker** at the bottom after each audit run.
 
 ---
@@ -17,7 +17,7 @@ The live production site is: https://bacong-daycare-center.vercel.app
 The Supabase project reference is: ukzruwisvuemdjjqgoko
 
 Your job is to run a full pre-deployment audit across 7 gates and produce a report in the format of
-docs/AUDIT-2026-09-15.md. For each gate: run the listed commands, read the listed files, and produce
+docs/audits/AUDIT-2026-09-15.md. For each gate: run the listed commands, read the listed files, and produce
 explicit PASS / PASS WITH FINDINGS / FAIL verdicts with evidence. Do not skip any gate.
 After all gates, produce a final DEPLOY / DEPLOY WITH NOTED RISKS / DO NOT DEPLOY verdict.
 
@@ -221,7 +221,7 @@ Scope: main at [HEAD], Supabase ukzruwisvuemdjjqgoko, https://bacong-daycare-cen
 | F3 | HIGH | ECCD checklist save deleted before inserting; reads truncated at 1000 rows | 2026-10-05 | **FIXED** | Insert-then-delete; paginated reads (src/lib/supabase/paginate.ts). |
 | F4 | HIGH | DSWD Form 1 / summary figures computed from truncated data | 2026-10-05 | **FIXED** | Server figures per school year via /api/reports/summary?schoolYear=. |
 | F5 | HIGH | schema.sql could not build a fresh database | 2026-10-05 | **FIXED** | center_settings moved after users. |
-| F6 | HIGH | Fake-success paths (user provisioning, account disable, guardian save, signup children, ECCD scores) | 2026-10-05 | **FIXED** | See docs/AUDIT-2026-10-05.md. |
+| F6 | HIGH | Fake-success paths (user provisioning, account disable, guardian save, signup children, ECCD scores) | 2026-10-05 | **FIXED** | See docs/audits/AUDIT-2026-10-05.md. |
 
 ---
 

@@ -35,12 +35,3 @@ export async function markAllRead() {
     return { success: false, error: 'Network error' };
   }
 }
-
-export async function markRead(id: string) {
-  try {
-    const res = await fetch(`/api/notifications/${id}`, { method: 'PATCH' });
-    return await res.json();
-  } catch {
-    return { success: false, error: 'Network error' };
-  }
-}

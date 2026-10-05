@@ -16,7 +16,6 @@ type AdminClient = ReturnType<typeof createAdminClient>;
  */
 export const ENROLLMENT_DOCS_BUCKET = 'enrollment-docs';
 export const BIRTH_CERT_FILE = 'birth-certificate';
-export const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 export const MAX_DOC_BYTES = 5 * 1024 * 1024;
 
 export function birthCertPath(pupilId: string): string {

@@ -174,7 +174,7 @@ git log -p --all -S service_role -- . | head -50
 
 ## Output
 
-Write the report to `docs/AUDIT-<YYYY-MM-DD>.md` with this shape:
+Write the report to `docs/audits/AUDIT-<YYYY-MM-DD>.md` with this shape:
 
 ```markdown
 # Pre-deployment audit — <date>
