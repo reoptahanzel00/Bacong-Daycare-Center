@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { DaycareProvider, useDaycare, type InitialAppState } from '@/contexts/DaycareContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Header from '@/components/Header';
@@ -41,6 +41,11 @@ function AppContent() {
     isDSWDReportModalOpen, setIsDSWDReportModalOpen,
     settings, currentUserName,
   } = useDaycare();
+
+  // Stable identity: Toast restarts its 4-second timer whenever onClose
+  // changes, and an inline arrow changed on every render (each keystroke in
+  // search), so a toast never dismissed itself while someone was typing.
+  const closeToast = useCallback(() => setToast(null), [setToast]);
 
   return (
     <div className="min-h-screen flex flex-col bg-canvas" suppressHydrationWarning>
@@ -117,7 +122,7 @@ function AppContent() {
       </div>
 
       {/* Global toast notification */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
+      <Toast toast={toast} onClose={closeToast} />
 
       {/* Offline indicator */}
       <OfflineIndicator />
@@ -132,6 +137,9 @@ function AppContent() {
       />
 
       <ProgressModal
+        // Remounted per opening so its default pupil and date come from the
+        // roster and the day as they are now, not as they were at page load.
+        key={`progress::${isProgressModalOpen}`}
         isOpen={isProgressModalOpen}
         onClose={() => setIsProgressModalOpen(false)}
         onSave={handleSaveProgress}
@@ -139,6 +147,7 @@ function AppContent() {
       />
 
       <UserModal
+        key={`user::${isUserModalOpen}`}
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
         onSave={handleSaveUser}

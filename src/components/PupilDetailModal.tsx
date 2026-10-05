@@ -5,6 +5,15 @@ import { X } from 'lucide-react';
 import PupilAvatar from '@/components/PupilAvatar';
 import type { MockPupil, MockAttendance, MockProgress } from '@/contexts/DaycareContext';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { computeAgeYMD } from '@/lib/eccdRecord';
+import { todayLocalISO } from '@/lib/dates';
+
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  enrolled: { label: 'Enrolled', className: 'badge-success' },
+  pending: { label: 'Pending verification', className: 'badge-warning' },
+  rejected: { label: 'Returned', className: 'badge-danger' },
+  archived: { label: 'Archived', className: 'badge-danger' },
+};
 
 interface PupilDetailModalProps {
   isOpen: boolean;
@@ -45,7 +54,10 @@ export default function PupilDetailModal({
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-extrabold text-ink m-0">{pupil.firstName} {pupil.lastName}</h3>
                 <span className="badge badge-primary">{pupil.id}</span>
-                <span className="badge badge-success">Enrolled</span>
+                {(() => {
+                  const badge = STATUS_BADGE[pupil.enrollmentStatus ?? 'enrolled'] ?? STATUS_BADGE.enrolled;
+                  return <span className={`badge ${badge.className}`}>{badge.label}</span>;
+                })()}
               </div>
               <p className="text-xs text-ink-muted m-0 mt-0.5">
                 Barangay Bacong Daycare Official Pupil Profile
@@ -67,7 +79,10 @@ export default function PupilDetailModal({
           <div className="p-4 rounded-3xl bg-canvas border border-line space-y-2 text-xs">
             <h4 className="font-extrabold text-primary uppercase tracking-wider text-[10px] m-0">Demographics</h4>
             <div><strong className="text-ink">Sex:</strong> {pupil.sex}</div>
-            <div><strong className="text-ink">Date of Birth:</strong> {pupil.birthDate} (4 yrs old)</div>
+            <div><strong className="text-ink">Date of Birth:</strong> {pupil.birthDate}{(() => {
+              const age = pupil.birthDate ? computeAgeYMD(pupil.birthDate, todayLocalISO()) : null;
+              return age ? ` (${age.y} yr${age.y === 1 ? '' : 's'} ${age.m} mo${age.m === 1 ? '' : 's'} old)` : '';
+            })()}</div>
             <div><strong className="text-ink">Barangay Address:</strong> {pupil.address}</div>
             <div><strong className="text-ink">Enrollment Date:</strong> {pupil.enrollmentDate}</div>
           </div>
@@ -118,7 +133,7 @@ export default function PupilDetailModal({
                     </div>
                     <span className="text-[10px] text-ink-subtle">{p.date}</span>
                   </div>
-                  <p className="text-ink-soft text-[11px] m-0">{p.notes}</p>
+                  <p className="text-ink-soft text-[11px] m-0">{p.note || p.notes}</p>
                 </div>
               ))
             ) : (

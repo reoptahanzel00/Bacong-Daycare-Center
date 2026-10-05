@@ -127,14 +127,15 @@ interface DaycareContextValue {
   auditLogs: MockAuditLog[];
 
   // CRUD Actions
-  handleSavePupil: (pupilData: MockPupil) => void;
+  /** Resolves true once saved; the form stays open on false. */
+  handleSavePupil: (pupilData: MockPupil) => Promise<boolean>;
   updatePupilEnrollment: (pupilId: string, status: 'enrolled' | 'rejected' | 'pending', reason?: string | null) => void;
   handleArchivePupil: (pupilId: string) => void;
   handleRestorePupil: (pupilId: string) => void;
   /** Re-pulls the roster from the server (e.g. after a parent resubmits). */
   refreshPupils: () => Promise<void>;
   handleEditPupil: (pupil: MockPupil) => void;
-  handleSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
+  handleSaveAttendance: (records: MockAttendance[], dateStr: string) => Promise<boolean>;
   handleSaveProgress: (progressData: MockProgress) => void;
   handleSaveUser: (userData: MockUser) => void;
   handleToggleUserStatus: (userId: string) => void;
@@ -335,8 +336,11 @@ export function DaycareProvider({
   const [settings, setSettings] = useState<CenterSettingsRow>(
     () => initial?.settings ?? EMPTY_SETTINGS
   );
-  const [users, setUsers] = useState<MockUser[]>(INITIAL_USERS);
-  const [auditLogs, setAuditLogs] = useState<MockAuditLog[]>(INITIAL_AUDIT_LOGS);
+  // Sample accounts and audit entries are for the offline demo only. A signed-
+  // in session starts empty and fills from the server, so a slow or failed
+  // load never shows made-up staff and audit history as if they were real.
+  const [users, setUsers] = useState<MockUser[]>(() => (initial?.role ? [] : INITIAL_USERS));
+  const [auditLogs, setAuditLogs] = useState<MockAuditLog[]>(() => (initial?.role ? [] : INITIAL_AUDIT_LOGS));
 
   const [pupilToEdit, setPupilToEdit] = useState<MockPupil | null>(null);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
@@ -562,7 +566,7 @@ export function DaycareProvider({
     setToast({ message, type });
   }, []);
 
-  const handleSavePupil = useCallback(async (pupilData: MockPupil) => {
+  const handleSavePupil = useCallback(async (pupilData: MockPupil): Promise<boolean> => {
     const isEdit = !!pupilToEdit;
 
     if (isEdit) {
@@ -570,16 +574,18 @@ export function DaycareProvider({
       const res = await enrollPupil(toEnrollPayload(pupilData, pupilToEdit.id));
       if (hasServerData && !res.success) {
         showToast(errorText(res.error, 'Could not save — check your connection and try again.'), 'danger');
-        return;
+        return false;
       }
-      setPupils(prev => prev.map(p => p.id === pupilData.id ? pupilData : p));
+      // Merged, not replaced: the form does not carry every field (the
+      // sociodemographic profile, submission and verification dates).
+      setPupils(prev => prev.map(p => p.id === pupilData.id ? { ...p, ...pupilData } : p));
       showToast(`Pupil profile for ${pupilData.firstName} updated.`);
     } else {
       // New pupil: let the server generate the authoritative id.
       const res = await enrollPupil(toEnrollPayload(pupilData));
       if (hasServerData && !(res.success && res.pupil?.id)) {
         showToast(errorText(res.error, 'Could not save — check your connection and try again.'), 'danger');
-        return;
+        return false;
       }
       if (res.success && res.pupil?.id) {
         const serverPupil: MockPupil = {
@@ -604,6 +610,7 @@ export function DaycareProvider({
       showToast(`Pupil ${pupilData.firstName} ${pupilData.lastName} enrolled successfully!`);
     }
     setPupilToEdit(null);
+    return true;
   }, [pupilToEdit, toEnrollPayload, showToast, hasServerData]);
 
   /** Local-only update after a worker approves/rejects a parent enrollment. */
@@ -669,17 +676,24 @@ export function DaycareProvider({
     setIsPupilModalOpen(true);
   }, []);
 
-  const handleSaveAttendance = useCallback(async (records: MockAttendance[], dateStr: string) => {
+  const handleSaveAttendance = useCallback(async (records: MockAttendance[], dateStr: string): Promise<boolean> => {
+    // Kept so a register the server refuses can be taken off the screen again:
+    // otherwise the counts, the pupil card and the DSWD figures keep showing
+    // marks the database does not have.
+    const attendanceBefore = attendance;
+    const streakBefore = new Map<string, number>();
+
     // Atomically replace all records for this specific date
     setAttendance(prev => {
       const filtered = prev.filter(a => a.date !== dateStr);
       return [...records, ...filtered];
     });
 
-    // ✅ FIX: Recalculate consecutive absences from SORTED history — not by incrementing on save
+    // Recalculate consecutive absences from SORTED history — not by incrementing on save
     setPupils(prev => prev.map(pupil => {
       const todayRecord = records.find(r => r.pupil_id === pupil.id);
       if (!todayRecord) return pupil;
+      streakBefore.set(pupil.id, pupil.consecutiveAbsences ?? 0);
 
       // Get all attendance for this pupil sorted by most recent first
       const allRecords = attendance
@@ -702,20 +716,26 @@ export function DaycareProvider({
     if (!hasServerData) {
       // Demo mode (no database configured): the register lives in this browser only.
       showToast(`Attendance register for ${dateStr} saved (demo mode).`);
-      return;
+      return true;
     }
 
     // Only report success once the database has the register: there is no
-    // offline queue to catch a failed save later.
+    // offline queue to catch a failed save later. Notes are not sent: the
+    // register cannot edit them, and the server keeps what is on file.
     const res = await saveBulkAttendance(
       dateStr,
-      records.map(({ pupil_id, status, notes }) => ({ pupil_id, status, notes })),
+      records.map(({ pupil_id, status }) => ({ pupil_id, status })),
     );
     if (res.success) {
       showToast(`Attendance register for ${dateStr} saved!`);
-    } else {
-      showToast(errorText(res.error, `The register for ${dateStr} was not saved — check your connection and try again.`), 'danger');
+      return true;
     }
+    setAttendance(attendanceBefore);
+    setPupils(prev => prev.map(p =>
+      streakBefore.has(p.id) ? { ...p, consecutiveAbsences: streakBefore.get(p.id)! } : p
+    ));
+    showToast(errorText(res.error, `The register for ${dateStr} was not saved — check your connection and try again.`), 'danger');
+    return false;
   }, [attendance, showToast, hasServerData]);
 
   const handleSaveProgress = useCallback(async (progressData: MockProgress) => {
@@ -763,11 +783,20 @@ export function DaycareProvider({
 
     const nextStatus = targetUser.status === 'active' ? 'disabled' : 'active';
 
-    // Persist to the real users table (admin API).
-    await updateUserStatus(userId, nextStatus);
+    // Persist to the real users table (admin API). The list changes only once
+    // the server has accepted it: an account shown as disabled must really be.
+    const res = await updateUserStatus(userId, nextStatus);
+    if (!res?.success) {
+      showToast(errorText(res?.error, `Could not change ${targetUser.name}'s account.`), 'danger');
+      return;
+    }
 
     setUsers(prev => prev.map(u => (u.id === userId ? { ...u, status: nextStatus } : u)));
-    showToast(`Account ${targetUser.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
+    if (res.warning) {
+      showToast(String(res.warning), 'warning');
+    } else {
+      showToast(`Account ${targetUser.name} is now ${nextStatus}.`, nextStatus === 'active' ? 'success' : 'danger');
+    }
   }, [users, showToast]);
 
   // Memoised so consumers only re-render when a value actually changes.

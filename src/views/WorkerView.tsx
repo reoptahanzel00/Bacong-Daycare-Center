@@ -58,7 +58,8 @@ interface WorkerViewProps {
   onOpenPupilModal: () => void;
   onOpenProgressModal: () => void;
   onOpenDSWDReportModal: () => void;
-  onSaveAttendance: (records: MockAttendance[], dateStr: string) => void;
+  /** Resolves true once the register is stored. */
+  onSaveAttendance: (records: MockAttendance[], dateStr: string) => Promise<boolean>;
   onArchivePupil: (id: string) => void;
   onEditPupil: (pupil: MockPupil) => void;
 }
@@ -79,6 +80,10 @@ export default function WorkerView({
   const { showToast, updatePupilEnrollment, handleRestorePupil } = useDaycare();
 
   const [selectedDate, setSelectedDate] = useState(todayLocalISO());
+  // False until the worker picks a date. While false the register means
+  // "today", so a tab left open overnight must not save under yesterday.
+  const [dateChosen, setDateChosen] = useState(false);
+  const [isSavingRegister, setIsSavingRegister] = useState(false);
   const [selectedDomainId, setSelectedDomainId] = useState('gross_motor');
   const [selectedPupilDetail, setSelectedPupilDetail] = useState<MockPupil | null>(null);
   const [archiveTargetPupil, setArchiveTargetPupil] = useState<MockPupil | null>(null);
@@ -109,6 +114,12 @@ export default function WorkerView({
   const [standardScores, setStandardScores] = useState<Record<string, string>>({});
   const [openCommentKey, setOpenCommentKey] = useState<string | null>(null);
   const [savingEvalPupil, setSavingEvalPupil] = useState<string | null>(null);
+  // Which round's saved checklist is on screen, and whether it loaded. Saving
+  // sends all 109 items, so saving a grid that did not load (or still shows
+  // the previous round) would overwrite every stored tick with "not present".
+  const [evalLoad, setEvalLoad] = useState<{ round: EccdRound; status: 'loading' | 'ready' | 'error' }>({ round: 1, status: 'loading' });
+  const [evalReloadKey, setEvalReloadKey] = useState(0);
+  const evalReady = evalLoad.round === selectedRound && evalLoad.status === 'ready';
   const [reportPupil, setReportPupil] = useState<MockPupil | null>(null);
 
   // Load the saved checklist ratings + scores for the selected round.
@@ -120,9 +131,13 @@ export default function WorkerView({
         fetchEccdScores(selectedRound),
       ]);
       if (cancelled) return;
+      if (!ratingsRes.ok || ratingsRes.warning || !scoresRes.ok || scoresRes.warning) {
+        setEvalLoad({ round: selectedRound, status: 'error' });
+        return;
+      }
 
       const seeded: Record<string, Record<string, boolean>> = {};
-      for (const row of ratingsRes.ok ? ratingsRes.ratings : []) {
+      for (const row of ratingsRes.ratings) {
         if (row.status_rating !== 'Present') continue;
         if (!seeded[row.pupil_id]) seeded[row.pupil_id] = {};
         seeded[row.pupil_id][row.milestone_code] = true;
@@ -130,21 +145,21 @@ export default function WorkerView({
       setEvaluations(seeded);
 
       const commentMap: Record<string, Record<string, string>> = {};
-      for (const row of ratingsRes.ok ? ratingsRes.comments : []) {
+      for (const row of ratingsRes.comments) {
         if (!commentMap[row.pupil_id]) commentMap[row.pupil_id] = {};
         commentMap[row.pupil_id][row.milestone_code] = row.comment;
       }
       setEccdComments(commentMap);
 
       const standardMap: Record<string, string> = {};
-      for (const row of scoresRes.ok ? scoresRes.evaluations : []) {
+      for (const row of scoresRes.evaluations) {
         if (row.standard_score != null) standardMap[row.pupil_id] = String(row.standard_score);
       }
       setStandardScores(standardMap);
       setOpenCommentKey(null);
 
       const scoreMap: Record<string, Record<string, { raw: number; scaled?: string }>> = {};
-      for (const s of scoresRes.ok ? scoresRes.scores : []) {
+      for (const s of scoresRes.scores) {
         if (!scoreMap[s.pupil_id]) scoreMap[s.pupil_id] = {};
         scoreMap[s.pupil_id][s.domain_id] = {
           raw: s.raw_score,
@@ -152,9 +167,27 @@ export default function WorkerView({
         };
       }
       setEccdScores(scoreMap);
+      setEvalLoad({ round: selectedRound, status: 'ready' });
     })();
     return () => { cancelled = true; };
-  }, [selectedRound]);
+  }, [selectedRound, evalReloadKey]);
+
+  // Switching rounds clears the grid at once, so the previous round's ticks
+  // are never on screen (or saved) under the new round's heading.
+  const selectRound = (round: EccdRound) => {
+    if (round === selectedRound) return;
+    setSelectedRound(round);
+    setEvaluations({});
+    setEccdComments({});
+    setEccdScores({});
+    setStandardScores({});
+    setEvalLoad({ round, status: 'loading' });
+  };
+
+  const retryEvalLoad = () => {
+    setEvalLoad({ round: selectedRound, status: 'loading' });
+    setEvalReloadKey((k) => k + 1);
+  };
 
   // Parent Notes Inbox State
   interface ParentNote {
@@ -281,7 +314,19 @@ export default function WorkerView({
     }));
   };
 
-  const handleSaveRegister = () => {
+  const handleSaveRegister = async () => {
+    if (isSavingRegister) return;
+    const today = todayLocalISO();
+    if (!dateChosen && selectedDate !== today) {
+      setSelectedDate(today);
+      setDailyAttendanceState({});
+      if (!isDemoMode) {
+        setSavedRegister(null);
+        setIsRegisterLoading(true);
+      }
+      showToast(`It is now ${today}. The register has moved to today — please review it and save again.`, 'warning');
+      return;
+    }
     // Never save a register that was rendered from defaults: if the day's saved
     // rows have not arrived, every pupil the worker did not touch would be
     // written as Present over whatever is really on file for that date.
@@ -301,11 +346,18 @@ export default function WorkerView({
         pupil_id: pupil.id,
         date: selectedDate,
         status: (rec.status || 'present') as MockAttendance['status'],
-        notes: rec.notes || ''
+        // Shown locally only; the register never sends notes, so a note on
+        // file (an approved excuse letter) is kept by the server.
+        notes: getAttendanceStatus(pupil.id).notes || ''
       };
     });
 
-    onSaveAttendance(records, selectedDate);
+    setIsSavingRegister(true);
+    try {
+      if (await onSaveAttendance(records, selectedDate)) setDailyAttendanceState({});
+    } finally {
+      setIsSavingRegister(false);
+    }
   };
 
   const handleMarkAllPresent = () => {
@@ -352,6 +404,7 @@ export default function WorkerView({
   };
 
   const handleSaveEvaluation = async (pupil: MockPupil) => {
+    if (!evalReady || savingEvalPupil) return;
     const pupilRatings = evaluations[pupil.id] || {};
     const pupilComments = eccdComments[pupil.id] || {};
     const ratings = ECCD_DOMAINS.flatMap((d) =>
@@ -364,57 +417,75 @@ export default function WorkerView({
     );
 
     setSavingEvalPupil(pupil.id);
-    const res = await saveEccdRatings(pupil.id, selectedRound, ratings);
+    try {
+      const res = await saveEccdRatings(pupil.id, selectedRound, ratings);
+      if (!res.success) {
+        // Scores are not saved either: they would mark the round as graded
+        // with no ratings behind it.
+        showToast(`Could not save evaluation: ${errorText(res.error, 'unknown error')}`, 'danger');
+        return;
+      }
 
-    // Persist per-domain raw scores (auto from ✓ counts) + manual scaled scores.
-    const scores = ECCD_DOMAINS.map((d) => {
-      const raw = d.items.filter((i) => pupilRatings[i.id]).length;
-      const scaledRaw = eccdScores[pupil.id]?.[d.id]?.scaled;
-      return {
-        domain_id: d.id,
-        raw_score: raw,
-        scaled_score: scaledRaw && scaledRaw.trim() !== '' ? Number(scaledRaw) : null,
-      };
-    });
-    const standardRaw = standardScores[pupil.id]?.trim();
-    await saveEccdScores(pupil.id, selectedRound, scores, standardRaw ? Number(standardRaw) : null);
+      // Persist per-domain raw scores (auto from ✓ counts) + manual scaled scores.
+      const scores = ECCD_DOMAINS.map((d) => {
+        const raw = d.items.filter((i) => pupilRatings[i.id]).length;
+        const scaledRaw = eccdScores[pupil.id]?.[d.id]?.scaled;
+        return {
+          domain_id: d.id,
+          raw_score: raw,
+          scaled_score: scaledRaw && scaledRaw.trim() !== '' ? Number(scaledRaw) : null,
+        };
+      });
+      const standardRaw = standardScores[pupil.id]?.trim();
+      const scoresRes = await saveEccdScores(pupil.id, selectedRound, scores, standardRaw ? Number(standardRaw) : null);
 
-    setSavingEvalPupil(null);
-    if (res.success) {
       const presentCount = ratings.filter((r) => r.present).length;
+      if (!scoresRes.success) {
+        showToast(
+          `Saved ${presentCount} ✓ item(s) for ${pupil.firstName}, but the scores were not saved: ${errorText(scoresRes.error, 'unknown error')}`,
+          'danger'
+        );
+        return;
+      }
       showToast(`Saved ${presentCount} ✓ item(s) for ${pupil.firstName} (round ${selectedRound}).`);
       // Auto-open the pupil's ECCD Child's Record 2 after grading is saved.
       setReportPupil(pupil);
-    } else {
-      showToast(`Could not save evaluation: ${errorText(res.error, 'unknown error')}`, 'danger');
+    } finally {
+      setSavingEvalPupil(null);
     }
   };
 
+  // Load the saved record first and open the form on it, so the form never
+  // starts blank (or with another child's text) over a record it would erase.
   const openBackgroundModal = async (pupil: MockPupil) => {
+    const res = await fetchChildBackground(pupil.id);
+    if (!res.ok) {
+      showToast(`Could not load ${pupil.firstName}'s background record. Please try again.`, 'danger');
+      return;
+    }
+    setBackgrounds(prev => ({ ...prev, [pupil.id]: res.background }));
     setBackgroundPupil(pupil);
     setIsBackgroundModalOpen(true);
-    const res = await fetchChildBackground(pupil.id);
-    if (res.ok) {
-      setBackgrounds(prev => ({ ...prev, [pupil.id]: res.background }));
-    }
   };
 
   const handleSaveBackground = async (
     fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>
-  ) => {
-    if (!backgroundPupil) return;
-    const res = await saveChildBackground(backgroundPupil.id, fields);
-    if (res.success) {
-      setBackgrounds(prev => ({
-        ...prev,
-        [backgroundPupil.id]: { pupil_id: backgroundPupil.id, ...fields, updated_at: new Date().toISOString() },
-      }));
-      showToast(`Child & family background saved for ${backgroundPupil.firstName}.`, 'success');
-    } else {
+  ): Promise<boolean> => {
+    if (!backgroundPupil) return false;
+    const pupil = backgroundPupil;
+    const res = await saveChildBackground(pupil.id, fields);
+    if (!res.success) {
       showToast(errorText(res.error, 'Could not save background info.'), 'danger');
+      return false;
     }
+    setBackgrounds(prev => ({
+      ...prev,
+      [pupil.id]: res.background ?? { pupil_id: pupil.id, ...fields, updated_at: new Date().toISOString() },
+    }));
+    showToast(`Child & family background saved for ${pupil.firstName}.`, 'success');
     setIsBackgroundModalOpen(false);
     setBackgroundPupil(null);
+    return true;
   };
 
   const pendingPupils = useMemo(
@@ -595,11 +666,15 @@ export default function WorkerView({
                   onChange={(e) => {
                     // A register records what happened; a day that has not
                     // come yet cannot be marked.
+                    // Clearing the field gives '', which would load every
+                    // date's rows and save a register with no date.
+                    if (!e.target.value) return;
                     if (e.target.value > todayLocalISO()) {
                       showToast('Attendance cannot be recorded for a future date.', 'danger');
                       return;
                     }
                     setSelectedDate(e.target.value);
+                    setDateChosen(true);
                     // Reset the edit overlay so the register reflects saved records.
                     setDailyAttendanceState({});
                     // Drop the previous day's saved register in the same event
@@ -617,12 +692,18 @@ export default function WorkerView({
                 />
                 <button
                   onClick={handleSaveRegister}
-                  disabled={!isDemoMode && isRegisterLoading}
+                  disabled={(!isDemoMode && isRegisterLoading) || isSavingRegister}
                   className="btn btn-primary btn-sm font-bold shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                   suppressHydrationWarning
                 >
                   <CheckCircle2 size={16} />
-                  <span>{!isDemoMode && isRegisterLoading ? 'Loading register…' : 'Save Today Register'}</span>
+                  <span>
+                    {!isDemoMode && isRegisterLoading
+                      ? 'Loading register…'
+                      : isSavingRegister
+                        ? 'Saving…'
+                        : selectedDate === todayLocalISO() ? 'Save Today Register' : `Save Register (${selectedDate})`}
+                  </span>
                 </button>
               </div>
             </div>
@@ -1108,7 +1189,7 @@ export default function WorkerView({
                   <button
                     key={round}
                     type="button"
-                    onClick={() => setSelectedRound(round)}
+                    onClick={() => selectRound(round)}
                     className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer border-none ${
                       selectedRound === round
                         ? 'bg-primary text-white shadow-sm'
@@ -1120,6 +1201,12 @@ export default function WorkerView({
                   </button>
                 ))}
               </div>
+              {evalLoad.round === selectedRound && evalLoad.status === 'error' && (
+                <div role="alert" className="flex items-center gap-2 text-[11px] font-semibold text-danger">
+                  <span>The saved checklist could not be loaded, so saving is paused.</span>
+                  <button type="button" onClick={retryEvalLoad} className="btn btn-secondary btn-sm">Retry</button>
+                </div>
+              )}
               <button onClick={onOpenProgressModal} className="btn btn-primary btn-sm font-bold" suppressHydrationWarning>
                 <TrendingUp size={16} />
                 <span>Record Milestone Observation</span>
@@ -1203,11 +1290,12 @@ export default function WorkerView({
                       </button>
                       <button
                         onClick={() => handleSaveEvaluation(pupil)}
-                        disabled={savingEvalPupil === pupil.id}
+                        disabled={!evalReady || savingEvalPupil !== null}
                         className="btn btn-primary btn-sm font-bold shadow-md"
+                        title={evalReady ? undefined : 'The saved checklist has not loaded yet'}
                         suppressHydrationWarning
                       >
-                        {savingEvalPupil === pupil.id ? 'Saving...' : 'Save Evaluation'}
+                        {savingEvalPupil === pupil.id ? 'Saving...' : evalReady ? 'Save Evaluation' : 'Loading…'}
                       </button>
                     </div>
                   </div>
@@ -1218,8 +1306,8 @@ export default function WorkerView({
                       Raw Score: {domainRaw}/{activeDomain.items.length}
                     </span>
                     <span className="text-ink-subtle">•</span>
-                    <label htmlFor="srcviewsworkerview-scaled-score-1" className="text-ink-muted font-semibold">Scaled Score:</label>
-                    <input id="srcviewsworkerview-scaled-score-1"
+                    <label htmlFor={`scaled-score-${pupil.id}`} className="text-ink-muted font-semibold">Scaled Score:</label>
+                    <input id={`scaled-score-${pupil.id}`}
                       type="number"
                       min={0}
                       max={19}
@@ -1436,6 +1524,7 @@ export default function WorkerView({
 
       {/* ECCD Form Section 2 — Child & Family Background */}
       <ChildBackgroundModal
+        key={backgroundPupil?.id ?? 'none'}
         isOpen={isBackgroundModalOpen}
         onClose={() => { setIsBackgroundModalOpen(false); setBackgroundPupil(null); }}
         onSave={handleSaveBackground}

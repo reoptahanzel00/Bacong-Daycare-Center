@@ -1,12 +1,26 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, FileText, Download, ShieldCheck } from 'lucide-react';
 import { useDaycare, type MockPupil, type MockAttendance, type MockProgress } from '@/contexts/DaycareContext';
 import type { CenterSettingsRow } from '@/services/settingsService';
 import { buildDswdPdf, type DswdPupilRow } from '@/lib/dswdPdf';
 import { todayLocalISO } from '@/lib/dates';
 import { useModalA11y } from '@/hooks/useModalA11y';
+import { fetchDashboardSummary, type DashboardSummary } from '@/services/reportsService';
+
+/** The school year a date falls in: June starts a new one. */
+function schoolYearOf(iso: string): string {
+  const [y, m] = iso.split('-').map(Number);
+  const start = m >= 6 ? y : y - 1;
+  return `SY ${start}-${start + 1}`;
+}
+
+/** The current school year and the two before it, newest first. */
+function schoolYearOptions(today: string): string[] {
+  const start = Number(schoolYearOf(today).slice(3, 7));
+  return [0, 1, 2].map((back) => `SY ${start - back}-${start - back + 1}`);
+}
 
 interface DSWDReportModalProps {
   isOpen: boolean;
@@ -31,8 +45,23 @@ export default function DSWDReportModal({
 }: DSWDReportModalProps) {
   const { showToast } = useDaycare();
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState('SY 2026-2027');
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(() => schoolYearOf(todayLocalISO()));
   const reportRef = useRef<HTMLDivElement>(null);
+  // Figures for the signed form come from the server, which counts every row
+  // for the chosen school year. The roster on this screen holds only the
+  // newest few hundred attendance rows, so figures computed from it described
+  // a couple of weeks while the form claimed a whole school year.
+  const [summary, setSummary] = useState<{ year: string; data: DashboardSummary | null } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchDashboardSummary(selectedSchoolYear);
+      if (!cancelled) setSummary({ year: selectedSchoolYear, data: res.ok ? res.summary : null });
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, selectedSchoolYear]);
 
   const dialogProps = useModalA11y(isOpen, onClose);
 
@@ -40,9 +69,11 @@ export default function DSWDReportModal({
 
   const enrolledPupils = pupils.filter(p => p.enrollmentStatus === 'enrolled');
   const enrolledIds = new Set(enrolledPupils.map(p => p.id));
-  const maleCount = enrolledPupils.filter(p => p.sex === 'Male').length;
-  const femaleCount = enrolledPupils.filter(p => p.sex === 'Female').length;
-  const specialNeedsCount = enrolledPupils.filter(p => p.hasSpecialNeeds).length;
+  const server = summary?.year === selectedSchoolYear ? summary.data : null;
+  const figuresLoading = summary?.year !== selectedSchoolYear;
+  const maleCount = server?.enrollment.male ?? enrolledPupils.filter(p => p.sex === 'Male').length;
+  const femaleCount = server?.enrollment.female ?? enrolledPupils.filter(p => p.sex === 'Female').length;
+  const specialNeedsCount = server?.enrollment.specialNeeds ?? enrolledPupils.filter(p => p.hasSpecialNeeds).length;
 
   // Scoped to the children this form reports on. It previously averaged every
   // attendance row on hand, including rows belonging to archived and pending
@@ -51,10 +82,16 @@ export default function DSWDReportModal({
   const enrolledAttendance = attendance.filter(a => enrolledIds.has(a.pupil_id));
   const totalAttendance = enrolledAttendance.length;
   const totalPresent = enrolledAttendance.filter(a => a.status === 'present' || a.status === 'late').length;
-  const avgAttendance = totalAttendance ? Math.round((totalPresent / totalAttendance) * 100) : null;
+  // Offline demo only (no server): the figures on hand are all there is.
+  const avgAttendance = server
+    ? server.attendance.rate
+    : totalAttendance ? Math.round((totalPresent / totalAttendance) * 100) : null;
 
-  // Enrolled children with at least one ECCD checklist rating on record.
-  const eccdAssessed = new Set(progress.filter(p => enrolledIds.has(p.pupil_id)).map(p => p.pupil_id)).size;
+  // Enrolled children graded in at least one round — the same definition the
+  // dashboard uses.
+  const eccdAssessed = server
+    ? server.eccd.anyRound
+    : new Set(progress.filter(p => enrolledIds.has(p.pupil_id)).map(p => p.pupil_id)).size;
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
@@ -129,12 +166,13 @@ export default function DSWDReportModal({
             <select
               value={selectedSchoolYear}
               onChange={(e) => setSelectedSchoolYear(e.target.value)}
+              aria-label="School year"
               className="px-3 py-1.5 rounded-full border border-line text-xs font-semibold bg-canvas focus:outline-none"
               suppressHydrationWarning
             >
-              <option value="SY 2026-2027">SY 2026-2027</option>
-              <option value="SY 2025-2026">SY 2025-2026</option>
-              <option value="SY 2024-2025">SY 2024-2025</option>
+              {schoolYearOptions(todayLocalISO()).map((sy) => (
+                <option key={sy} value={sy}>{sy}</option>
+              ))}
             </select>
 
             <button
@@ -256,12 +294,12 @@ export default function DSWDReportModal({
             </button>
             <button
               onClick={handleExportPDF}
-              disabled={isExporting}
+              disabled={isExporting || figuresLoading}
               className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none disabled:opacity-50"
               suppressHydrationWarning
             >
               <Download size={16} />
-              <span>{isExporting ? 'Generating PDF...' : 'Download DSWD Form 1 PDF'}</span>
+              <span>{isExporting ? 'Generating PDF...' : figuresLoading ? 'Loading figures…' : 'Download DSWD Form 1 PDF'}</span>
             </button>
           </div>
         </div>

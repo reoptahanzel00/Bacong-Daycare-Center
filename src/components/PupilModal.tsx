@@ -11,7 +11,8 @@ import { useModalA11y } from '@/hooks/useModalA11y';
 interface PupilModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: MockPupil) => void;
+  /** Resolves true once saved; the form closes itself only then. */
+  onSave: (data: MockPupil) => Promise<boolean>;
   pupilToEdit?: MockPupil | null;
 }
 
@@ -52,13 +53,15 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
   // changes, so the form state is always fresh without a sync effect.
   const [formData, setFormData] = useState(() => buildInitialForm(pupilToEdit));
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const dialogProps = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (
       !formData.firstName.trim() ||
       !formData.lastName.trim() ||
@@ -121,8 +124,14 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
       consecutiveAbsences: pupilToEdit ? pupilToEdit.consecutiveAbsences : 0
     };
 
-    onSave(payload);
-    onClose();
+    // Close only once the server has the record. Closing first threw away a
+    // whole enrollment form whenever the save was refused.
+    setSaving(true);
+    try {
+      if (await onSave(payload)) onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -331,6 +340,7 @@ export default function PupilModal({ isOpen, onClose, onSave, pupilToEdit }: Pup
             </button>
             <button
               type="submit"
+              disabled={saving}
               className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
               suppressHydrationWarning
             >

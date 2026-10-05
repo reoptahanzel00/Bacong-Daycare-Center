@@ -55,16 +55,19 @@ export default function ParentView({
   const { showToast, settings, refreshPupils } = useDaycare();
 
   // Multi-child selection state
-  const [selectedChildId, setSelectedChildId] = useState<string>(pupils[0]?.id || 'PUP-2026-001');
+  const [selectedChildId, setSelectedChildId] = useState<string>(pupils[0]?.id ?? '');
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<Record<string, boolean>>({});
 
   // The child's full ECCD record: the ECCD tab renders the same preview the
   // Daycare Worker sees, from the same server-side record.
-  const [eccdRecord, setEccdRecord] = useState<EccdRecord | null>(null);
+  // Stamped with the child it belongs to: while another child's record loads,
+  // the previous child's record (and its PDF download) must not be shown.
+  const [loadedEccd, setLoadedEccd] = useState<{ pupilId: string; record: EccdRecord | null; latest: EccdRecordRound | null } | null>(null);
   const [isEccdDownloading, setIsEccdDownloading] = useState(false);
-  const [childBackground, setChildBackground] = useState<ChildBackground | null>(null);
+  const [loadedBackground, setLoadedBackground] = useState<{ pupilId: string; data: ChildBackground | null } | null>(null);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isSendingNote, setIsSendingNote] = useState(false);
 
   // Direct Teacher Message / Absence Note Form State
   const [absenceReason, setAbsenceReason] = useState<string>('Illness / Fever');
@@ -86,13 +89,20 @@ export default function ParentView({
 
   const [submittedNotes, setSubmittedNotes] = useState<ParentSubmittedNote[]>([]);
   // The latest graded ECCD round, for the progress summary on the profile tab.
-  const [latestRound, setLatestRound] = useState<EccdRecordRound | null>(null);
 
   // Active Linked Child Record
   const child = useMemo(
     () => pupils.find(p => p.id === selectedChildId) || pupils[0],
     [pupils, selectedChildId]
   );
+  // Both sides must exist: with no child and nothing loaded, an optional-chain
+  // comparison is undefined === undefined, which is true.
+  const eccdForChild = child && loadedEccd && loadedEccd.pupilId === child.id ? loadedEccd : null;
+  const eccdRecord = eccdForChild?.record ?? null;
+  const latestRound = eccdForChild?.latest ?? null;
+  const backgroundForChild = child && loadedBackground && loadedBackground.pupilId === child.id ? loadedBackground : null;
+  const backgroundReady = backgroundForChild !== null;
+  const childBackground = backgroundForChild?.data ?? null;
 
   // The guardian's phone on file, unless the parent types a different one.
   const notePhone = contactPhone ?? child?.guardian?.phone ?? '';
@@ -125,8 +135,7 @@ export default function ParentView({
     (async () => {
       const res = await fetchEccdRecord(child.id);
       if (cancelled) return;
-      setEccdRecord(res.record);
-      setLatestRound(res.record ? latestGradedRound(res.record) : null);
+      setLoadedEccd({ pupilId: child.id, record: res.record, latest: res.record ? latestGradedRound(res.record) : null });
     })();
     return () => { cancelled = true; };
   }, [child?.id, child?.enrollmentStatus]);
@@ -145,23 +154,25 @@ export default function ParentView({
     let cancelled = false;
     (async () => {
       const res = await fetchChildBackground(child.id);
-      if (!cancelled && res.ok) setChildBackground(res.background);
+      if (!cancelled && res.ok) setLoadedBackground({ pupilId: child.id, data: res.background });
     })();
     return () => { cancelled = true; };
   }, [child?.id]);
 
   const handleSaveChildBackground = async (
     fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>
-  ) => {
-    if (!child?.id) return;
-    const res = await saveChildBackground(child.id, fields);
+  ): Promise<boolean> => {
+    if (!child?.id) return false;
+    const pupilId = child.id;
+    const res = await saveChildBackground(pupilId, fields);
     if (res.success) {
-      setChildBackground({ pupil_id: child.id, ...fields, updated_at: new Date().toISOString() });
+      setLoadedBackground({ pupilId, data: res.background ?? { pupil_id: pupilId, ...fields, updated_at: new Date().toISOString() } });
       showToast('Child & family background saved. The teacher can review it before assessments.', 'success');
-    } else {
-      showToast(errorText(res.error, 'Could not save background info.'), 'danger');
+      setIsBackgroundModalOpen(false);
+      return true;
     }
-    setIsBackgroundModalOpen(false);
+    showToast(errorText(res.error, 'Could not save background info.'), 'danger');
+    return false;
   };
 
   const backgroundRows = [
@@ -199,18 +210,26 @@ export default function ParentView({
       showToast('Please enter a brief note explaining the absence or special request.', 'danger');
       return;
     }
-    if (!child?.id) return;
+    if (!child?.id || isSendingNote) return;
 
-    const res = await submitParentNote({
-      pupil_id: child.id,
-      date: absenceDate,
-      reason: absenceReason,
-      notes: guardianNotes,
-      phone: notePhone,
-    });
+    // One note per tap: a double tap on a slow connection filed two excuse
+    // letters ("Excuse 3" and "Excuse 4") for the same absence.
+    setIsSendingNote(true);
+    let res;
+    try {
+      res = await submitParentNote({
+        pupil_id: child.id,
+        date: absenceDate,
+        reason: absenceReason,
+        notes: guardianNotes,
+        phone: notePhone,
+      });
+    } finally {
+      setIsSendingNote(false);
+    }
     if (!res.success) {
       // Nothing is kept on the phone: the note is not sent until the server has it.
-      showToast('Could not send the note — check your connection and try again.', 'danger');
+      showToast(errorText(res.error, 'Could not send the note — check your connection and try again.'), 'danger');
       return;
     }
 
@@ -383,6 +402,7 @@ export default function ParentView({
               </div>
               <button
                 onClick={() => setIsBackgroundModalOpen(true)}
+                disabled={!backgroundReady}
                 className="btn btn-primary btn-sm font-bold shrink-0"
                 suppressHydrationWarning
               >
@@ -756,10 +776,11 @@ export default function ParentView({
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all flex items-center justify-center gap-2 border-none cursor-pointer"
+                disabled={isSendingNote}
+                className="w-full py-3 px-4 rounded-2xl bg-primary text-white font-bold text-xs shadow-md hover:bg-primary-hover transition-all flex items-center justify-center gap-2 border-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Send size={16} />
-                <span>Submit Notice to Teacher</span>
+                <span>{isSendingNote ? 'Sending…' : 'Submit Notice to Teacher'}</span>
               </button>
             </form>
           </div>
@@ -822,6 +843,7 @@ export default function ParentView({
 
       {/* Child & Family Background modal — shared with the ECCD Section 2 form */}
       <ChildBackgroundModal
+        key={`${child?.id ?? 'none'}-${isBackgroundModalOpen}`}
         isOpen={isBackgroundModalOpen}
         onClose={() => setIsBackgroundModalOpen(false)}
         onSave={handleSaveChildBackground}

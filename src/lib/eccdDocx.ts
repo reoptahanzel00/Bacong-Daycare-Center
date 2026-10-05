@@ -70,8 +70,21 @@ function wEl(doc: XmlDocument, name: string, attrs: Record<string, string> = {})
   return el;
 }
 
+/**
+ * Text typed or pasted by a person, made safe for document.xml. The DOM
+ * escapes <, & and >, but characters XML 1.0 forbids outright (vertical tab
+ * and form feed from a Word paste, stray control codes) pass straight
+ * through, and Word then refuses the whole file as "unreadable content".
+ */
+function xmlSafe(text: string): string {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '');
+}
+
 /** A run of text; `\n` in the text becomes a line break within the same paragraph. */
-function makeRun(doc: XmlDocument, text: string, style: RunStyle = {}): XmlElement {
+function makeRun(doc: XmlDocument, rawText: string, style: RunStyle = {}): XmlElement {
+  const text = xmlSafe(rawText);
   const r = wEl(doc, 'r');
   const rPr = wEl(doc, 'rPr');
   // Child order follows the WordprocessingML schema, which Word enforces.
@@ -185,7 +198,7 @@ function fillUnderscoreFields(doc: XmlDocument, paragraphs: XmlElement[], values
       if (!blank) return;
       const t = descendants(blank, 't')[0];
       const trailing = (t.textContent ?? '').match(/\s*$/)?.[0] ?? '';
-      t.textContent = ` ${value} `;
+      t.textContent = ` ${xmlSafe(value)} `;
       t.setAttributeNS(XML_NS, 'xml:space', 'preserve');
       let rPr = children(blank, 'rPr')[0];
       if (!rPr) {

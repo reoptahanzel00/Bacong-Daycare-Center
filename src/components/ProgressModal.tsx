@@ -14,7 +14,7 @@ interface ProgressModalProps {
 }
 
 export default function ProgressModal({ isOpen, onClose, onSave, pupils }: ProgressModalProps) {
-  const [selectedPupilId, setSelectedPupilId] = useState(pupils[0]?.id || 'PUP-2026-001');
+  const [selectedPupilId, setSelectedPupilId] = useState(pupils[0]?.id ?? '');
   const [domain, setDomain] = useState('Motor Skills');
   const [rating, setRating] = useState('Developing');
   const [notes, setNotes] = useState('');
@@ -27,13 +27,21 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPupilId || !pupils.some((p) => p.id === selectedPupilId)) {
+      setError('Choose an enrolled pupil first.');
+      return;
+    }
+    if (evalDate > todayLocalISO()) {
+      setError('The observation date cannot be in the future.');
+      return;
+    }
     if (!notes.trim()) {
       setError('Please provide milestone observation notes.');
       return;
     }
 
     const payload = {
-      id: `PRG-${Date.now().toString().slice(-4)}`,
+      id: `PRG-${crypto.randomUUID()}`,
       pupil_id: selectedPupilId,
       domain,
       rating,
@@ -136,6 +144,7 @@ export default function ProgressModal({ isOpen, onClose, onSave, pupils }: Progr
               type="date"
               className="w-full px-3.5 py-2.5 rounded-2xl border border-line text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-display/30 focus:border-primary-display bg-canvas focus:bg-white"
               value={evalDate}
+              max={todayLocalISO()}
               onChange={(e) => setEvalDate(e.target.value)}
               suppressHydrationWarning
             />

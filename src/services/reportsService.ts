@@ -7,6 +7,7 @@ export interface DashboardSummary {
     archived: number;
     male: number;
     female: number;
+    specialNeeds: number;
     ageBrackets: Array<{ label: string; count: number }>;
   };
   attendance: {
@@ -18,12 +19,15 @@ export interface DashboardSummary {
     today: { date: string; present: number; late: number; absent: number };
   };
   absences: { threshold: number; frequent: number };
-  eccd: { round1: number; round2: number; round3: number };
+  /** Enrolled children graded in each round, and in any round. */
+  eccd: { round1: number; round2: number; round3: number; anyRound: number };
 }
 
-export async function fetchDashboardSummary() {
+/** @param schoolYear e.g. 'SY 2026-2027'; omitted = the current school year. */
+export async function fetchDashboardSummary(schoolYear?: string) {
   try {
-    const res = await fetch('/api/reports/summary', { cache: 'no-store' });
+    const query = schoolYear ? `?schoolYear=${encodeURIComponent(schoolYear)}` : '';
+    const res = await fetch(`/api/reports/summary${query}`, { cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) return { ok: false, summary: null, error: (data.error as string) || 'Summary unavailable.' };
     return { ok: true, summary: data as DashboardSummary, error: undefined };

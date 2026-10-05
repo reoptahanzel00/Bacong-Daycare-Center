@@ -171,7 +171,8 @@ export async function downloadEccdRecord(pupilId: string, fallbackName: string) 
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    // Revoking at once can cancel the download before the browser has read it.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
     return { ok: true, error: undefined };
   } catch {
     return { ok: false, error: 'Network error' };

@@ -98,6 +98,20 @@ const ROLE_OPTIONS: Array<{ id: UserRole; label: string; hint: string; isPublic:
   { id: 'worker', label: 'Daycare Worker', hint: 'Daycare staff who manage registers and evaluations.', isPublic: false },
 ];
 
+/** Messages /auth/callback and /auth/verify-email redirect here with. */
+const KNOWN_LOGIN_MESSAGES = new Set([
+  'That link has expired or was already used. Please request a new one.',
+  'Could not complete sign-in. Please try again.',
+  'That link is missing its security code. Please request a new one.',
+  'Too many attempts. Please try again later.',
+  'That confirmation link is incomplete. Please use the link from your email.',
+  'Could not confirm your email just now. Please try again.',
+  'That confirmation link is not valid. It may already have been used.',
+  'That confirmation link has expired. Please contact the Daycare Worker for a new one.',
+  'Your email address is already confirmed. You can sign in.',
+  'Thank you — your email address is confirmed. You can now sign in.',
+]);
+
 export default function AuthPage() {
   const router = useRouter();
 
@@ -107,9 +121,10 @@ export default function AuthPage() {
     clearStoredData();
   }, []);
 
-  const [mode, setMode] = useState<AuthMode>(() =>
-    typeof window !== 'undefined' && window.location.hash === '#create' ? 'create' : 'signin'
-  );
+  // Always 'signin' on first render, server and client alike: reading the
+  // URL hash here made the client's first render differ from the server's
+  // (a hydration error on /login#create). The effect below switches modes.
+  const [mode, setMode] = useState<AuthMode>('signin');
 
   // Sign-in state
   const [email, setEmail] = useState('');
@@ -151,8 +166,11 @@ export default function AuthPage() {
     const params = new URLSearchParams(window.location.search);
     const reason = params.get('error');
     const notice = params.get('notice');
-    if (reason) setErrorMessage(reason);
-    if (notice) setNoticeMessage(notice);
+    // Only messages this app sends are shown. Echoing any ?error= text let a
+    // crafted link print its own instructions ("call 09xx…") on the real
+    // sign-in page.
+    if (reason) setErrorMessage(KNOWN_LOGIN_MESSAGES.has(reason) ? reason : 'Something went wrong. Please sign in again.');
+    if (notice && KNOWN_LOGIN_MESSAGES.has(notice)) setNoticeMessage(notice);
     if (reason || notice) {
       window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     }
@@ -162,6 +180,7 @@ export default function AuthPage() {
     setMode(next);
     setErrorMessage(null);
     setCreateError(null);
+    setCreateSuccess(null);
     setChildren([{ ...EMPTY_CHILD }]);
     setConsentAccepted(false);
     if (typeof window !== 'undefined') {

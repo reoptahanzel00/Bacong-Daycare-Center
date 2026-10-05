@@ -8,7 +8,8 @@ import { useModalA11y } from '@/hooks/useModalA11y';
 interface ChildBackgroundModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>) => void;
+  /** Resolves true when saved; the modal closes itself only then. */
+  onSave: (fields: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>>) => Promise<boolean>;
   initial?: ChildBackground | null;
   childName?: string;
 }
@@ -58,25 +59,36 @@ export default function ChildBackgroundModal({
     return out;
   });
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const dialogProps = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Mount this component per child and per opening (a `key` at the call
+  // site): the form state is seeded from `initial` once, at mount.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const hasAny = FIELDS.some((f) => formData[f.key]?.trim());
     if (!hasAny) {
       setError('Please fill in at least one field — or close the form if there is nothing to share yet.');
       return;
     }
+    // Every field is sent: an emptied field is cleared (null), and the server
+    // keeps any field a request leaves out.
     const payload: Partial<Omit<ChildBackground, 'pupil_id' | 'updated_by' | 'updated_at'>> = {};
     for (const f of FIELDS) {
-      const v = formData[f.key]?.trim();
-      if (v) payload[f.key] = v;
+      payload[f.key] = formData[f.key]?.trim() || null;
     }
-    onSave(payload);
-    onClose();
+    setSaving(true);
+    setError('');
+    try {
+      const saved = await onSave(payload);
+      if (!saved) setError('Not saved. Your text is still here — please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -123,8 +135,8 @@ export default function ChildBackgroundModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {FIELDS.map((field) => (
             <div key={field.key} className="space-y-1.5">
-              <label htmlFor="srccomponentschildbackgroundmodal-field-1" className="text-xs font-bold text-ink block">{field.label}</label>
-              <textarea id="srccomponentschildbackgroundmodal-field-1"
+              <label htmlFor={`child-background-${field.key}`} className="text-xs font-bold text-ink block">{field.label}</label>
+              <textarea id={`child-background-${field.key}`}
                 value={formData[field.key]}
                 onChange={(e) => setFormData((prev) => ({ ...prev, [field.key]: e.target.value }))}
                 placeholder={field.placeholder}
@@ -146,11 +158,12 @@ export default function ChildBackgroundModal({
             </button>
             <button
               type="submit"
+              disabled={saving}
               className="px-4 py-2 rounded-2xl text-xs font-bold text-white bg-primary hover:bg-primary-hover border-none cursor-pointer shadow-md transition-all flex items-center gap-1.5"
               suppressHydrationWarning
             >
               <Save size={14} />
-              Save Background
+              {saving ? 'Saving…' : 'Save Background'}
             </button>
           </div>
         </form>

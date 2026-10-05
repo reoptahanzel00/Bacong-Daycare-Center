@@ -19,6 +19,7 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
   const [role, setRole] = useState<'worker' | 'parent'>('worker');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const dialogProps = useModalA11y(isOpen, onClose);
 
@@ -32,11 +33,22 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
     const digits = '23456789';
     const symbols = '!@#$%^&*';
     const all = upper + lower + digits + symbols;
-    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+    // Cryptographic randomness: this becomes someone's real password.
+    const randomIndex = (n: number) => {
+      const buf = new Uint32Array(1);
+      crypto.getRandomValues(buf);
+      return buf[0] % n;
+    };
+    const pick = (set: string) => set[randomIndex(set.length)];
     // Guarantee one of each required class, then pad with random characters.
     const base = [pick(upper), pick(lower), pick(digits), pick(symbols)];
     for (let i = 0; i < 8; i++) base.push(pick(all));
-    setPassword(base.sort(() => Math.random() - 0.5).join(''));
+    // Fisher-Yates shuffle; sort() with a random comparator is biased.
+    for (let i = base.length - 1; i > 0; i--) {
+      const j = randomIndex(i + 1);
+      [base[i], base[j]] = [base[j], base[i]];
+    }
+    setPassword(base.join(''));
     setError('');
   };
 
@@ -51,7 +63,9 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
       return;
     }
 
+    if (submitting) return;
     setError('');
+    setSubmitting(true);
 
     try {
       const response = await fetch('/api/users/create', {
@@ -72,31 +86,27 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
         return;
       }
 
-      const payload = {
-        id: resData.user?.id || `USR-${Date.now().toString().slice(-4)}`,
-        name,
-        email,
-        role,
-        status: 'active',
-        createdAt: todayLocalISO()
-      };
-
-      onSave(payload);
-      setName('');
-      setEmail('');
-      setError('');
-      onClose();
-    } catch {
-      setError('Network error while provisioning account. Saved locally.');
       onSave({
-        id: `USR-${Date.now().toString().slice(-4)}`,
+        id: resData.user.id,
         name,
         email,
         role,
         status: 'active',
         createdAt: todayLocalISO()
       });
+      // Clear everything, the password included, so the next account never
+      // inherits this person's temporary password.
+      setName('');
+      setEmail('');
+      setPassword('');
+      setError('');
       onClose();
+    } catch {
+      // No account was confirmed, so nothing is added to the list: a network
+      // failure used to add a made-up user and report it as created.
+      setError('Network error — the account was NOT created. Check the connection and try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -209,11 +219,12 @@ export default function UserModal({ isOpen, onClose, onSave }: UserModalProps) {
             </button>
             <button
               type="submit"
+              disabled={submitting}
               className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-primary hover:bg-primary-hover transition-all flex items-center gap-2 shadow-md cursor-pointer border-none"
               suppressHydrationWarning
             >
               <Save size={16} />
-              <span>Create Account</span>
+              <span>{submitting ? 'Creating…' : 'Create Account'}</span>
             </button>
           </div>
         </form>
