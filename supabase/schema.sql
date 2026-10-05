@@ -19,19 +19,6 @@ CREATE TABLE IF NOT EXISTS school_years (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 1b. Centre Settings (single row)
--- DSWD Form 1 is signed and submitted; the officials named on it change with
--- elections, so they live in a row an admin edits rather than in a deploy.
--- The boolean primary key with a CHECK makes a second row impossible.
-CREATE TABLE IF NOT EXISTS center_settings (
-  id BOOLEAN PRIMARY KEY DEFAULT true CHECK (id),
-  center_name TEXT NOT NULL DEFAULT 'Barangay Bacong Daycare Center',
-  daycare_worker_name TEXT NOT NULL DEFAULT '',
-  barangay_captain_name TEXT NOT NULL DEFAULT '',
-  updated_by UUID REFERENCES users(id),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 -- 2. System Users Table (Extends Supabase Auth users)
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -58,6 +45,21 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 2b. Centre Settings (single row) -- after users, which it references
+-- DSWD Form 1 is signed and submitted; the officials named on it change with
+-- elections, so they live in a row an admin edits rather than in a deploy.
+-- The boolean primary key with a CHECK makes a second row impossible.
+CREATE TABLE IF NOT EXISTS center_settings (
+  id BOOLEAN PRIMARY KEY DEFAULT true CHECK (id),
+  center_name TEXT NOT NULL DEFAULT 'Barangay Bacong Daycare Center',
+  daycare_worker_name TEXT NOT NULL DEFAULT '',
+  barangay_captain_name TEXT NOT NULL DEFAULT '',
+  updated_by UUID REFERENCES users(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO center_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 
 -- 3. Pupils Registry Table
 CREATE TABLE IF NOT EXISTS pupils (
@@ -294,7 +296,10 @@ CREATE TABLE IF NOT EXISTS eccd_item_comments (
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('enrollment-docs', 'enrollment-docs', false, 5242880,
         ARRAY['application/pdf', 'image/jpeg', 'image/png'])
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+  SET public = false,
+      file_size_limit = EXCLUDED.file_size_limit,
+      allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- ==========================================================================
 -- COMPOSITE INDEXES FOR HIGH-FREQUENCY QUERIES
@@ -305,6 +310,16 @@ CREATE INDEX IF NOT EXISTS idx_attendance_pupil_date ON attendance(pupil_id, dat
 CREATE INDEX IF NOT EXISTS idx_attendance_date_status ON attendance(date, status);
 CREATE INDEX IF NOT EXISTS idx_guardians_user_id ON guardians(user_id);
 CREATE INDEX IF NOT EXISTS idx_progress_pupil_domain ON progress_observations(pupil_id, domain_id);
+CREATE INDEX IF NOT EXISTS idx_users_email_verification_token_hash
+    ON users (email_verification_token_hash)
+ WHERE email_verification_token_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_parent_notes_user_id ON parent_notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_parent_notes_pupil_id ON parent_notes(pupil_id, excuse_no);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC);
+
+ALTER TABLE eccd_scores DROP CONSTRAINT IF EXISTS eccd_scores_round_check;
+ALTER TABLE eccd_scores ADD CONSTRAINT eccd_scores_round_check
+  CHECK (evaluation_round BETWEEN 1 AND 3);
 
 -- ==========================================================================
 -- ROW-LEVEL SECURITY (RLS) POLICIES
@@ -322,8 +337,11 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT role FROM public.users WHERE id = auth.uid()
+  SELECT role FROM public.users WHERE id = auth.uid() AND status = 'active'
 $$;
+
+-- Fails closed: a disabled account resolves to NULL and matches no policy.
+REVOKE EXECUTE ON FUNCTION public.current_user_role() FROM anon;
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pupils ENABLE ROW LEVEL SECURITY;
@@ -537,6 +555,10 @@ CREATE POLICY "Notifications UPDATE Own" ON notifications
   USING (recipient_user_id = auth.uid())
   WITH CHECK (recipient_user_id = auth.uid());
 
+-- The feed may mark an alert read, never rewrite what it says.
+REVOKE UPDATE ON notifications FROM authenticated;
+GRANT UPDATE (read) ON notifications TO authenticated;
+
 -- Parent notes, ECCD scores, evaluations, item comments and child backgrounds
 -- carry SELECT policies only (defined above): parents read their own or their
 -- linked children's rows, staff read all, and the read paths in the API use
@@ -605,3 +627,34 @@ CREATE TRIGGER trg_assign_excuse_no
 BEFORE INSERT ON parent_notes
 FOR EACH ROW
 EXECUTE FUNCTION assign_excuse_no();
+
+-- ==========================================================================
+-- updated_at MAINTENANCE
+-- ==========================================================================
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'users', 'center_settings', 'eccd_scores', 'child_backgrounds',
+    'sociodemographic_profiles', 'eccd_evaluations', 'eccd_item_comments'
+  ]
+  LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_set_updated_at ON public.%I', t);
+    EXECUTE format(
+      'CREATE TRIGGER trg_set_updated_at BEFORE UPDATE ON public.%I '
+      'FOR EACH ROW EXECUTE FUNCTION public.set_updated_at()', t);
+  END LOOP;
+END;
+$$;
