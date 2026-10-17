@@ -27,6 +27,17 @@ for (const { role, email } of ROLES) {
     await page.getByLabel(/^password$/i).fill(password!);
     await page.getByRole('button', { name: /sign in/i }).click();
 
+    // A parent whose stored consent predates the current privacy notice (the
+    // seed script records 'e2e-seed') is sent to the notice first, and the
+    // portal opens only after agreeing. Walk that path so the session saved
+    // below is a working portal session.
+    if (role === 'parent') {
+      await page.waitForURL(/\/(privacy\?consent=required)?$/, { timeout: 15000 });
+      if (page.url().includes('/privacy')) {
+        await page.getByRole('button', { name: /I have read this notice and I agree/i }).click();
+      }
+    }
+
     // The app routes to the role's portal once the server profile resolves.
     await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
 
