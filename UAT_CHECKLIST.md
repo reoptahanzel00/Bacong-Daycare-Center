@@ -7,7 +7,8 @@ the operational notes for whoever runs it day to day.
 
 ## 1. Test Accounts
 
-All test accounts use the password set at creation (`Password123!` unless changed).
+Passwords are given to testers in person by the system owner. Never write a password in
+this repository: it is public, and these accounts sign in to the live system.
 
 | Role | Email | Sees |
 |---|---|---|

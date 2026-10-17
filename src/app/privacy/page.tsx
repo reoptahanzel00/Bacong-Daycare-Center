@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
+import { parentNeedsConsent } from '@/lib/auth';
+import ConsentPrompt from '@/components/ConsentPrompt';
 
 
 /**
@@ -26,6 +28,11 @@ const NOTICE_BODY: Array<{ heading: string; body: string }> = [
       "Your child's full name, date of birth, sex, and home address; your name, relationship to the child, and contact number; the sociodemographic details of the ECCD Form (parents' names, ages, occupations and education, number of siblings, birth order); daily attendance records; parents' absence notes; and developmental observations against the DSWD ECCD checklist, including the Child & Family Background notes of the ECCD form.",
   },
   {
+    heading: 'Health information and the birth certificate',
+    body:
+      "When you enroll your child we also ask for any illness or medical condition, whether your child has special needs and what they are, and a copy of your child's birth certificate (PDF, JPG or PNG). Health information is sensitive personal information under the Data Privacy Act, so it is collected only with your consent and only to care for your child safely and to plan for any special needs. The birth certificate is used only to confirm your child's identity and age (3 years 1 month to 5 years). It is kept in private storage that no one can browse, and it is opened only by the Daycare Worker, or by you, through a link that expires after 10 minutes.",
+  },
+  {
     heading: 'Why we collect it',
     body:
       'To enrol your child in the Barangay Bacong Daycare Center, keep the daily attendance register, record developmental progress against the ECCD checklist, and produce the reports that the Barangay and the Department of Social Welfare and Development (DSWD) require under the Early Childhood Care and Development Act (RA 8980) and its implementing rules.',
@@ -33,7 +40,7 @@ const NOTICE_BODY: Array<{ heading: string; body: string }> = [
   {
     heading: 'Who can see it',
     body:
-      'The Daycare Worker can see your child\'s full record. Reports sent to the Barangay and DSWD contain counts only, never an individual child\'s record. Other parents cannot see your child\'s record. Access is enforced by the database itself, not only by the application screens.',
+      "The Daycare Worker can see your child's full record, including the health information and the birth certificate. You can see the records of your own children only, and other parents cannot see your child's record. The DSWD Form 1 that the Daycare Worker submits to the Barangay and DSWD contains summary counts and a list of the enrolled children with each child's Student ID, name, sex, date of birth, guardian contact, and enrollment status; it does not include health information, birth certificates, attendance by child, or ECCD results. Access is enforced by the database itself, not only by the application screens.",
   },
   {
     heading: 'How long we keep it',
@@ -47,7 +54,17 @@ const NOTICE_BODY: Array<{ heading: string; body: string }> = [
   },
 ];
 
-export default function PrivacyPage() {
+export default async function PrivacyPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // The root page sends a parent here with ?consent=required when the notice
+  // changed since they agreed. The prompt is shown only if that is still true
+  // for the signed-in account, so the query string alone cannot conjure it.
+  const { consent } = await searchParams;
+  const askForConsent = consent === 'required' && (await parentNeedsConsent());
+
   return (
     <div className="min-h-screen bg-canvas py-10 px-4">
       <div className="max-w-2xl mx-auto bg-white rounded-3xl border border-line shadow-sm p-8 space-y-6">
@@ -72,6 +89,8 @@ export default function PrivacyPage() {
             </section>
           ))}
         </div>
+
+        {askForConsent && <ConsentPrompt version={PRIVACY_NOTICE_VERSION} />}
 
         <div className="pt-4 border-t border-line flex items-center justify-between gap-4">
           <span className="text-[11px] text-ink-subtle">Version: {PRIVACY_NOTICE_VERSION}</span>

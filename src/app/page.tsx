@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import AppShell from './AppShell';
 import { loadInitialAppData } from '@/lib/initialData';
+import { parentNeedsConsent } from '@/lib/auth';
 
 /**
  * Root page — a server component.
@@ -27,6 +28,12 @@ export default async function Home() {
   // The middleware already redirects unauthenticated visitors; this is the
   // server-side backstop for a session that resolves to no provisioned role.
   if (isConfigured && !initial.role) redirect('/login');
+
+  // RA 10173: a parent who agreed to an older privacy notice reads and agrees
+  // to the current one before the portal opens.
+  if (isConfigured && initial.role === 'parent' && (await parentNeedsConsent())) {
+    redirect('/privacy?consent=required');
+  }
 
   return <AppShell initial={initial} />;
 }

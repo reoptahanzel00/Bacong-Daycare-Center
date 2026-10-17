@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import type { UserRole } from '@/contexts/DaycareContext';
+import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 
 const VALID_ROLES: UserRole[] = ['worker', 'parent'];
 
@@ -58,6 +59,33 @@ export async function getServerSession(): Promise<AuthSession> {
     // Supabase unavailable or query failed: fail closed. Never authorize a
     // request without a verified session and role.
     return unauthenticated();
+  }
+}
+
+/**
+ * True when the signed-in parent has not agreed to the current privacy notice:
+ * either they consented to an older version, or there is no record of consent.
+ *
+ * RA 10173 consent has to be informed, so when the notice changes materially
+ * (PRIVACY_NOTICE_VERSION is bumped) a parent who agreed to the old wording is
+ * shown the new one before the portal opens. Staff are not asked; the notice is
+ * addressed to parents. Fails closed: if the record cannot be read, consent is
+ * treated as missing rather than assumed.
+ */
+export async function parentNeedsConsent(): Promise<boolean> {
+  const session = await getServerSession();
+  if (!session.isAuthenticated || session.role !== 'parent' || !session.userId) return false;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('users')
+      .select('privacy_consent_version')
+      .eq('id', session.userId)
+      .maybeSingle();
+    if (error) return true;
+    return data?.privacy_consent_version !== PRIVACY_NOTICE_VERSION;
+  } catch {
+    return true;
   }
 }
 

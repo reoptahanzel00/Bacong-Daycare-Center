@@ -66,6 +66,41 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(400);
   });
 
+  // The stored consent version is the record of what the parent agreed to, so
+  // the server accepts only the notice published now, not whatever was sent.
+  test('POST /api/auth/signup with an outdated privacy notice version is rejected', async ({ request }) => {
+    const response = await request.post('/api/auth/signup', {
+      headers: freshIpHeaders(),
+      data: {
+        role: 'parent',
+        lastName: 'Parent',
+        firstName: 'Test',
+        email: 'oldnotice@example.com',
+        password: 'Str0ngPass1',
+        consentAccepted: true,
+        consentVersion: 'v1.0-2026-09-16',
+      },
+    });
+    expect(response.status()).toBe(400);
+    const body = await response.json();
+    const paths = (body.error as Array<{ path: string[] }>).map((issue) => issue.path.join('.'));
+    expect(paths).toContain('consentVersion');
+  });
+
+  test('unauthenticated POST /api/auth/consent is rejected with 401', async ({ request }) => {
+    const response = await request.post('/api/auth/consent', { data: { consentVersion: 'anything' } });
+    expect(response.status()).toBe(401);
+  });
+
+  // The notice must name the sensitive data the enrollment form collects, and
+  // the agree button appears only for a signed-in parent who still owes consent,
+  // never because of the query string alone.
+  test('privacy notice covers health data; consent prompt needs a session', async ({ page }) => {
+    await page.goto('/privacy?consent=required');
+    await expect(page.getByRole('heading', { name: 'Health information and the birth certificate' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /I have read this notice and I agree/i })).toHaveCount(0);
+  });
+
   test('repeated sign-in attempts from one IP are rate limited with 429', async ({ request }) => {
     const headers = freshIpHeaders();
     const attempt = () =>

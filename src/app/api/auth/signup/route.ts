@@ -7,6 +7,7 @@ import { recordAudit } from '@/lib/audit';
 import { sendVerificationEmail, appOrigin } from '@/lib/emailVerification';
 import { enrollmentAgeError, formatFullName } from '@/lib/enrollment';
 import { createBirthCertUploadUrl } from '@/lib/enrollmentDocs';
+import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 
 const SignupSchema = z.object({
   role: z.enum(['worker', 'parent']).default('parent'),
@@ -21,7 +22,11 @@ const SignupSchema = z.object({
   consentAccepted: z.literal(true, {
     errorMap: () => ({ message: 'Consent to the Privacy Notice is required to create an account.' }),
   }),
-  consentVersion: z.string().min(1).max(60),
+  // Must be the notice published right now: the version is stored as the
+  // record of what the parent agreed to, so it cannot be whatever the client sent.
+  consentVersion: z.literal(PRIVACY_NOTICE_VERSION, {
+    errorMap: () => ({ message: 'The Privacy Notice has been updated. Please reload the page and review it again.' }),
+  }),
 });
 
 /** Per-child sociodemographic profile (ECCD Form Section 1) at signup. */

@@ -9,4 +9,4 @@
  * component: importing it from the page would pull that server component into
  * the client bundle.
  */
-export const PRIVACY_NOTICE_VERSION = 'v1.0-2026-09-16';
+export const PRIVACY_NOTICE_VERSION = 'v1.1-2026-10-17';
