@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, BellRing, School, LogOut, Menu } from 'lucide-react';
+import { Search, Bell, BellRing, School, LogOut, Menu, KeyRound } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
+import ChangePasswordModal from '@/components/ChangePasswordModal';
 import type { Notification } from '@/services/notificationService';
 import { createClient } from '@/lib/supabase/client';
 import { clearStoredData } from '@/data/mockData';
@@ -34,6 +35,7 @@ export default function Header({
     timeZone: CENTER_TIMEZONE,
   });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
@@ -150,6 +152,19 @@ export default function Header({
           )}
         </button>
 
+        {/* Change Password */}
+        <button
+          type="button"
+          onClick={() => setIsChangePasswordOpen(true)}
+          aria-haspopup="dialog"
+          aria-label="Change password"
+          title="Change password"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-canvas hover:bg-line-strong text-ink-soft border border-line text-xs font-bold transition-all cursor-pointer"
+        >
+          <KeyRound size={15} />
+          <span className="hidden md:inline">Change password</span>
+        </button>
+
         {/* Logout Button */}
         <button
           onClick={async () => {
@@ -179,6 +194,11 @@ export default function Header({
         onClose={() => setIsDrawerOpen(false)}
         notifications={notifications}
         onMarkAllAsRead={handleMarkAllAsRead}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
     </header>
   );

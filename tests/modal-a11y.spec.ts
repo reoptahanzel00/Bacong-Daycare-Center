@@ -34,6 +34,7 @@ async function focusedDescription(page: Page): Promise<string> {
 const MODALS = [
   { name: 'Enrol pupil', opener: /enroll pupil/i },
   { name: 'DSWD report', opener: /dswd pdf report/i },
+  { name: 'Change password', opener: /change password/i },
 ] as const;
 
 test.describe('Modal accessibility', () => {

@@ -87,6 +87,14 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(paths).toContain('consentVersion');
   });
 
+  test('unauthenticated POST /api/auth/change-password is rejected with 401', async ({ request }) => {
+    const response = await request.post('/api/auth/change-password', {
+      headers: freshIpHeaders(),
+      data: { currentPassword: 'Whatever1', newPassword: 'Str0ngPass1' },
+    });
+    expect(response.status()).toBe(401);
+  });
+
   test('unauthenticated POST /api/auth/consent is rejected with 401', async ({ request }) => {
     const response = await request.post('/api/auth/consent', { data: { consentVersion: 'anything' } });
     expect(response.status()).toBe(401);
