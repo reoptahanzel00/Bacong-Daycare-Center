@@ -121,6 +121,25 @@ test.describe('Modal accessibility', () => {
     }
   });
 
+  test('Change password: the overlay covers the whole viewport and the form is reachable', async ({ page }) => {
+    // The modal is opened from inside the Header, whose backdrop-blur made the
+    // header the containing block for `position: fixed`: the overlay shrank to
+    // the header strip and the form ran off the top of the screen.
+    await page.getByRole('button', { name: /change password/i }).first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 15000 });
+
+    const viewport = page.viewportSize()!;
+    const box = (await dialog.boundingBox())!;
+    expect(box.y).toBe(0);
+    expect(box.height).toBeGreaterThanOrEqual(viewport.height - 1);
+
+    for (const field of ['Current password', 'New password', 'Confirm new password']) {
+      await expect(page.getByLabel(field, { exact: true })).toBeInViewport();
+    }
+    await expect(dialog.getByRole('button', { name: 'Change Password' })).toBeInViewport();
+  });
+
   test('every icon-only close control has an accessible name', async ({ page }) => {
     await page.getByRole('button', { name: /enroll pupil/i }).first().click();
     const dialog = page.getByRole('dialog');

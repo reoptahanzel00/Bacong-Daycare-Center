@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, KeyRound, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import { checkPassword, PASSWORD_RULES } from '@/lib/password';
@@ -78,7 +79,11 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     }
   };
 
-  return (
+  // Portalled to <body>: the Header that opens this has backdrop-blur, and a
+  // backdrop-filter makes an element the containing block for its `fixed`
+  // descendants, so rendered in place the overlay was confined to the header
+  // strip and the form ran off the top of the screen.
+  return createPortal(
     <div {...dialogProps} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
       <div className="bg-white rounded-3xl shadow-2xl border border-line w-full max-w-md p-6 space-y-5 animate-scaleUp">
         <div className="flex items-center justify-between border-b border-line pb-4">
@@ -146,6 +151,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
