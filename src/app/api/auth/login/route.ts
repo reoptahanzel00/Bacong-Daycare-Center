@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
 import { createClient } from '@/lib/supabase/server';
 import { recordAudit } from '@/lib/audit';
+import { parseIdentifier } from '@/lib/identifier';
 
 const LoginSchema = z
   .object({
@@ -13,9 +14,6 @@ const LoginSchema = z
     password: z.string().min(1, 'Password is required'),
   })
   .refine((b) => Boolean(b.identifier || b.email), { message: 'Email or Student ID is required' });
-
-const STUDENT_ID = /^PUP-\d{4}-[A-Z0-9]+$/i;
-const EMAIL = z.string().email();
 
 const RATE_LIMIT = 10; // per window
 const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -28,14 +26,17 @@ const INVALID = 'Invalid email, Student ID or password. Please check your creden
  * Read with the service role because the visitor has no session yet; nothing
  * about the lookup is returned to them.
  */
-async function candidateEmails(identifier: string): Promise<string[]> {
-  if (STUDENT_ID.test(identifier)) {
+async function candidateEmails(raw: string): Promise<string[]> {
+  // Cleaned here as well as in the form: older clients and direct API calls
+  // send the text as typed.
+  const identifier = parseIdentifier(raw);
+  if (identifier.kind === 'student_id') {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const admin = createAdminClient();
     const { data: guardians } = await admin
       .from('guardians')
       .select('user_id')
-      .eq('pupil_id', identifier.toUpperCase())
+      .eq('pupil_id', identifier.value)
       .not('user_id', 'is', null);
     const userIds = [...new Set((guardians || []).map((g) => g.user_id as string))];
     if (userIds.length === 0) return [];
@@ -46,7 +47,7 @@ async function candidateEmails(identifier: string): Promise<string[]> {
       .eq('role', 'parent');
     return (users || []).map((u) => u.email.toLowerCase());
   }
-  return EMAIL.safeParse(identifier).success ? [identifier.toLowerCase()] : [];
+  return identifier.kind === 'email' ? [identifier.value] : [];
 }
 
 /**

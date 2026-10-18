@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
+import { emailField } from '@/lib/identifier';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
 
@@ -9,7 +10,7 @@ const LinkParentSchema = z.object({
   guardian_id: z.string().uuid('Guardian ID must be a valid UUID'),
   mode: z.enum(['existing', 'create']),
   // existing mode
-  email: z.string().email('Invalid email address').optional(),
+  email: emailField.optional(),
   // create mode
   password: passwordSchema.optional(),
 });

@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
+import { emailField } from '@/lib/identifier';
 import { getServerSession, authorizeRole } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { recordAudit } from '@/lib/audit';
 
 const CreateUserSchema = z.object({
   fullName: z.string().min(1, 'Full name is required').max(100),
-  email: z.string().email('Invalid email address'),
+  email: emailField,
   role: z.enum(['worker', 'parent']),
   phone: z.string().max(20).optional(),
   password: passwordSchema,

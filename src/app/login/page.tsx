@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { School, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { checkPassword } from '@/lib/password';
+import { parseIdentifier, normalizeEmail } from '@/lib/identifier';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
 import { clearStoredData } from '@/data/mockData';
 import { errorText } from '@/lib/apiError';
@@ -135,6 +136,11 @@ export default function AuthPage() {
   const [resetSent, setResetSent] = useState(false);
   // Set when /auth/verify-email redirects back after a confirmation attempt.
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  // Browser and password-manager autofill can fill these boxes without a
+  // change event, leaving state empty or stale while the box looks complete.
+  // Both actions read the box itself, so they act on what the person sees.
+  const identifierRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   // Create-account state
   const [createRole, setCreateRole] = useState<UserRole>('parent');
@@ -200,14 +206,26 @@ export default function AuthPage() {
     setChildren((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   };
 
+  /** The identifier as the box shows it, cleaned, and written back so the person sees what is used. */
+  const readIdentifier = () => {
+    const parsed = parseIdentifier(identifierRef.current?.value ?? email);
+    setEmail(parsed.value);
+    return parsed;
+  };
+
   const handleForgotPassword = async () => {
-    if (!email.trim()) {
+    const id = readIdentifier();
+    if (!id.value) {
       setErrorMessage('Enter your email address first.');
       return;
     }
-    if (!email.includes('@')) {
+    if (id.kind === 'student_id') {
       // A Student ID signs in, but reset links go to the account's email.
       setErrorMessage('To reset your password, enter your email address instead of the Student ID.');
+      return;
+    }
+    if (id.kind === 'invalid') {
+      setErrorMessage('That email address looks incomplete. Check that it has an @ and a domain, like name@gmail.com.');
       return;
     }
     setLoading(true);
@@ -215,7 +233,7 @@ export default function AuthPage() {
       const supabase = createClient();
       // Without redirectTo the link lands on the Supabase Site URL, where
       // nothing consumes the PKCE code and the reset silently does nothing.
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(id.value, {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
       if (error) {
@@ -234,8 +252,21 @@ export default function AuthPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage(null);
+    const id = readIdentifier();
+    const typedPassword = passwordRef.current?.value ?? password;
+    if (typedPassword !== password) setPassword(typedPassword);
+    if (!id.value || !typedPassword) {
+      setErrorMessage('Enter your email or Student ID and your password.');
+      return;
+    }
+    // Only the format is checked here, which says nothing about whether an
+    // account exists, so it is safe to be specific.
+    if (id.kind === 'invalid') {
+      setErrorMessage("Enter a complete email address (like name@gmail.com) or your child's Student ID (like PUP-2026-1A2B3C4D).");
+      return;
+    }
+    setLoading(true);
 
     try {
       // Server-side sign-in: rate-limited and returns the verified profile/role.
@@ -243,8 +274,8 @@ export default function AuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          identifier: email.trim(),
-          password: password,
+          identifier: id.value,
+          password: typedPassword,
         }),
       });
       const data = await res.json();
@@ -342,7 +373,7 @@ export default function AuthPage() {
           firstName: guardianFirst.trim(),
           middleName: guardianMiddle.trim() || null,
           phone: phone.trim(),
-          email: createEmail.trim(),
+          email: normalizeEmail(createEmail),
           password: createPassword,
           consentAccepted,
           consentVersion: PRIVACY_NOTICE_VERSION,
@@ -512,6 +543,7 @@ export default function AuthPage() {
                 <div>
                   <label htmlFor="srcapploginpage-email-address-1" className="block text-xs font-bold text-ink mb-1.5">Email or Student ID</label>
                   <input id="srcapploginpage-email-address-1"
+                    ref={identifierRef}
                     type="text"
                     required
                     autoComplete="username"
@@ -532,7 +564,9 @@ export default function AuthPage() {
                   <label htmlFor="srcapploginpage-password-2" className="block text-xs font-bold text-ink mb-1.5">Password</label>
                   <div className="relative">
                     <input id="srcapploginpage-password-2"
+                      ref={passwordRef}
                       type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

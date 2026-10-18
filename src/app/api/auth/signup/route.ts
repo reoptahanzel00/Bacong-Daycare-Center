@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/password';
+import { emailField } from '@/lib/identifier';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
 import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
@@ -14,7 +15,7 @@ const SignupSchema = z.object({
   lastName: z.string().trim().min(1, 'Guardian last name is required').max(100),
   firstName: z.string().trim().min(1, 'Guardian first name is required').max(100),
   middleName: z.string().trim().max(100).optional().nullable(),
-  email: z.string().email('Invalid email address'),
+  email: emailField,
   password: passwordSchema,
   phone: z.string().max(20).optional(),
   // RA 10173: consent is a precondition, not a preference. The client hides the
@@ -170,7 +171,9 @@ export async function POST(request: Request) {
       // whether an email address is already registered (account enumeration).
       console.warn('[Signup API] Auth error:', authError.message);
       return NextResponse.json(
-        { error: 'Unable to create the account. Please check your details or contact the Daycare Worker.' },
+        // The most common cause is an email that already has an account, so
+        // point to the way back in without confirming that it does.
+        { error: 'Unable to create the account. If you have registered with this email before, use Sign In or "Forgot password?" instead. Otherwise check your details or contact the Daycare Worker.' },
         { status: 400 }
       );
     }
