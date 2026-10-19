@@ -31,7 +31,7 @@ function AppContent() {
     pupils, attendance, progress, users, auditLogs,
     handleSavePupil, handleArchivePupil, handleEditPupil, handleSaveAttendance,
     handleSaveProgress, handleSaveUser, handleToggleUserStatus,
-    toast, setToast,
+    toast, setToast, showToast,
     isMobileNavOpen, setIsMobileNavOpen,
     isPupilModalOpen, setIsPupilModalOpen, pupilToEdit, setPupilToEdit,
     isProgressModalOpen, setIsProgressModalOpen,
@@ -56,6 +56,8 @@ function AppContent() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenMobileNav={() => setIsMobileNavOpen(true)}
+        onNavigate={setActiveTab}
+        onNewNotification={(message) => showToast(message, 'info')}
       />
 
       {/* Mobile navigation drawer overlay */}

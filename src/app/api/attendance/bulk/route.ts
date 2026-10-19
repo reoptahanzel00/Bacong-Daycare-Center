@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       // may kill once the response is sent.
       after(async () => {
         try {
-          const { notifyUsers, guardianUserIdsForPupils } = await import('@/lib/notify');
+          const { notifyUsers, guardianUserIdsForPupils, activeWorkerTargets } = await import('@/lib/notify');
 
           const { data: affected } = await admin
             .from('pupils')
@@ -146,6 +146,17 @@ export async function POST(request: Request) {
           // guardians told each recipient the first name and the absence count of
           // every other child in the batch - other people's children.
           for (const pupil of alertPupils) {
+            // The workers get their own copy, worded as a follow-up task: the
+            // alert used to reach only the family, so the centre had no
+            // reminder to call home - and nobody at all heard about a child
+            // whose guardian has no linked account.
+            await notifyUsers(await activeWorkerTargets(admin, pupil.id), {
+              type: 'consecutive_absences',
+              title: 'Absence follow-up',
+              message: `${pupil.first_name} has ${pupil.consecutive_absences} consecutive absences. Please contact the family.`,
+              severity: 'high',
+            });
+
             const targets = await guardianUserIdsForPupils(admin, [pupil.id]);
             if (targets.length === 0) continue;
             await notifyUsers(targets, {

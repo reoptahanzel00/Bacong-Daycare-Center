@@ -4,7 +4,7 @@ import { getServerSession, authorizeRole } from '@/lib/auth';
 import { enrollmentAgeError } from '@/lib/enrollment';
 import { todayLocalISO } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
-import { notifyUsers } from '@/lib/notify';
+import { notifyUsers, activeWorkerTargets } from '@/lib/notify';
 
 const ResubmitSchema = z.object({
   pupil_id: z.string().regex(/^PUP-\d{4}-[A-Z0-9]{4,12}$/, 'Invalid pupil ID'),
@@ -112,13 +112,8 @@ export async function POST(request: Request) {
       .eq('pupil_id', parsed.pupil_id);
     if (profileError) console.warn('[Resubmit API] profile update warning:', profileError.message);
 
-    const { data: workers } = await admin
-      .from('users')
-      .select('id')
-      .eq('role', 'worker')
-      .eq('status', 'active');
     await notifyUsers(
-      (workers || []).map((w) => ({ user_id: w.id, pupil_id: parsed.pupil_id })),
+      await activeWorkerTargets(admin, parsed.pupil_id),
       {
         type: 'enrollment',
         title: 'Enrollment resubmitted',

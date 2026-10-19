@@ -74,6 +74,27 @@ export async function notifyUsers(targets: NotifyTarget[], payload: NotifyPayloa
   }
 }
 
+/**
+ * Every active Daycare Worker, addressed about one pupil. Workers share one
+ * queue, so whatever needs a worker's attention goes to all of them; a
+ * deactivated account is left out so its feed does not keep filling up.
+ */
+export async function activeWorkerTargets(
+  admin: SupabaseClient,
+  pupilId?: string
+): Promise<NotifyTarget[]> {
+  const { data, error } = await admin
+    .from('users')
+    .select('id')
+    .eq('role', 'worker')
+    .eq('status', 'active');
+  if (error) {
+    console.warn('[Notify] worker lookup warning:', error.message);
+    return [];
+  }
+  return (data || []).map((w) => ({ user_id: w.id as string, pupil_id: pupilId }));
+}
+
 /** Auth user ids of the guardians linked to the given pupils (user_id set). */
 export async function guardianUserIdsForPupils(
   admin: SupabaseClient,

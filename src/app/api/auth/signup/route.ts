@@ -5,6 +5,7 @@ import { emailField } from '@/lib/identifier';
 import { rateLimited, clientIp } from '@/lib/rateLimit';
 import { todayLocalISO, currentYearLocal } from '@/lib/dates';
 import { recordAudit } from '@/lib/audit';
+import { notifyUsers, activeWorkerTargets } from '@/lib/notify';
 import { sendVerificationEmail, appOrigin } from '@/lib/emailVerification';
 import { enrollmentAgeError, formatFullName } from '@/lib/enrollment';
 import { createBirthCertUploadUrl } from '@/lib/enrollmentDocs';
@@ -325,6 +326,27 @@ export async function POST(request: Request) {
     for (const pupilId of createdPupilIds) {
       const u = await createBirthCertUploadUrl(admin, pupilId);
       if (u) uploads.push({ pupilId, ...u });
+    }
+
+    // Feed entries on both sides of the new enrollment: the workers learn there
+    // is a child to verify, and the parent's bell is not empty on first sign-in.
+    // Children are saved in order and saving stops at the first failure, so
+    // createdPupilIds[i] is parsed.children[i].
+    for (const [i, pupilId] of createdPupilIds.entries()) {
+      const child = parsed.children[i];
+      const childName = `${child.firstName} ${child.lastName}`;
+      await notifyUsers(await activeWorkerTargets(admin, pupilId), {
+        type: 'enrollment',
+        title: 'New enrollment to verify',
+        message: `${fullName} registered ${childName}. The enrollment is waiting in Verify Enrollments.`,
+        severity: 'medium',
+      });
+      await notifyUsers([{ user_id: authData.user.id, pupil_id: pupilId }], {
+        type: 'enrollment',
+        title: 'Enrollment submitted',
+        message: `${childName}'s enrollment was received and is waiting for the Daycare Worker's review. You will be notified here once it is decided.`,
+        severity: 'info',
+      });
     }
 
     await recordAudit(admin, { userId: authData.user.id, email, role: 'parent' }, 'Registered parent account', createdPupilIds.join(', ') || 'No child profile saved');

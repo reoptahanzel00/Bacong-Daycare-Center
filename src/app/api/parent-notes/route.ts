@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getServerSession } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { recordAudit } from '@/lib/audit';
+import { notifyUsers, activeWorkerTargets } from '@/lib/notify';
 
 const ParentNoteSchema = z.object({
   pupil_id: z.string().min(1, 'Pupil ID is required'),
@@ -90,6 +91,22 @@ export async function POST(request: Request) {
       console.error('[API parent-notes] write failed:', error.message);
       return NextResponse.json({ error: 'Could not save the change. Please try again.' }, { status: 400 });
     }
+    // Tell the workers a letter is waiting. Without this the Parent Notes Inbox
+    // was the only place a new letter showed up, so it sat unread until someone
+    // happened to open that tab.
+    const { data: pupil } = await admin
+      .from('pupils')
+      .select('first_name, last_name')
+      .eq('id', parsed.pupil_id)
+      .maybeSingle();
+    const childName = pupil ? `${pupil.first_name} ${pupil.last_name}` : 'A pupil';
+    await notifyUsers(await activeWorkerTargets(admin, parsed.pupil_id), {
+      type: 'enrollment',
+      title: 'New excuse letter',
+      message: `${childName}'s parent sent an excuse letter for ${parsed.date}: ${parsed.reason}. Review it in the Parent Notes Inbox.`,
+      severity: 'medium',
+    });
+
     await recordAudit(admin, session, 'Submitted absence note', parsed.pupil_id, `For ${parsed.date}`);
 
     return NextResponse.json({ success: true, note: data });

@@ -1,10 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Bell, BellRing, School, LogOut, Menu, KeyRound } from 'lucide-react';
 import NotificationDrawer from '@/components/NotificationDrawer';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
-import type { Notification } from '@/services/notificationService';
+import {
+  fetchNotifications,
+  markAllRead,
+  markRead,
+  notificationTab,
+  type Notification,
+} from '@/services/notificationService';
 import { createClient } from '@/lib/supabase/client';
 import { clearStoredData } from '@/data/mockData';
 import { useRouter } from 'next/navigation';
@@ -15,13 +21,19 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onOpenMobileNav?: () => void;
+  /** Switches to a tab; used when a notification is opened. */
+  onNavigate?: (tab: string) => void;
+  /** Announces notifications that arrived since the last refresh. */
+  onNewNotification?: (message: string) => void;
 }
 
 export default function Header({
   currentRole,
   searchQuery,
   onSearchChange,
-  onOpenMobileNav
+  onOpenMobileNav,
+  onNavigate,
+  onNewNotification,
 }: HeaderProps) {
   const router = useRouter();
   // The centre's date, not the reader's. Rendered on the server too, where the
@@ -37,35 +49,99 @@ export default function Header({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
+  const [notificationsFailed, setNotificationsFailed] = useState(false);
+  // Ids already seen, so a refresh can tell which unread entries are new. Null
+  // until the first load: everything in the feed at sign-in is old news.
+  const seenIds = useRef<Set<string> | null>(null);
+  const bellArea = useRef<HTMLDivElement>(null);
+  // Held in a ref so the polling effect does not restart on every render.
+  const announceRef = useRef(onNewNotification);
   useEffect(() => {
-    let cancelled = false;
-    const loadNotifications = async () => {
-      try {
-        const { fetchNotifications: fetchNotifs } = await import('@/services/notificationService');
-        const data = await fetchNotifs();
-        if (!cancelled) setNotifications(data);
-      } catch {
-        // Fallback silent — show empty drawer
-      }
-    };
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 45000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    announceRef.current = onNewNotification;
+  }, [onNewNotification]);
+
+  const loadNotifications = useCallback(async () => {
+    const data = await fetchNotifications();
+    if (data === null) {
+      setNotificationsFailed(true);
+      setNotificationsLoaded(true);
+      return;
+    }
+    if (seenIds.current) {
+      const fresh = data.filter(n => !n.read && !seenIds.current!.has(n.id));
+      if (fresh.length === 1) announceRef.current?.(`New notification: ${fresh[0].title}`);
+      else if (fresh.length > 1) announceRef.current?.(`${fresh.length} new notifications`);
+    }
+    seenIds.current = new Set(data.map(n => n.id));
+    setNotifications(data);
+    setNotificationsFailed(false);
+    setNotificationsLoaded(true);
   }, []);
+
+  // Refresh on a timer while the tab is in view, and at once when the reader
+  // comes back to it. The old fixed 45-second poll kept running in background
+  // tabs and still left a returning worker looking at a stale bell.
+  useEffect(() => {
+    // The state is set after the fetch resolves, not synchronously in the
+    // effect body; the rule cannot see past the await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadNotifications();
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadNotifications();
+    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadNotifications();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [loadNotifications]);
+
+  // Close the drawer on Escape or a click anywhere outside the bell and drawer.
+  useEffect(() => {
+    if (!isDrawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsDrawerOpen(false);
+    };
+    const onPointer = (e: PointerEvent) => {
+      if (bellArea.current && !bellArea.current.contains(e.target as Node)) setIsDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
+  }, [isDrawerOpen]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const toggleDrawer = () => {
+    if (!isDrawerOpen) loadNotifications();
+    setIsDrawerOpen(!isDrawerOpen);
+  };
+
   const handleMarkAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    try {
-      const { markAllRead: markAll } = await import('@/services/notificationService');
-      await markAll();
-    } catch {
-      // Best-effort; the local state already reflects the read state.
+    // Best-effort; the local state already reflects the read state.
+    await markAllRead();
+  };
+
+  // Opening an entry marks it read and goes to the page it is about.
+  const handleOpenNotification = (n: Notification) => {
+    if (!n.read) {
+      setNotifications(prev => prev.map(x => (x.id === n.id ? { ...x, read: true } : x)));
+      void markRead(n.id);
+    }
+    const tab = notificationTab(n, currentRole);
+    if (tab && onNavigate) {
+      onNavigate(tab);
+      setIsDrawerOpen(false);
     }
   };
 
@@ -133,24 +209,40 @@ export default function Header({
         {/* A button, not a div: the bell was unreachable by keyboard and
             announced as nothing, so notifications - including absence alerts -
             could only be opened with a mouse. */}
-        <button
-          type="button"
-          onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          aria-haspopup="dialog"
-          aria-expanded={isDrawerOpen}
-          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
-          className="relative cursor-pointer p-2 rounded-xl bg-canvas hover:bg-line-strong transition-all border border-line"
-          title="Notifications"
-        >
-          {unreadCount > 0
-            ? <BellRing size={18} className="text-accent-coral-strong" />
-            : <Bell size={18} className="text-ink-muted" />}
-          {unreadCount > 0 && (
-            <span aria-hidden="true" className="absolute -top-1 -right-1 bg-accent-coral-strong text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        {/* Bell and drawer share one wrapper so a click inside either does not
+            count as "outside" and close the drawer. Unpositioned on purpose:
+            the drawer still anchors to the header. */}
+        <div ref={bellArea}>
+          <button
+            type="button"
+            onClick={toggleDrawer}
+            aria-haspopup="dialog"
+            aria-expanded={isDrawerOpen}
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+            className="relative cursor-pointer p-2 rounded-xl bg-canvas hover:bg-line-strong transition-all border border-line"
+            title="Notifications"
+          >
+            {unreadCount > 0
+              ? <BellRing size={18} className="text-accent-coral-strong" />
+              : <Bell size={18} className="text-ink-muted" />}
+            {unreadCount > 0 && (
+              <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 bg-accent-coral-strong text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center border border-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <NotificationDrawer
+            isOpen={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+            notifications={notifications}
+            loaded={notificationsLoaded}
+            loadFailed={notificationsFailed}
+            onMarkAllAsRead={handleMarkAllAsRead}
+            onOpenNotification={handleOpenNotification}
+            canOpen={(n) => onNavigate !== undefined && notificationTab(n, currentRole) !== null}
+          />
+        </div>
 
         {/* Change Password */}
         <button
@@ -188,13 +280,6 @@ export default function Header({
         </button>
 
       </div>
-
-      <NotificationDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        notifications={notifications}
-        onMarkAllAsRead={handleMarkAllAsRead}
-      />
 
       <ChangePasswordModal
         isOpen={isChangePasswordOpen}

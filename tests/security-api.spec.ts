@@ -202,6 +202,11 @@ test.describe('API Security & Health Check Automated Tests', () => {
     expect(response.status()).toBe(401);
   });
 
+  test('unauthenticated PATCH /api/notifications/:id should be rejected with 401', async ({ request }) => {
+    const response = await request.patch('/api/notifications/00000000-0000-4000-8000-000000000000');
+    expect(response.status()).toBe(401);
+  });
+
   test('unauthenticated GET /api/progress should be rejected with 401', async ({ request }) => {
     const response = await request.get('/api/progress?pupil_id=PUP-1');
     expect(response.status()).toBe(401);
