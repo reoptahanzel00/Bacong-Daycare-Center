@@ -26,6 +26,33 @@ export default function ResetPasswordPage() {
     (async () => {
       try {
         const supabase = createClient();
+
+        // A "Forgot password?" email lands here with the recovery session in
+        // the URL fragment (implicit flow), so it works on whatever device
+        // opens it. The fragment never reaches the server; take it out of the
+        // address bar at once so the tokens are not left in history.
+        const fragment = new URLSearchParams(window.location.hash.slice(1));
+        if (fragment.size > 0) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        const accessToken = fragment.get('access_token');
+        const refreshToken = fragment.get('refresh_token');
+        if (fragment.get('error') || fragment.get('error_code')) {
+          // Supabase refused the link: expired, or already opened once.
+          if (!cancelled) setSessionState('missing');
+          return;
+        }
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!cancelled) setSessionState(sessionError ? 'missing' : 'ready');
+          return;
+        }
+
+        // A Daycare Worker's reset link, or an older emailed link, arrives via
+        // /auth/callback, which has already set the session cookie.
         const { data: { session } } = await supabase.auth.getSession();
         if (cancelled) return;
         setSessionState(session ? 'ready' : 'missing');

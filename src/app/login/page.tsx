@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { School, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, createRecoveryRequestClient } from '@/lib/supabase/client';
 import { checkPassword } from '@/lib/password';
 import { parseIdentifier, normalizeEmail } from '@/lib/identifier';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/privacyNotice';
@@ -230,11 +230,13 @@ export default function AuthPage() {
     }
     setLoading(true);
     try {
-      const supabase = createClient();
-      // Without redirectTo the link lands on the Supabase Site URL, where
-      // nothing consumes the PKCE code and the reset silently does nothing.
+      // Implicit flow, not the app's PKCE client: the link has to work in the
+      // Gmail app or on another device, which never saw this browser's cookies.
+      // It lands straight on /reset-password, which reads the session from the
+      // link. Without redirectTo it would land on the Supabase Site URL.
+      const supabase = createRecoveryRequestClient();
       const { error } = await supabase.auth.resetPasswordForEmail(id.value, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) {
         setErrorMessage(error.message);

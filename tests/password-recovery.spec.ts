@@ -45,3 +45,87 @@ test.describe('Password recovery', () => {
     await expect(page.getByText(/forgot/i).first()).toBeVisible();
   });
 });
+
+/**
+ * The reset email has to work on whatever device opens it.
+ *
+ * "Forgot password?" used the PKCE flow, which ties the emailed link to a
+ * verifier cookie in the browser that asked for it. A parent who asked on the
+ * laptop and tapped the link in the Gmail app, or on their phone, always got
+ * "That link has expired or was already used" (seen live 2026-10-19: Supabase
+ * verified the link, and the code exchange never happened). The request now
+ * uses the implicit flow, whose link carries the recovery session itself, and
+ * /reset-password takes it from the URL fragment.
+ *
+ * In the test server the browser client points at a placeholder Supabase host,
+ * so its requests can be caught here.
+ */
+test.describe('Password reset works on any device', () => {
+  const SUPABASE = 'https://placeholder.supabase.co';
+
+  /** An unsigned token in the shape supabase-js decodes; it never checks the signature. */
+  function fakeAccessToken() {
+    const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const now = Math.floor(Date.now() / 1000);
+    return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({
+      sub: '00000000-0000-4000-8000-000000000001',
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: 'parent@example.test',
+      iat: now,
+      exp: now + 3600,
+    })}.${Buffer.from('not-a-real-signature').toString('base64url')}`;
+  }
+
+  test('Forgot password asks for a link that carries its own session', async ({ page }) => {
+    const recoverRequests: Array<{ url: string; body: Record<string, unknown> }> = [];
+    await page.route(`${SUPABASE}/auth/v1/recover**`, async (route) => {
+      recoverRequests.push({ url: route.request().url(), body: JSON.parse(route.request().postData() || '{}') });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+
+    await page.goto('/login');
+    await page.getByLabel('Email or Student ID').fill('parent@example.test');
+    await page.getByRole('button', { name: /forgot password/i }).click();
+    await expect(page.getByText(/reset link sent/i)).toBeVisible();
+
+    expect(recoverRequests).toHaveLength(1);
+    // No PKCE challenge: the link must not depend on this browser's cookies.
+    expect(recoverRequests[0].body.code_challenge ?? null).toBeNull();
+    const redirectTo = new URL(recoverRequests[0].url).searchParams.get('redirect_to') ?? '';
+    expect(new URL(redirectTo).pathname).toBe('/reset-password');
+  });
+
+  test('a link opened in a fresh browser shows the new-password form', async ({ page }) => {
+    await page.route(`${SUPABASE}/auth/v1/user**`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '00000000-0000-4000-8000-000000000001',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'parent@example.test',
+          app_metadata: {},
+          user_metadata: {},
+          created_at: new Date().toISOString(),
+        }),
+      })
+    );
+
+    await page.goto(
+      `/reset-password#access_token=${fakeAccessToken()}&refresh_token=fake-refresh&expires_in=3600&token_type=bearer&type=recovery`
+    );
+    await expect(page.getByRole('button', { name: /save new password/i })).toBeVisible({ timeout: 15000 });
+    // The tokens are taken out of the address bar straight away.
+    expect(page.url()).not.toContain('access_token');
+  });
+
+  test('an expired emailed link explains itself', async ({ page }) => {
+    await page.goto(
+      '/reset-password#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired'
+    );
+    await expect(page.getByText(/expired or was already used/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /back to sign in/i })).toBeVisible();
+  });
+});
